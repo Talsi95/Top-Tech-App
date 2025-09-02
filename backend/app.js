@@ -4,13 +4,21 @@ const app = express();
 require('dotenv').config();
 const cors = require('cors');
 
-app.use(cors());
+const corsOptions = {
+    origin: 'http://localhost:5173',
+};
+
 app.use(express.json());
+app.use(cors(corsOptions));
 app.use(express.urlencoded({ extended: true }));
 
-app.get('/', (req, res) => {
-    res.send('blablablaaaa');
-})
+const productRoutes = require('./routes/products');
+const userRoutes = require('./routes/users');
+const cartRoutes = require('./routes/cart');
+
+app.use('/api/products', productRoutes);
+app.use('/api/auth', userRoutes);
+app.use('/api/cart', cartRoutes);
 
 mongoose.connect(process.env.MONGO_URI, {
 
