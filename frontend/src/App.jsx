@@ -16,24 +16,23 @@ const App = () => {
   const [showRegister, setShowRegister] = useState(false);
   const [isCheckingOut, setIsCheckingOut] = useState(false);
   const [notification, setNotification] = useState({ message: '', type: '' });
+  const [selectedProduct, setSelectedProduct] = useState(null);
+  // שינוי כאן: הסרנו את getToken מהפירוק של useAuth
   const { user, isAuthenticated, isAdmin, login, logout } = useAuth();
 
   const showNotification = (message, type) => {
     setNotification({ message, type });
   };
 
-  // פונקציה לשמירת העגלה בשרת
   const saveCart = useCallback(async (currentCart) => {
     if (!isAuthenticated) return;
     try {
-      const token = localStorage.getItem('token'); // התיקון כאן: קבלת האסימון מ-localStorage
-
-      // אם אין אסימון, לא ניתן לשמור את העגלה
+      // שינוי כאן: משתמשים ב-localStorage.getItem ישירות במקום בפונקציה getToken
+      const token = localStorage.getItem('token');
       if (!token) {
         console.error('No token found, cannot save cart.');
         return;
       }
-
       const response = await fetch('http://localhost:5001/api/cart', {
         method: 'POST',
         headers: {
@@ -42,25 +41,23 @@ const App = () => {
         },
         body: JSON.stringify({ cartItems: currentCart })
       });
-
       if (!response.ok) {
         const errorData = await response.json();
         console.error('Server error response:', errorData);
         throw new Error('Failed to save cart on server');
       }
-
     } catch (err) {
       console.error("Failed to save cart:", err);
     }
   }, [isAuthenticated]);
 
-  // פונקציה לטעינת העגלה מהשרת
   const loadCart = useCallback(async () => {
     if (!isAuthenticated) {
       setCartItems([]);
       return;
     }
     try {
+      // שינוי כאן: משתמשים ב-localStorage.getItem ישירות במקום בפונקציה getToken
       const token = localStorage.getItem('token');
       const response = await fetch('http://localhost:5001/api/cart', {
         headers: {
@@ -69,7 +66,6 @@ const App = () => {
       });
       if (response.ok) {
         const data = await response.json();
-        // נמיר את נתוני העגלה מהשרת לפורמט המתאים לקומפוננטה
         const formattedCart = data.map(item => ({
           ...item.product,
           quantity: item.quantity
@@ -86,13 +82,11 @@ const App = () => {
   }, [loadCart]);
 
   const handleLogin = (token) => {
-    // הוספת בדיקה לוודא שהאסימון הוא מחרוזת
     if (typeof token !== 'string' || !token) {
       showNotification('Invalid or empty token received. Please try again.', 'error');
       console.error('Expected a string token, but received:', token);
-      return; // יציאה מהפונקציה
+      return;
     }
-
     try {
       login(token);
       showNotification('Logged in successfully!', 'success');
@@ -112,14 +106,23 @@ const App = () => {
 
   const handleAddToCart = async (product) => {
     const updatedItems = (prevItems) => {
+      // Determine the price to use: salePrice if on sale, otherwise regular price
+      const priceToUse = product.isOnSale ? product.salePrice : product.price;
+
       const isItemInCart = prevItems.find((item) => item._id === product._id);
+
       if (isItemInCart) {
         return prevItems.map((item) =>
-          item._id === product._id ? { ...item, quantity: item.quantity + 1 } : item
+          item._id === product._id
+            ? { ...item, quantity: item.quantity + 1, price: priceToUse } // Update price as well
+            : item
         );
       }
-      return [...prevItems, { ...product, quantity: 1 }];
+
+      // If the item is not in the cart, add it with the correct price
+      return [...prevItems, { ...product, quantity: 1, price: priceToUse }];
     };
+
     setCartItems(updatedItems);
     await saveCart(updatedItems(cartItems));
     showNotification(`${product.name} added to cart`, 'success');
@@ -165,10 +168,36 @@ const App = () => {
   };
 
   const handleOrderComplete = () => {
-    setCartItems([]); // איפוס העגלה לאחר הזמנה
+    setCartItems([]);
     setIsCheckingOut(false);
   }
 
+  const handleUpdateProduct = (product) => {
+    setSelectedProduct(product);
+  };
+
+  const handleDeleteProduct = async (id) => {
+    if (window.confirm('Are you sure you want to delete this product?')) {
+      try {
+        const token = localStorage.getItem('token');
+        const response = await fetch(`http://localhost:5001/api/products/${id}`, {
+          method: 'DELETE',
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        });
+        if (response.ok) {
+          showNotification('Product deleted successfully!', 'success');
+          window.location.reload();
+        } else {
+          const errorData = await response.json();
+          showNotification(errorData.message, 'error');
+        }
+      } catch (err) {
+        showNotification(`Error deleting product: ${err.message}`, 'error');
+      }
+    }
+  };
 
   return (
     <div className="bg-gray-100 min-h-screen flex flex-col">
@@ -196,13 +225,21 @@ const App = () => {
             />
           ) : (
             <>
-              {isAuthenticated && isAdmin && <ProductForm showNotification={showNotification} />}
+              {isAuthenticated && isAdmin && (
+                <ProductForm
+                  showNotification={showNotification}
+                  existingProduct={selectedProduct}
+                  onUpdateSuccess={() => setSelectedProduct(null)}
+                />
+              )}
               <hr className="my-10 border-gray-300" />
               <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
                 <div className="md:col-span-2">
                   <ProductList
                     onAddToCart={handleAddToCart}
                     showNotification={showNotification}
+                    onUpdateProduct={handleUpdateProduct}
+                    onDeleteProduct={handleDeleteProduct}
                   />
                 </div>
                 <div>

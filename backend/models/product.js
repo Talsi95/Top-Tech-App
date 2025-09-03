@@ -13,6 +13,14 @@ const productSchema = new Schema({
     description: {
         type: String
     },
+    salePrice: {
+        type: Number,
+        default: null
+    },
+    isOnSale: {
+        type: Boolean,
+        default: false
+    },
     imageUrl: {
         type: String,
         required: true

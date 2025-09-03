@@ -21,10 +21,24 @@ router.post('/', async (req, res) => {
 });
 router.put('/:id', protect, admin, async (req, res) => {
     try {
-        const product = await Product.findByIdAndUpdate(req.params.id, req.body, { new: true });
+        const { name, description, price, salePrice, isOnSale, imageUrl, category } = req.body;
+
+        const updateFields = {
+            name,
+            description,
+            price,
+            imageUrl,
+            category,
+            isOnSale: isOnSale,
+            salePrice: isOnSale ? salePrice : null
+        };
+
+        const product = await Product.findByIdAndUpdate(req.params.id, updateFields, { new: true, runValidators: true });
+
         if (!product) {
             return res.status(404).json({ message: 'Product not found' });
         }
+
         res.status(200).json(product);
     } catch (err) {
         res.status(400).json({ message: err.message });

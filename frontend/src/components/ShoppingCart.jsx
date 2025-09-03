@@ -3,8 +3,17 @@ import { useAuth } from '../AuthContext';
 const ShoppingCart = ({ cartItems, onRemoveFromCart, onUpdateQuantity, onCheckout }) => {
     const { user, isAuthenticated } = useAuth();
 
+    const validCartItems = cartItems.filter(item =>
+        item && typeof item.price === 'number' && typeof item.quantity === 'number'
+    );
+
     const calculateTotal = () => {
-        return cartItems.reduce((acc, item) => acc + item.price * item.quantity, 0);
+        return validCartItems.reduce((acc, item) => {
+            if (typeof item.price === 'number' && typeof item.quantity === 'number') {
+                return acc + item.price * item.quantity;
+            }
+            return acc;
+        }, 0);
     };
 
     return (
@@ -22,7 +31,7 @@ const ShoppingCart = ({ cartItems, onRemoveFromCart, onUpdateQuantity, onCheckou
             ) : (
                 <>
                     <ul>
-                        {cartItems.map((item) => (
+                        {validCartItems.map((item) => (
                             <li key={item._id} className="flex justify-between items-center mb-4 border-b pb-2">
                                 <div className="flex items-center">
                                     <img src={item.imageUrl} alt={item.name} className="w-16 h-16 object-cover rounded-md mr-4" />

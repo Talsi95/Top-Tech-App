@@ -1,26 +1,68 @@
-import { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { useAuth } from '../AuthContext';
 
-const ProductForm = ({ showNotification }) => {
-    const [name, setName] = useState('');
-    const [price, setPrice] = useState('');
-    const [imageUrl, setImageUrl] = useState('');
-    const [category, setCategory] = useState('');
+const ProductForm = ({ showNotification, existingProduct, onUpdateSuccess }) => {
+    const [formData, setFormData] = useState({
+        name: '',
+        description: '',
+        price: '',
+        salePrice: '',
+        isOnSale: false,
+        imageUrl: '',
+        category: '',
+    });
     const [validationErrors, setValidationErrors] = useState({});
+
+    // שינוי כאן: אנו משתמשים ב-useAuth() רק כדי לבדוק הרשאות.
+    const { isAdmin } = useAuth();
+
+    useEffect(() => {
+        if (existingProduct) {
+            setFormData(prevData => ({
+                ...prevData,
+                ...existingProduct,
+                salePrice: existingProduct.salePrice || '',
+                description: existingProduct.description || ''
+            }));
+        } else {
+            setFormData({
+                name: '',
+                description: '',
+                price: '',
+                salePrice: '',
+                isOnSale: false,
+                imageUrl: '',
+                category: '',
+            });
+        }
+    }, [existingProduct]);
+
+    const handleChange = (e) => {
+        const { name, value, type, checked } = e.target;
+        setFormData({
+            ...formData,
+            [name]: type === 'checkbox' ? checked : value,
+        });
+    };
 
     const validateForm = () => {
         const errors = {};
-        const parsedPrice = parseFloat(price);
+        const parsedPrice = parseFloat(formData.price);
+        const parsedSalePrice = parseFloat(formData.salePrice);
 
-        if (!name.trim()) {
+        if (!formData.name.trim()) {
             errors.name = 'Product name is required';
         }
         if (isNaN(parsedPrice) || parsedPrice <= 0) {
             errors.price = 'Price must be a positive number';
         }
-        if (!imageUrl.trim()) {
+        if (formData.isOnSale && (isNaN(parsedSalePrice) || parsedSalePrice <= 0 || parsedSalePrice >= parsedPrice)) {
+            errors.salePrice = 'Sale price must be a positive number and less than the original price';
+        }
+        if (!formData.imageUrl.trim()) {
             errors.imageUrl = 'Image URL is required';
         }
-        if (!category.trim()) {
+        if (!formData.category.trim()) {
             errors.category = 'Category is required';
         }
 
@@ -31,100 +73,107 @@ const ProductForm = ({ showNotification }) => {
     const handleSubmit = async (e) => {
         e.preventDefault();
         if (!validateForm()) {
-            return; // עוצר את התהליך אם יש שגיאות אימות
+            return;
         }
 
-        const newProduct = { name, price: parseFloat(price), imageUrl, category };
+        const isUpdating = !!existingProduct;
+        const url = isUpdating
+            ? `http://localhost:5001/api/products/${existingProduct._id}`
+            : 'http://localhost:5001/api/products';
+        const method = isUpdating ? 'PUT' : 'POST';
+
+        const productData = {
+            ...formData,
+            price: parseFloat(formData.price),
+            salePrice: formData.isOnSale && formData.salePrice !== '' ? parseFloat(formData.salePrice) : null,
+        };
 
         try {
-            const response = await fetch('http://localhost:5001/api/products', {
-                method: 'POST',
+            // שינוי כאן: קבלת הטוקן ישירות מ-localStorage
+            const token = localStorage.getItem('token');
+            if (!token) {
+                showNotification('Authentication token is missing. Please log in again.', 'error');
+                return;
+            }
+
+            const response = await fetch(url, {
+                method: method,
                 headers: {
                     'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`
                 },
-                body: JSON.stringify(newProduct),
+                body: JSON.stringify(productData),
             });
 
             if (response.ok) {
-                showNotification('Product added successfully!', 'success');
-                setName('');
-                setPrice('');
-                setImageUrl('');
-                setCategory('');
-                setValidationErrors({}); // איפוס השגיאות לאחר הצלחה
+                showNotification(`Product ${isUpdating ? 'updated' : 'created'} successfully!`, 'success');
+                if (isUpdating && onUpdateSuccess) {
+                    onUpdateSuccess();
+                } else {
+                    setFormData({
+                        name: '',
+                        description: '',
+                        price: '',
+                        salePrice: '',
+                        isOnSale: false,
+                        imageUrl: '',
+                        category: '',
+                    });
+                    setValidationErrors({});
+                }
             } else {
                 const errorData = await response.json();
-                showNotification(`Failed to add product: ${errorData.message}`, 'error');
+                showNotification(errorData.message || `Failed to ${isUpdating ? 'update' : 'create'} product`, 'error');
             }
-        } catch (error) {
-            showNotification(`There was an error: ${error.message}`, 'error');
+        } catch (err) {
+            console.error("Failed to process product:", err);
+            showNotification('An error occurred.', 'error');
         }
     };
 
     return (
-        <div className="p-8 max-w-lg mx-auto bg-white rounded-lg shadow-md">
-            <h2 className="text-2xl font-bold mb-6 text-center">Add New Product</h2>
+        <div className="bg-white p-6 rounded-lg shadow-md max-w-lg mx-auto mb-8">
+            <h2 className="text-xl font-bold mb-4">{existingProduct ? 'Update Product' : 'Add New Product'}</h2>
             <form onSubmit={handleSubmit}>
                 <div className="mb-4">
-                    <label className="block text-gray-700 text-sm font-bold mb-2" htmlFor="name">Name</label>
-                    <input
-                        className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
-                        id="name"
-                        type="text"
-                        value={name}
-                        onChange={(e) => setName(e.target.value)}
-                        onBlur={validateForm} // אימות בעת יציאה מהשדה
-                        required
-                    />
-                    {validationErrors.name && <p className="text-red-500 text-xs italic mt-1">{validationErrors.name}</p>}
+                    <label className="block text-gray-700">Product Name</label>
+                    <input className="w-full mt-1 p-2 border rounded-md" type="text" name="name" value={formData.name} onChange={handleChange} required />
                 </div>
                 <div className="mb-4">
-                    <label className="block text-gray-700 text-sm font-bold mb-2" htmlFor="price">Price</label>
+                    <label className="block text-gray-700">Description</label>
+                    <textarea className="w-full mt-1 p-2 border rounded-md" name="description" value={formData.description} onChange={handleChange} required />
+                </div>
+                <div className="mb-4">
+                    <label className="block text-gray-700">Price ($)</label>
+                    <input className="w-full mt-1 p-2 border rounded-md" type="number" name="price" value={formData.price} onChange={handleChange} required />
+                </div>
+                <div className="mb-4">
+                    <label className="block text-gray-700">Sale Price ($)</label>
                     <input
-                        className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
-                        id="price"
+                        className="w-full mt-1 p-2 border rounded-md"
                         type="number"
-                        value={price}
-                        onChange={(e) => setPrice(e.target.value)}
-                        onBlur={validateForm}
-                        required
+                        name="salePrice"
+                        value={formData.salePrice}
+                        onChange={handleChange}
+                        disabled={!formData.isOnSale}
                     />
-                    {validationErrors.price && <p className="text-red-500 text-xs italic mt-1">{validationErrors.price}</p>}
+                    {validationErrors.salePrice && <p className="text-red-500 text-xs italic mt-1">{validationErrors.salePrice}</p>}
+                </div>
+                <div className="mb-4 flex items-center">
+                    <input className="mr-2" type="checkbox" name="isOnSale" checked={formData.isOnSale} onChange={handleChange} />
+                    <label className="text-gray-700">Is on Sale?</label>
                 </div>
                 <div className="mb-4">
-                    <label className="block text-gray-700 text-sm font-bold mb-2" htmlFor="imageUrl">Image URL</label>
-                    <input
-                        className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
-                        id="imageUrl"
-                        type="text"
-                        value={imageUrl}
-                        onChange={(e) => setImageUrl(e.target.value)}
-                        onBlur={validateForm}
-                        required
-                    />
-                    {validationErrors.imageUrl && <p className="text-red-500 text-xs italic mt-1">{validationErrors.imageUrl}</p>}
+                    <label className="block text-gray-700">Image URL</label>
+                    <input className="w-full mt-1 p-2 border rounded-md" type="text" name="imageUrl" value={formData.imageUrl} onChange={handleChange} required />
                 </div>
-                <div className="mb-6">
-                    <label className="block text-gray-700 text-sm font-bold mb-2" htmlFor="category">Category</label>
-                    <input
-                        className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
-                        id="category"
-                        type="text"
-                        value={category}
-                        onChange={(e) => setCategory(e.target.value)}
-                        onBlur={validateForm}
-                        required
-                    />
-                    {validationErrors.category && <p className="text-red-500 text-xs italic mt-1">{validationErrors.category}</p>}
+                <div className="mb-4">
+                    <label className="block text-gray-700">Category</label>
+                    <input className="w-full mt-1 p-2 border rounded-md" type="text" name="category" value={formData.category} onChange={handleChange} required />
                 </div>
-                <div className="flex items-center justify-center">
-                    <button
-                        className="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline"
-                        type="submit"
-                    >
-                        Add Product
-                    </button>
-                </div>
+                <button className="w-full bg-green-500 hover:bg-green-600 text-white font-bold py-2 px-4 rounded-md" type="submit">
+                    {existingProduct ? 'Update Product' : 'Add Product'}
+                </button>
             </form>
         </div>
     );
