@@ -49,7 +49,6 @@ const App = () => {
         throw new Error('Failed to save cart on server');
       }
 
-      console.log('Cart saved successfully!');
     } catch (err) {
       console.error("Failed to save cart:", err);
     }
@@ -61,7 +60,6 @@ const App = () => {
       setCartItems([]);
       return;
     }
-    console.log('Attempting to load cart for user...');
     try {
       const token = localStorage.getItem('token');
       const response = await fetch('http://localhost:5001/api/cart', {
@@ -69,7 +67,6 @@ const App = () => {
           'Authorization': `Bearer ${token}`
         }
       });
-      console.log('Load cart response status:', response.status);
       if (response.ok) {
         const data = await response.json();
         // נמיר את נתוני העגלה מהשרת לפורמט המתאים לקומפוננטה
@@ -77,7 +74,6 @@ const App = () => {
           ...item.product,
           quantity: item.quantity
         }));
-        console.log('Formatted cart for state:', formattedCart);
         setCartItems(formattedCart);
       }
     } catch (err) {
@@ -90,8 +86,22 @@ const App = () => {
   }, [loadCart]);
 
   const handleLogin = (token) => {
-    login(token);
-    showNotification('Logged in successfully!', 'success');
+    // הוספת בדיקה לוודא שהאסימון הוא מחרוזת
+    if (typeof token !== 'string' || !token) {
+      showNotification('Invalid or empty token received. Please try again.', 'error');
+      console.error('Expected a string token, but received:', token);
+      return; // יציאה מהפונקציה
+    }
+
+    try {
+      login(token);
+      showNotification('Logged in successfully!', 'success');
+      setShowLogin(false);
+      setShowRegister(false);
+    } catch (error) {
+      console.error("Error decoding token:", error);
+      showNotification('Failed to log in. Please check your credentials.', 'error');
+    }
   };
 
   const handleLogout = () => {

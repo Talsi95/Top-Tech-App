@@ -1,42 +1,62 @@
 import { useState } from 'react';
 
 const RegisterForm = ({ onRegister, showNotification }) => {
-    const [username, setUsername] = useState('');
-    const [email, setEmail] = useState('');
-    const [password, setPassword] = useState('');
+    const [formData, setFormData] = useState({
+        username: '',
+        email: '',
+        password: '',
+    });
+
+    const handleChange = (e) => {
+        const { name, value } = e.target;
+        setFormData({ ...formData, [name]: value });
+    };
 
     const handleSubmit = async (e) => {
         e.preventDefault();
         try {
             const response = await fetch('http://localhost:5001/api/auth/register', {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ username, email, password }),
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(formData),
             });
-            const data = await response.json();
-            if (response.ok) {
-                showNotification('Registration successful!', 'success');
-                onRegister(); // קריאה לפונקציית ההרשמה שהועברה
-            } else {
-                const errorMessage = data.errors ? data.errors[0].msg : data.message || 'Registration failed';
-                showNotification(errorMessage, 'error');
+
+            // בדיקה האם התגובה תקינה
+            if (!response.ok) {
+                const errorData = await response.json();
+                throw new Error(errorData.message || 'Failed to register');
             }
-        } catch (error) {
-            showNotification(`There was an error: ${error.message}`, 'error');
+
+            // כאן אנו יודעים שהתגובה תקינה, לכן ננתח אותה
+            const data = await response.json();
+
+            // יש לוודא שהאסימון קיים בתגובה
+            if (!data.token) {
+                throw new Error('No token received from the server.');
+            }
+
+            onRegister(data.token);
+            showNotification('Registration successful! You are now logged in.', 'success');
+        } catch (err) {
+            console.error("Registration error:", err);
+            showNotification(err.message || 'Registration failed', 'error');
         }
     };
 
     return (
-        <div className="p-8 max-w-lg mx-auto bg-white rounded-lg shadow-md mt-10">
-            <h2 className="text-2xl font-bold mb-6 text-center">Register</h2>
+        <div className="bg-white p-6 rounded-lg shadow-md max-w-sm mx-auto">
+            <h2 className="text-xl font-bold mb-4">Register</h2>
             <form onSubmit={handleSubmit}>
                 <div className="mb-4">
                     <label className="block text-gray-700 text-sm font-bold mb-2">Username</label>
                     <input
                         className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight"
                         type="text"
-                        value={username}
-                        onChange={(e) => setUsername(e.target.value)}
+                        name="username"
+                        value={formData.username}
+                        onChange={handleChange}
                         required
                     />
                 </div>
@@ -45,8 +65,9 @@ const RegisterForm = ({ onRegister, showNotification }) => {
                     <input
                         className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight"
                         type="email"
-                        value={email}
-                        onChange={(e) => setEmail(e.target.value)}
+                        name="email"
+                        value={formData.email}
+                        onChange={handleChange}
                         required
                     />
                 </div>
@@ -55,12 +76,13 @@ const RegisterForm = ({ onRegister, showNotification }) => {
                     <input
                         className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight"
                         type="password"
-                        value={password}
-                        onChange={(e) => setPassword(e.target.value)}
+                        name="password"
+                        value={formData.password}
+                        onChange={handleChange}
                         required
                     />
                 </div>
-                <div className="flex items-center justify-center">
+                <div className="flex items-center justify-between">
                     <button
                         className="bg-green-500 hover:bg-green-700 text-white font-bold py-2 px-4 rounded"
                         type="submit"

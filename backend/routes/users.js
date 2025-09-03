@@ -3,6 +3,7 @@ const router = express.Router();
 const jwt = require('jsonwebtoken');
 const { body, validationResult } = require('express-validator');
 const User = require('../models/user');
+const { sendRegistrationEmail } = require('../services/emailService');
 
 // כללי אימות להרשמה
 const registerValidationRules = [
@@ -33,12 +34,22 @@ router.post('/register', registerValidationRules, async (req, res) => {
         const newUser = new User({ username, email, password });
         await newUser.save();
 
-        // הוספת שם המשתמש לאסימון!
         const token = jwt.sign({ id: newUser._id, username: newUser.username, isAdmin: newUser.isAdmin }, process.env.JWT_SECRET, { expiresIn: '1h' });
 
         res.status(201).json({ token });
+
     } catch (err) {
+        console.error('Registration failed:', err); // הדפס את השגיאה המדויקת
         res.status(400).json({ message: err.message });
+    }
+
+    // הוספת שליחת המייל כאן, מחוץ לבלוק ה-try...catch
+    try {
+        const { username, email } = req.body;
+        await sendRegistrationEmail(email, username);
+        console.log('Registration email sent successfully.');
+    } catch (emailErr) {
+        console.error('Failed to send registration email (non-blocking):', emailErr);
     }
 });
 
