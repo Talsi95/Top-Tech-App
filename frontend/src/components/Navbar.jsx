@@ -19,7 +19,11 @@ const Navbar = ({ onLogout, onShowLogin, onShowRegister }) => {
                             Welcome, {user.username}
                         </span>
                     )}
-                    {/* תנאי חדש: הצגת הקישור לאדמין רק אם המשתמש הוא אדמין */}
+                    {isAuthenticated && (
+                        <NavLink to="/profile" className="text-gray-800 hover:text-green-500 transition-colors duration-300">
+                            My Profile
+                        </NavLink>
+                    )}
                     {isAuthenticated && isAdmin && (
                         <NavLink to="/admin" className="text-gray-800 hover:text-green-500 transition-colors duration-300">
                             Admin Dashboard

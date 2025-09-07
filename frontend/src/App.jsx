@@ -1,7 +1,8 @@
 import { useState, useEffect, useCallback } from 'react';
-import { Routes, Route } from 'react-router-dom';
+import { Routes, Route, useNavigate } from 'react-router-dom';
 import ProductFormPage from './pages/ProductFormPage';
 import AdminDashboard from './pages/AdminDashboard';
+import UserArea from './pages/UserArea';
 import ProductList from './components/ProductList';
 import ShoppingCart from './components/ShoppingCart';
 import ProductForm from './components/ProductForm';
@@ -43,15 +44,13 @@ const App = () => {
   const [cartItems, setCartItems] = useState([]);
   const [showLogin, setShowLogin] = useState(false);
   const [showRegister, setShowRegister] = useState(false);
-  // const [isCheckingOut, setIsCheckingOut] = useState(false);
   const [notification, setNotification] = useState({ message: '', type: '' });
-  // const [selectedProduct, setSelectedProduct] = useState(null);
-  // שינוי כאן: הסרנו את getToken מהפירוק של useAuth
-  const { user, isAuthenticated, isAdmin, login, logout } = useAuth();
+  const { user, isAuthenticated, isAdmin, login, logout, getToken } = useAuth();
 
   const showNotification = (message, type) => {
     setNotification({ message, type });
   };
+  const navigate = useNavigate();
 
   const saveCart = useCallback(async (currentCart) => {
     if (!isAuthenticated) return;
@@ -194,24 +193,6 @@ const App = () => {
     showNotification('Product removed from cart', 'success');
   };
 
-  // const handleCheckout = () => {
-  //   if (!isAuthenticated) {
-  //     showNotification('You must be logged in to checkout!', 'error');
-  //     setShowLogin(true);
-  //   } else {
-  //     setIsCheckingOut(true);
-  //   }
-  // };
-
-  const handleOrderComplete = () => {
-    setCartItems([]);
-    setIsCheckingOut(false);
-  }
-
-  // const handleUpdateProduct = (product) => {
-  //   setSelectedProduct(product);
-  // };
-
   const handleDeleteProduct = async (id) => {
     if (window.confirm('Are you sure you want to delete this product?')) {
       try {
@@ -234,6 +215,37 @@ const App = () => {
       }
     }
   };
+  const handleCreateOrder = async (orderData) => {
+    try {
+      const response = await fetch('http://localhost:5001/api/orders', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${getToken()}`,
+        },
+        body: JSON.stringify(orderData),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to place order');
+      }
+
+      const data = await response.json();
+      showNotification('Order placed successfully!', 'success');
+
+      // ** חשוב: נקה את העגלה לאחר הזמנה מוצלחת **
+      setCartItems([]);
+      await saveCart([]);
+
+      // כאן ניתן לנווט את המשתמש לדף תודה
+      navigate('/');
+      return { success: true, orderId: data._id };
+    } catch (error) {
+      showNotification(`Error: ${error.message}`, 'error');
+      return { success: false, message: error.message };
+    }
+  };
+
 
   return (
     <div className="bg-gray-100 min-h-screen flex flex-col">
@@ -264,6 +276,7 @@ const App = () => {
                 handleDeleteProduct={handleDeleteProduct}
               />
             } />
+            <Route path="/profile" element={<UserArea />} />
             <Route path="/admin" element={<AdminDashboard showNotification={showNotification} />} />
             <Route path="/product-form/:id" element={<ProductFormPage showNotification={showNotification} />} />
             <Route path="/product-form" element={<ProductFormPage showNotification={showNotification} />} />
@@ -271,7 +284,7 @@ const App = () => {
               <CheckoutForm
                 cartItems={cartItems}
                 showNotification={showNotification}
-                onOrderComplete={handleOrderComplete}
+                onOrderComplete={handleCreateOrder}
               />
             } />
           </Routes>

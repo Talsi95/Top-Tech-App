@@ -36,6 +36,9 @@ export const AuthProvider = ({ children }) => {
         localStorage.removeItem('token');
         setUser(null);
     };
+    const getToken = () => {
+        return localStorage.getItem('token');
+    };
 
     const authState = {
         user,
@@ -43,6 +46,7 @@ export const AuthProvider = ({ children }) => {
         isAdmin: user ? user.isAdmin : false,
         login,
         logout,
+        getToken,
     };
 
     return (

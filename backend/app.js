@@ -15,10 +15,12 @@ app.use(express.urlencoded({ extended: true }));
 const productRoutes = require('./routes/products');
 const userRoutes = require('./routes/users');
 const cartRoutes = require('./routes/cart');
+const orderRoutes = require('./routes/orders');
 
 app.use('/api/products', productRoutes);
 app.use('/api/auth', userRoutes);
 app.use('/api/cart', cartRoutes);
+app.use('/api/orders', orderRoutes);
 
 mongoose.connect(process.env.MONGO_URI, {
 

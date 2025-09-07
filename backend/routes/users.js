@@ -3,6 +3,7 @@ const router = express.Router();
 const jwt = require('jsonwebtoken');
 const { body, validationResult } = require('express-validator');
 const User = require('../models/user');
+const Order = require('../models/order');
 const { sendRegistrationEmail } = require('../services/emailService');
 const { protect, admin } = require('../middleware/authMiddleware');
 
@@ -83,6 +84,30 @@ router.post('/login', loginValidationRules, async (req, res) => {
         res.status(200).json({ token });
     } catch (err) {
         res.status(500).json({ message: err.message });
+    }
+});
+router.get('/profile', protect, async (req, res) => {
+    try {
+        // המשתמש מזוהה על ידי req.user.id לאחר שעבר את middleware 'protect'
+        const user = await User.findById(req.user.id).select('-password');
+
+        if (!user) {
+            return res.status(404).json({ message: 'User not found' });
+        }
+
+        // שליפת כל ההזמנות של המשתמש
+        const orders = await Order.find({ user: req.user.id }).populate('orderItems.product');
+
+        res.status(200).json({
+            _id: user._id,
+            username: user.username,
+            email: user.email,
+            isAdmin: user.isAdmin,
+            orders: orders,
+        });
+
+    } catch (err) {
+        res.status(500).json({ message: 'Server error' });
     }
 });
 router.get('/', protect, admin, async (req, res) => {
