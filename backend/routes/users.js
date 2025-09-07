@@ -4,6 +4,7 @@ const jwt = require('jsonwebtoken');
 const { body, validationResult } = require('express-validator');
 const User = require('../models/user');
 const { sendRegistrationEmail } = require('../services/emailService');
+const { protect, admin } = require('../middleware/authMiddleware');
 
 // כללי אימות להרשמה
 const registerValidationRules = [
@@ -84,5 +85,14 @@ router.post('/login', loginValidationRules, async (req, res) => {
         res.status(500).json({ message: err.message });
     }
 });
+router.get('/', protect, admin, async (req, res) => {
+    try {
+        const users = await User.find({}).select('-password');
+        res.status(200).json(users);
+    } catch (err) {
+        res.status(500).json({ message: 'Failed to fetch users' });
+    }
+});
+
 
 module.exports = router;

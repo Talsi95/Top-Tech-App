@@ -1,39 +1,52 @@
-import React from 'react';
+import { NavLink, Link } from 'react-router-dom';
 import { useAuth } from '../AuthContext';
 
 const Navbar = ({ onLogout, onShowLogin, onShowRegister }) => {
-    const { isAuthenticated, user } = useAuth();
+    const { isAuthenticated, user, isAdmin } = useAuth();
 
     return (
-        <nav className="bg-gray-800 p-4 text-white shadow-md">
-            <div className="container mx-auto flex justify-between items-center">
-                <a href="/" className="text-2xl font-bold text-green-400">My Veggies</a>
+        <nav className="bg-white shadow-md">
+            <div className="container mx-auto px-6 py-3 flex justify-between items-center">
+                <Link to="/" className="text-xl font-bold text-gray-800">
+                    My Veggies App
+                </Link>
                 <div className="flex items-center space-x-4">
-                    {isAuthenticated ? (
-                        <>
-                            <span className="text-lg">Welcome, {user.username}!</span>
-                            <button
-                                onClick={onLogout}
-                                className="bg-red-500 hover:bg-red-700 text-white font-bold py-2 px-4 rounded"
-                            >
-                                Logout
-                            </button>
-                        </>
-                    ) : (
+                    <NavLink to="/" className="text-gray-800 hover:text-green-500 transition-colors duration-300">
+                        Home
+                    </NavLink>
+                    {isAuthenticated && (
+                        <span className="text-sm text-gray-600">
+                            Welcome, {user.username}
+                        </span>
+                    )}
+                    {/* תנאי חדש: הצגת הקישור לאדמין רק אם המשתמש הוא אדמין */}
+                    {isAuthenticated && isAdmin && (
+                        <NavLink to="/admin" className="text-gray-800 hover:text-green-500 transition-colors duration-300">
+                            Admin Dashboard
+                        </NavLink>
+                    )}
+                    {!isAuthenticated ? (
                         <>
                             <button
                                 onClick={onShowLogin}
-                                className="bg-green-500 hover:bg-green-700 text-white font-bold py-2 px-4 rounded"
+                                className="bg-green-500 text-white px-4 py-2 rounded-md hover:bg-green-600 transition-colors duration-300"
                             >
                                 Login
                             </button>
                             <button
                                 onClick={onShowRegister}
-                                className="bg-gray-500 hover:bg-gray-700 text-white font-bold py-2 px-4 rounded"
+                                className="bg-gray-300 text-gray-800 px-4 py-2 rounded-md hover:bg-gray-400 transition-colors duration-300"
                             >
                                 Register
                             </button>
                         </>
+                    ) : (
+                        <button
+                            onClick={onLogout}
+                            className="bg-red-500 text-white px-4 py-2 rounded-md hover:bg-red-600 transition-colors duration-300"
+                        >
+                            Logout
+                        </button>
                     )}
                 </div>
             </div>

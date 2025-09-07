@@ -1,13 +1,29 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '../AuthContext';
+import { useNavigate } from 'react-router-dom';
 
 const ProductList = ({ onAddToCart, onUpdateProduct, onDeleteProduct, showNotification }) => {
     const [products, setProducts] = useState([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
     const { isAdmin } = useAuth();
+    const navigate = useNavigate();
 
     useEffect(() => {
+        const fetchProducts = async () => {
+            try {
+                const response = await fetch('http://localhost:5001/api/products');
+                if (!response.ok) {
+                    throw new Error('Failed to fetch products');
+                }
+                const data = await response.json();
+                setProducts(data);
+            } catch (err) {
+                setError(err.message);
+            } finally {
+                setLoading(false);
+            }
+        };
         fetchProducts();
     }, []);
 
@@ -77,7 +93,7 @@ const ProductList = ({ onAddToCart, onUpdateProduct, onDeleteProduct, showNotifi
                                 {isAdmin && (
                                     <div className="flex space-x-2 mt-2">
                                         <button
-                                            onClick={() => onUpdateProduct(product)}
+                                            onClick={() => navigate(`/product-form/${product._id}`)}
                                             className="bg-blue-500 hover:bg-blue-600 text-white font-bold py-1 px-3 rounded text-xs"
                                         >
                                             Update

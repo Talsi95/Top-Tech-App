@@ -1,22 +1,51 @@
 import { useState, useEffect, useCallback } from 'react';
+import { Routes, Route } from 'react-router-dom';
+import ProductFormPage from './pages/ProductFormPage';
+import AdminDashboard from './pages/AdminDashboard';
 import ProductList from './components/ProductList';
 import ShoppingCart from './components/ShoppingCart';
 import ProductForm from './components/ProductForm';
 import Notification from './components/Notification';
 import RegisterForm from './components/RegisterForm';
 import LoginForm from './components/LoginForm';
-import Navbar from './components/Navbar';
+import Navbar from './components/NavBar';
 import Footer from './components/Footer';
 import CheckoutForm from './components/CheckoutForm';
 import { useAuth } from './AuthContext';
+
+const HomePage = ({ cartItems, handleAddToCart, handleUpdateQuantity, handleRemoveFromCart, showNotification, handleDeleteProduct }) => (
+  <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+    <div className="md:col-span-2">
+      <ProductList
+        onAddToCart={handleAddToCart}
+        showNotification={showNotification}
+        onDeleteProduct={handleDeleteProduct}
+      />
+    </div>
+    <div>
+      <ShoppingCart
+        cartItems={cartItems}
+        onRemoveFromCart={handleRemoveFromCart}
+        onUpdateQuantity={handleUpdateQuantity}
+      />
+    </div>
+  </div>
+);
+
+// קומפוננטת AdminPage שתכיל את הטופס (ProductForm)
+const AdminPage = ({ showNotification }) => (
+  <div className="flex justify-center">
+    <ProductForm showNotification={showNotification} />
+  </div>
+);
 
 const App = () => {
   const [cartItems, setCartItems] = useState([]);
   const [showLogin, setShowLogin] = useState(false);
   const [showRegister, setShowRegister] = useState(false);
-  const [isCheckingOut, setIsCheckingOut] = useState(false);
+  // const [isCheckingOut, setIsCheckingOut] = useState(false);
   const [notification, setNotification] = useState({ message: '', type: '' });
-  const [selectedProduct, setSelectedProduct] = useState(null);
+  // const [selectedProduct, setSelectedProduct] = useState(null);
   // שינוי כאן: הסרנו את getToken מהפירוק של useAuth
   const { user, isAuthenticated, isAdmin, login, logout } = useAuth();
 
@@ -129,52 +158,59 @@ const App = () => {
   };
 
   const handleUpdateQuantity = async (productId, action) => {
-    const updatedItems = (prevItems) => {
-      const updated = prevItems.map((item) => {
+    // 1. צור מערך חדש של העגלה עם הכמות המעודכנת
+    const updatedCart = cartItems
+      .map((item) => {
         if (item._id === productId) {
           const newQuantity = action === 'increase' ? item.quantity + 1 : item.quantity - 1;
-          if (newQuantity <= 0) {
-            return null;
-          }
-          return { ...item, quantity: newQuantity };
+          // אם הכמות יורדת לאפס, אנחנו נסיר את הפריט מהעגלה
+          return newQuantity > 0 ? { ...item, quantity: newQuantity } : null;
         }
         return item;
-      }).filter(Boolean);
-      return updated;
-    };
-    setCartItems(updatedItems);
-    await saveCart(updatedItems(cartItems));
+      })
+      .filter(Boolean); // מסנן את כל הפריטים שהפכו ל-null
+
+    // ודא שכל הפריטים במערך החדש מכילים _id
+    const finalCart = updatedCart.filter(item => item && item._id);
+
+    // 2. עדכן את המצב המקומי של React
+    setCartItems(finalCart);
+
+    // 3. שלח את העגלה המעודכנת לשרת
+    await saveCart(finalCart);
+
+    showNotification('Cart updated successfully.', 'success');
   };
 
   const handleRemoveFromCart = async (productId) => {
-    const updatedItems = (prevItems) => {
-      const removedItem = prevItems.find(item => item._id === productId);
-      if (removedItem) {
-        showNotification(`${removedItem.name} removed from cart`, 'success');
-      }
-      return prevItems.filter((item) => item._id !== productId);
-    };
-    setCartItems(updatedItems);
-    await saveCart(updatedItems(cartItems));
+    const updatedCart = cartItems.filter((item) => item._id !== productId);
+
+    // ודא שכל הפריטים במערך החדש מכילים _id
+    const finalCart = updatedCart.filter(item => item && item._id);
+
+    setCartItems(finalCart);
+    await saveCart(finalCart);
+
+    showNotification('Product removed from cart', 'success');
   };
 
-  const handleCheckout = () => {
-    if (!isAuthenticated) {
-      showNotification('You must be logged in to checkout!', 'error');
-      setShowLogin(true);
-    } else {
-      setIsCheckingOut(true);
-    }
-  };
+  // const handleCheckout = () => {
+  //   if (!isAuthenticated) {
+  //     showNotification('You must be logged in to checkout!', 'error');
+  //     setShowLogin(true);
+  //   } else {
+  //     setIsCheckingOut(true);
+  //   }
+  // };
 
   const handleOrderComplete = () => {
     setCartItems([]);
     setIsCheckingOut(false);
   }
 
-  const handleUpdateProduct = (product) => {
-    setSelectedProduct(product);
-  };
+  // const handleUpdateProduct = (product) => {
+  //   setSelectedProduct(product);
+  // };
 
   const handleDeleteProduct = async (id) => {
     if (window.confirm('Are you sure you want to delete this product?')) {
@@ -217,42 +253,28 @@ const App = () => {
           )}
         </header>
         <main>
-          {isCheckingOut ? (
-            <CheckoutForm
-              cartItems={cartItems}
-              showNotification={showNotification}
-              onOrderComplete={handleOrderComplete}
-            />
-          ) : (
-            <>
-              {isAuthenticated && isAdmin && (
-                <ProductForm
-                  showNotification={showNotification}
-                  existingProduct={selectedProduct}
-                  onUpdateSuccess={() => setSelectedProduct(null)}
-                />
-              )}
-              <hr className="my-10 border-gray-300" />
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-                <div className="md:col-span-2">
-                  <ProductList
-                    onAddToCart={handleAddToCart}
-                    showNotification={showNotification}
-                    onUpdateProduct={handleUpdateProduct}
-                    onDeleteProduct={handleDeleteProduct}
-                  />
-                </div>
-                <div>
-                  <ShoppingCart
-                    cartItems={cartItems}
-                    onRemoveFromCart={handleRemoveFromCart}
-                    onUpdateQuantity={handleUpdateQuantity}
-                    onCheckout={handleCheckout}
-                  />
-                </div>
-              </div>
-            </>
-          )}
+          <Routes>
+            <Route path="/" element={
+              <HomePage
+                cartItems={cartItems}
+                handleAddToCart={handleAddToCart}
+                handleUpdateQuantity={handleUpdateQuantity}
+                handleRemoveFromCart={handleRemoveFromCart}
+                showNotification={showNotification}
+                handleDeleteProduct={handleDeleteProduct}
+              />
+            } />
+            <Route path="/admin" element={<AdminDashboard showNotification={showNotification} />} />
+            <Route path="/product-form/:id" element={<ProductFormPage showNotification={showNotification} />} />
+            <Route path="/product-form" element={<ProductFormPage showNotification={showNotification} />} />
+            <Route path="/checkout" element={
+              <CheckoutForm
+                cartItems={cartItems}
+                showNotification={showNotification}
+                onOrderComplete={handleOrderComplete}
+              />
+            } />
+          </Routes>
         </main>
         <Notification message={notification.message} type={notification.type} onClose={() => setNotification({ message: '', type: '' })} />
       </div>

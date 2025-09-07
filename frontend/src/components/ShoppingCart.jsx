@@ -1,6 +1,8 @@
 import { useAuth } from '../AuthContext';
+import { useNavigate } from 'react-router-dom';
 
-const ShoppingCart = ({ cartItems, onRemoveFromCart, onUpdateQuantity, onCheckout }) => {
+const ShoppingCart = ({ cartItems, onRemoveFromCart, onUpdateQuantity }) => {
+    const navigate = useNavigate();
     const { user, isAuthenticated } = useAuth();
 
     const validCartItems = cartItems.filter(item =>
@@ -15,6 +17,17 @@ const ShoppingCart = ({ cartItems, onRemoveFromCart, onUpdateQuantity, onCheckou
             return acc;
         }, 0);
     };
+    const handleCheckoutClick = () => {
+        if (!isAuthenticated) {
+            alert('You must be logged in to checkout!');
+            // כאן אפשר להפעיל פופאפ התחברות או כל לוגיקה אחרת
+            return;
+        }
+        // ניתוב לדף ההזמנה
+        navigate('/checkout');
+    };
+
+    const isCartEmpty = cartItems.length === 0;
 
     return (
         <div className="bg-white p-6 rounded-lg shadow-md">
@@ -26,7 +39,7 @@ const ShoppingCart = ({ cartItems, onRemoveFromCart, onUpdateQuantity, onCheckou
                     <p>Please log in to save your cart & checkout</p>
                 )}
             </div>
-            {cartItems.length === 0 ? (
+            {isCartEmpty ? (
                 <p className="text-gray-500 text-center">Your cart is empty.</p>
             ) : (
                 <>
@@ -56,12 +69,10 @@ const ShoppingCart = ({ cartItems, onRemoveFromCart, onUpdateQuantity, onCheckou
                     {/* הוספת כפתור "הזמנה" */}
                     <div className="mt-4 text-center">
                         <button
-                            onClick={onCheckout}
-                            disabled={!isAuthenticated || cartItems.length === 0}
-                            className={`w-full py-2 rounded font-bold transition-colors ${!isAuthenticated || cartItems.length === 0
-                                ? 'bg-gray-400 cursor-not-allowed'
-                                : 'bg-green-500 hover:bg-green-600 text-white'
-                                }`}
+                            onClick={handleCheckoutClick}
+                            disabled={isCartEmpty}
+                            className={`w-full mt-4 text-white font-bold py-2 px-4 rounded-md transition-colors duration-300
+                    ${isCartEmpty ? 'bg-gray-400 cursor-not-allowed' : 'bg-green-500 hover:bg-green-600'}`}
                         >
                             Checkout
                         </button>
