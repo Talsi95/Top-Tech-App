@@ -19,8 +19,7 @@ const ProductFormPage = ({ showNotification }) => {
         const fetchProduct = async () => {
             if (id) {
                 try {
-                    // Get the token from the AuthContext
-                    const token = localStorage.getItem('token');
+                    const token = getToken();
                     if (!token) {
                         showNotification('You must be logged in to view this page.', 'error');
                         navigate('/');
@@ -29,7 +28,6 @@ const ProductFormPage = ({ showNotification }) => {
 
                     const response = await fetch(`http://localhost:5001/api/products/${id}`, {
                         headers: {
-                            // Add the Authorization header with the token
                             'Authorization': `Bearer ${token}`
                         }
                     });
@@ -56,7 +54,7 @@ const ProductFormPage = ({ showNotification }) => {
             setPageNotification({ message: 'You do not have permission to view this page.', type: 'error' });
             navigate('/');
         }
-    }, [id, isAdmin, navigate]); // Depend on id and isAdmin
+    }, [id, isAdmin, navigate]);
 
     const handleUpdateSuccess = () => {
         showNotification('Product updated successfully!', 'success');

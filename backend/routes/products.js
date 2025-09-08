@@ -19,7 +19,6 @@ router.get('/:id', async (req, res) => {
         }
         res.status(200).json(product);
     } catch (err) {
-        // טיפול במקרה של מזהה לא תקין
         res.status(400).json({ message: 'Invalid product ID' });
     }
 });

@@ -23,16 +23,13 @@ const RegisterForm = ({ onRegister, showNotification }) => {
                 body: JSON.stringify(formData),
             });
 
-            // בדיקה האם התגובה תקינה
             if (!response.ok) {
                 const errorData = await response.json();
                 throw new Error(errorData.message || 'Failed to register');
             }
 
-            // כאן אנו יודעים שהתגובה תקינה, לכן ננתח אותה
             const data = await response.json();
 
-            // יש לוודא שהאסימון קיים בתגובה
             if (!data.token) {
                 throw new Error('No token received from the server.');
             }

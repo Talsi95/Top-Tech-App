@@ -12,16 +12,22 @@ const LoginForm = ({ onLogin, showNotification }) => {
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ email, password }),
             });
-            const data = await response.json();
-            if (response.ok) {
-                // התיקון נמצא כאן: העבר את האסימון ל-onLogin
-                onLogin(data.token);
-                showNotification('Login successful!', 'success');
-            } else {
-                const errorMessage = data.errors ? data.errors[0].msg : data.message || 'Login failed';
-                showNotification(errorMessage, 'error');
+            if (!response.ok) {
+                const errorData = await response.json();
+                showNotification(errorData.message, 'error');
+                return;
             }
+            const data = await response.json();
+            onLogin(data.token);
+            // if (response.ok) {
+            //     onLogin(data.token);
+            //     showNotification('Login successful!', 'success');
+            // } else {
+            //     const errorMessage = data.errors ? data.errors[0].msg : data.message || 'Login failed';
+            //     showNotification(errorMessage, 'error');
+            // }
         } catch (error) {
+            console.error('Login failed:', error);
             showNotification(`There was an error: ${error.message}`, 'error');
         }
     };

@@ -20,10 +20,8 @@ const ShoppingCart = ({ cartItems, onRemoveFromCart, onUpdateQuantity }) => {
     const handleCheckoutClick = () => {
         if (!isAuthenticated) {
             alert('You must be logged in to checkout!');
-            // כאן אפשר להפעיל פופאפ התחברות או כל לוגיקה אחרת
             return;
         }
-        // ניתוב לדף ההזמנה
         navigate('/checkout');
     };
 

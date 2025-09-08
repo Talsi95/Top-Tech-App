@@ -8,7 +8,7 @@ const Navbar = ({ onLogout, onShowLogin, onShowRegister }) => {
         <nav className="bg-white shadow-md">
             <div className="container mx-auto px-6 py-3 flex justify-between items-center">
                 <Link to="/" className="text-xl font-bold text-gray-800">
-                    My Veggies App
+                    Top Tech
                 </Link>
                 <div className="flex items-center space-x-4">
                     <NavLink to="/" className="text-gray-800 hover:text-green-500 transition-colors duration-300">

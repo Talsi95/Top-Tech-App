@@ -3,7 +3,6 @@ const router = express.Router();
 const { protect } = require('../middleware/authMiddleware');
 const User = require('../models/user');
 
-// נתיב לקבלת העגלה של המשתמש המחובר
 router.get('/', protect, async (req, res) => {
     try {
         const user = await User.findById(req.user.id).populate('cart.product');
@@ -16,7 +15,6 @@ router.get('/', protect, async (req, res) => {
     }
 });
 
-// נתיב לעדכון ושמירת העגלה של המשתמש המחובר
 router.post('/', protect, async (req, res) => {
     try {
         const { cartItems } = req.body;
@@ -26,7 +24,6 @@ router.post('/', protect, async (req, res) => {
             return res.status(404).json({ message: 'User not found' });
         }
 
-        // המרה של נתוני העגלה מהלקוח לפורמט שמתאים למודל
         const updatedCart = cartItems.map(item => ({
             product: item._id,
             quantity: item.quantity

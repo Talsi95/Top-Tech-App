@@ -17,9 +17,9 @@ const orderSchema = new Schema({
     user: {
         type: mongoose.Schema.Types.ObjectId,
         required: true,
-        ref: 'User' // מפנה למודל המשתמש
+        ref: 'User'
     },
-    orderItems: [orderItemSchema], // מערך של פריטי הזמנה
+    orderItems: [orderItemSchema],
     shippingAddress: {
         street: { type: String, required: true },
         city: { type: String, required: true },

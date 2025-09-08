@@ -7,7 +7,6 @@ const Order = require('../models/order');
 const { sendRegistrationEmail } = require('../services/emailService');
 const { protect, admin } = require('../middleware/authMiddleware');
 
-// כללי אימות להרשמה
 const registerValidationRules = [
     body('username')
         .isLength({ min: 3 })
@@ -18,13 +17,11 @@ const registerValidationRules = [
         .withMessage('Password must be at least 6 characters long'),
 ];
 
-// כללי אימות להתחברות
 const loginValidationRules = [
     body('email').isEmail().withMessage('Please enter a valid email address'),
     body('password').exists().withMessage('Password is required'),
 ];
 
-// נתיב הרשמה
 router.post('/register', registerValidationRules, async (req, res) => {
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
@@ -41,11 +38,10 @@ router.post('/register', registerValidationRules, async (req, res) => {
         res.status(201).json({ token });
 
     } catch (err) {
-        console.error('Registration failed:', err); // הדפס את השגיאה המדויקת
+        console.error('Registration failed:', err);
         res.status(400).json({ message: err.message });
     }
 
-    // הוספת שליחת המייל כאן, מחוץ לבלוק ה-try...catch
     try {
         const { username, email } = req.body;
         await sendRegistrationEmail(email, username);
@@ -55,7 +51,6 @@ router.post('/register', registerValidationRules, async (req, res) => {
     }
 });
 
-// נתיב התחברות
 router.post('/login', loginValidationRules, async (req, res) => {
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
@@ -65,38 +60,37 @@ router.post('/login', loginValidationRules, async (req, res) => {
     try {
         const { email, password } = req.body;
 
-        // איתור המשתמש לפי אימייל
         const user = await User.findOne({ email });
-        if (!user) {
+
+        if (!user || !(await user.comparePassword(password))) {
             return res.status(401).json({ message: 'Invalid credentials' });
         }
 
-        // השוואת הסיסמה באמצעות הפונקציה המותאמת אישית שיצרת
-        const isMatch = await user.comparePassword(password);
-        if (!isMatch) {
-            return res.status(401).json({ message: 'Invalid credentials' });
-        }
-
-        // הוספת שם המשתמש לאסימון!
         const token = jwt.sign({ id: user._id, username: user.username, isAdmin: user.isAdmin }, process.env.JWT_SECRET, { expiresIn: '1h' });
 
-        // החזרת האסימון ללקוח
         res.status(200).json({ token });
     } catch (err) {
         res.status(500).json({ message: err.message });
     }
 });
+
 router.get('/profile', protect, async (req, res) => {
     try {
-        // המשתמש מזוהה על ידי req.user.id לאחר שעבר את middleware 'protect'
         const user = await User.findById(req.user.id).select('-password');
 
         if (!user) {
             return res.status(404).json({ message: 'User not found' });
         }
 
-        // שליפת כל ההזמנות של המשתמש
         const orders = await Order.find({ user: req.user.id }).populate('orderItems.product');
+
+        const sanitizedOrders = orders.map(order => {
+            const sanitizedItems = order.orderItems.filter(item => item.product !== null);
+            return {
+                ...order.toObject(),
+                orderItems: sanitizedItems
+            };
+        });
 
         res.status(200).json({
             _id: user._id,
@@ -110,6 +104,7 @@ router.get('/profile', protect, async (req, res) => {
         res.status(500).json({ message: 'Server error' });
     }
 });
+
 router.get('/', protect, admin, async (req, res) => {
     try {
         const users = await User.find({}).select('-password');

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { useAuth } from '../AuthContext';
 
 const ProductForm = ({ showNotification, existingProduct, onUpdateSuccess }) => {
@@ -13,8 +13,7 @@ const ProductForm = ({ showNotification, existingProduct, onUpdateSuccess }) => 
     });
     const [validationErrors, setValidationErrors] = useState({});
 
-    // שינוי כאן: אנו משתמשים ב-useAuth() רק כדי לבדוק הרשאות.
-    const { isAdmin } = useAuth();
+    const { isAdmin, getToken } = useAuth();
 
     useEffect(() => {
         if (existingProduct) {
@@ -89,8 +88,7 @@ const ProductForm = ({ showNotification, existingProduct, onUpdateSuccess }) => 
         };
 
         try {
-            // שינוי כאן: קבלת הטוקן ישירות מ-localStorage
-            const token = localStorage.getItem('token');
+            const token = getToken();
             if (!token) {
                 showNotification('Authentication token is missing. Please log in again.', 'error');
                 return;

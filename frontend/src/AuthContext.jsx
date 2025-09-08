@@ -12,7 +12,6 @@ export const AuthProvider = ({ children }) => {
         if (token) {
             try {
                 const decoded = jwtDecode(token);
-                // בדוק אם האסימון עדיין תקף
                 if (decoded && decoded.exp * 1000 > Date.now()) {
                     setUser(decoded);
                 } else {

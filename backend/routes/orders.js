@@ -3,9 +3,6 @@ const router = express.Router();
 const Order = require('../models/order');
 const { protect } = require('../middleware/authMiddleware');
 
-// @desc    Create new order
-// @route   POST /api/orders
-// @access  Private
 router.post('/', protect, async (req, res) => {
     const { orderItems, shippingAddress, paymentMethod, totalPrice } = req.body;
 
