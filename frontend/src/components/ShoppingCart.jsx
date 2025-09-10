@@ -64,7 +64,6 @@ const ShoppingCart = ({ cartItems, onRemoveFromCart, onUpdateQuantity }) => {
                         <h3 className="text-xl font-bold">Total:</h3>
                         <span className="text-xl font-bold text-green-600">${calculateTotal().toFixed(2)}</span>
                     </div>
-                    {/* הוספת כפתור "הזמנה" */}
                     <div className="mt-4 text-center">
                         <button
                             onClick={handleCheckoutClick}

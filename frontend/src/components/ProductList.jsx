@@ -1,67 +1,27 @@
-import { useState, useEffect } from 'react';
+// import { useState, useEffect } from 'react';
 import { useAuth } from '../AuthContext';
 import { useNavigate } from 'react-router-dom';
 
-const ProductList = ({ onAddToCart, onUpdateProduct, onDeleteProduct, showNotification }) => {
-    const [products, setProducts] = useState([]);
-    const [loading, setLoading] = useState(true);
-    const [error, setError] = useState(null);
+const ProductList = ({ onAddToCart, onUpdateProduct, onDeleteProduct, products }) => {
     const { isAdmin } = useAuth();
     const navigate = useNavigate();
 
-    useEffect(() => {
-        const fetchProducts = async () => {
-            try {
-                const response = await fetch('http://localhost:5001/api/products');
-                if (!response.ok) {
-                    throw new Error('Failed to fetch products');
-                }
-                const data = await response.json();
-                setProducts(data);
-            } catch (err) {
-                setError(err.message);
-            } finally {
-                setLoading(false);
-            }
-        };
-        fetchProducts();
-    }, []);
-
-    const fetchProducts = async () => {
-        try {
-            setLoading(true);
-            const response = await fetch('http://localhost:5001/api/products');
-            if (!response.ok) {
-                throw new Error('Failed to fetch products');
-            }
-            const data = await response.json();
-            setProducts(data);
-        } catch (err) {
-            setError(err.message);
-        } finally {
-            setLoading(false);
-        }
-    };
-
-    if (loading) {
-        return <div className="text-center text-xl font-semibold">Loading products...</div>;
+    if (products.length === 0) {
+        return <div className="text-center text-gray-500">No products found. Please add some!</div>;
     }
 
-    if (error) {
-        return <div className="text-center text-red-500 text-xl font-semibold">Error: {error}</div>;
-    }
 
     return (
         <div className="container mx-auto p-4">
-            <h2 className="text-3xl font-bold text-center text-gray-800 mb-8">Available Products</h2>
+            <h2 className="text-3xl font-bold text-center text-gray-800 mb-8">המוצרים שלנו</h2>
             {products.length === 0 ? (
-                <p className="text-center text-gray-500">No products found. Please add some!</p>
+                <p className="text-center text-gray-500">אין מוצרים עדיין, נא להוסיף!</p>
             ) : (
                 <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-2 lg:grid-cols-2 xl:grid-cols-3 gap-6">
                     {products.map((product) => (
                         <div key={product._id} className="bg-white p-6 rounded-lg shadow-md flex flex-col justify-between">
                             <div className="mb-4">
-                                <img src={product.imageUrl} alt={product.name} className="w-full h-48 object-cover rounded-md mb-2" />
+                                <img src={product.imageUrl} alt={product.name} className="w-full h-48 object-contain rounded-md mb-2 bg-white-100" />
                                 <h3 className="text-xl font-semibold mb-2">{product.name}</h3>
                                 <p className="text-gray-600 text-sm mb-2">{product.description}</p>
                             </div>
@@ -76,7 +36,7 @@ const ProductList = ({ onAddToCart, onUpdateProduct, onDeleteProduct, showNotifi
                                             onClick={() => onAddToCart(product)}
                                             className="bg-green-500 hover:bg-green-600 text-white font-bold py-2 px-4 rounded-md transition duration-300"
                                         >
-                                            Add to Cart
+                                            הוסף לסל
                                         </button>
                                     </div>
                                 ) : (
@@ -86,7 +46,7 @@ const ProductList = ({ onAddToCart, onUpdateProduct, onDeleteProduct, showNotifi
                                             onClick={() => onAddToCart(product)}
                                             className="bg-green-500 hover:bg-green-600 text-white font-bold py-2 px-4 rounded-md transition duration-300"
                                         >
-                                            Add to Cart
+                                            הוסף לסל
                                         </button>
                                     </div>
                                 )}
@@ -96,13 +56,13 @@ const ProductList = ({ onAddToCart, onUpdateProduct, onDeleteProduct, showNotifi
                                             onClick={() => navigate(`/product-form/${product._id}`)}
                                             className="bg-blue-500 hover:bg-blue-600 text-white font-bold py-1 px-3 rounded text-xs"
                                         >
-                                            Update
+                                            עריכה
                                         </button>
                                         <button
                                             onClick={() => onDeleteProduct(product._id)}
                                             className="bg-red-500 hover:bg-red-600 text-white font-bold py-1 px-3 rounded text-xs"
                                         >
-                                            Delete
+                                            מחיקה
                                         </button>
                                     </div>
                                 )}

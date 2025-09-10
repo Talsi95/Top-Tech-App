@@ -1,14 +1,13 @@
-// src/pages/ProductFormPage.jsx
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import ProductForm from '../components/ProductForm';
 import { useAuth } from '../AuthContext';
 import Notification from '../components/Notification';
+import axios from 'axios';
 
 const ProductFormPage = ({ showNotification }) => {
     const { id } = useParams();
     const navigate = useNavigate();
-    // Get isAdmin from the context, and a way to get the token
     const { isAdmin, getToken } = useAuth();
     const [existingProduct, setExistingProduct] = useState(null);
     const [loading, setLoading] = useState(true);
@@ -17,44 +16,47 @@ const ProductFormPage = ({ showNotification }) => {
 
     useEffect(() => {
         const fetchProduct = async () => {
-            if (id) {
-                try {
-                    const token = getToken();
-                    if (!token) {
-                        showNotification('You must be logged in to view this page.', 'error');
-                        navigate('/');
-                        return;
-                    }
+            if (!isAdmin) {
+                setPageNotification({ message: 'You do not have permission to view this page.', type: 'error' });
+                navigate('/');
+                return;
+            }
 
-                    const response = await fetch(`http://localhost:5001/api/products/${id}`, {
-                        headers: {
-                            'Authorization': `Bearer ${token}`
-                        }
-                    });
+            if (!id) {
+                setLoading(false);
+                return;
+            }
 
-                    if (!response.ok) {
-                        throw new Error('Failed to fetch product');
+            try {
+                const token = getToken();
+                if (!token) {
+                    showNotification('You must be logged in to view this page.', 'error');
+                    navigate('/');
+                    return;
+                }
+
+                const response = await axios.get(`http://localhost:5001/api/products/${id}`, {
+                    headers: {
+                        'Authorization': `Bearer ${token}`
                     }
-                    const data = await response.json();
-                    setExistingProduct(data);
-                } catch (err) {
+                });
+
+                setExistingProduct(response.data);
+
+            } catch (err) {
+                if (err.response) {
+                    setError(err.response.data.message || 'Failed to fetch product');
+                    showNotification(`Error: ${err.response.data.message || 'Failed to fetch product'}`, 'error');
+                } else {
                     setError(err.message);
                     showNotification(`Error: ${err.message}`, 'error');
-                } finally {
-                    setLoading(false);
                 }
-            } else {
+            } finally {
                 setLoading(false);
             }
         };
-
-        if (isAdmin) {
-            fetchProduct();
-        } else {
-            setPageNotification({ message: 'You do not have permission to view this page.', type: 'error' });
-            navigate('/');
-        }
-    }, [id, isAdmin, navigate]);
+        fetchProduct();
+    }, [id, isAdmin, getToken, navigate, setPageNotification, showNotification]);
 
     const handleUpdateSuccess = () => {
         showNotification('Product updated successfully!', 'success');

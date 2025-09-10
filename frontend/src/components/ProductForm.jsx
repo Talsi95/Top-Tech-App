@@ -1,5 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '../AuthContext';
+import axios from 'axios';
+import { useNavigate } from 'react-router-dom';
 
 const ProductForm = ({ showNotification, existingProduct, onUpdateSuccess }) => {
     const [formData, setFormData] = useState({
@@ -14,6 +16,7 @@ const ProductForm = ({ showNotification, existingProduct, onUpdateSuccess }) => 
     const [validationErrors, setValidationErrors] = useState({});
 
     const { isAdmin, getToken } = useAuth();
+    const navigate = useNavigate();
 
     useEffect(() => {
         if (existingProduct) {
@@ -94,38 +97,24 @@ const ProductForm = ({ showNotification, existingProduct, onUpdateSuccess }) => 
                 return;
             }
 
-            const response = await fetch(url, {
-                method: method,
+            const response = await axios({
+                method,
+                url,
+                data: productData,
                 headers: {
                     'Content-Type': 'application/json',
                     'Authorization': `Bearer ${token}`
-                },
-                body: JSON.stringify(productData),
-            });
-
-            if (response.ok) {
-                showNotification(`Product ${isUpdating ? 'updated' : 'created'} successfully!`, 'success');
-                if (isUpdating && onUpdateSuccess) {
-                    onUpdateSuccess();
-                } else {
-                    setFormData({
-                        name: '',
-                        description: '',
-                        price: '',
-                        salePrice: '',
-                        isOnSale: false,
-                        imageUrl: '',
-                        category: '',
-                    });
-                    setValidationErrors({});
                 }
-            } else {
-                const errorData = await response.json();
-                showNotification(errorData.message || `Failed to ${isUpdating ? 'update' : 'create'} product`, 'error');
-            }
+            });
+            showNotification(`Product ${isUpdating ? 'updated' : 'created'} successfully!`, 'success');
+            navigate('/');
         } catch (err) {
+            if (err.response) {
+                showNotification(err.response.data.message || `Failed to ${isUpdating ? 'update' : 'create'} product`, 'error');
+            } else {
+                showNotification('An error occurred.', 'error');
+            }
             console.error("Failed to process product:", err);
-            showNotification('An error occurred.', 'error');
         }
     };
 
@@ -134,19 +123,19 @@ const ProductForm = ({ showNotification, existingProduct, onUpdateSuccess }) => 
             <h2 className="text-xl font-bold mb-4">{existingProduct ? 'Update Product' : 'Add New Product'}</h2>
             <form onSubmit={handleSubmit}>
                 <div className="mb-4">
-                    <label className="block text-gray-700">Product Name</label>
+                    <label className="block text-gray-700">שם מוצר</label>
                     <input className="w-full mt-1 p-2 border rounded-md" type="text" name="name" value={formData.name} onChange={handleChange} required />
                 </div>
                 <div className="mb-4">
-                    <label className="block text-gray-700">Description</label>
+                    <label className="block text-gray-700">תיאור</label>
                     <textarea className="w-full mt-1 p-2 border rounded-md" name="description" value={formData.description} onChange={handleChange} required />
                 </div>
                 <div className="mb-4">
-                    <label className="block text-gray-700">Price ($)</label>
+                    <label className="block text-gray-700">מחיר (₪)</label>
                     <input className="w-full mt-1 p-2 border rounded-md" type="number" name="price" value={formData.price} onChange={handleChange} required />
                 </div>
                 <div className="mb-4">
-                    <label className="block text-gray-700">Sale Price ($)</label>
+                    <label className="block text-gray-700">מחיר מבצע (₪)</label>
                     <input
                         className="w-full mt-1 p-2 border rounded-md"
                         type="number"
@@ -159,14 +148,14 @@ const ProductForm = ({ showNotification, existingProduct, onUpdateSuccess }) => 
                 </div>
                 <div className="mb-4 flex items-center">
                     <input className="mr-2" type="checkbox" name="isOnSale" checked={formData.isOnSale} onChange={handleChange} />
-                    <label className="text-gray-700">Is on Sale?</label>
+                    <label className="text-gray-700">זה במבצע?</label>
                 </div>
                 <div className="mb-4">
-                    <label className="block text-gray-700">Image URL</label>
+                    <label className="block text-gray-700">תמונה (קישור)</label>
                     <input className="w-full mt-1 p-2 border rounded-md" type="text" name="imageUrl" value={formData.imageUrl} onChange={handleChange} required />
                 </div>
                 <div className="mb-4">
-                    <label className="block text-gray-700">Category</label>
+                    <label className="block text-gray-700">קטגוריה</label>
                     <input className="w-full mt-1 p-2 border rounded-md" type="text" name="category" value={formData.category} onChange={handleChange} required />
                 </div>
                 <button className="w-full bg-green-500 hover:bg-green-600 text-white font-bold py-2 px-4 rounded-md" type="submit">

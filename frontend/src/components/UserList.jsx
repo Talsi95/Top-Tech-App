@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '../AuthContext';
 import Notification from './Notification';
+import axios from 'axios';
 
 const UserList = () => {
     const [users, setUsers] = useState([]);
@@ -17,34 +18,33 @@ const UserList = () => {
             }
 
             try {
-                const token = localStorage.getItem('token');
+                const token = getToken();
                 if (!token) {
                     setError('Authentication token not found.');
                     setLoading(false);
                     return;
                 }
 
-                const response = await fetch('http://localhost:5001/api/auth', {
+                const response = await axios.get('http://localhost:5001/api/auth', {
                     headers: {
                         Authorization: `Bearer ${token}`,
                     },
                 });
 
-                if (!response.ok) {
-                    throw new Error('Failed to fetch users');
-                }
-
-                const data = await response.json();
-                setUsers(data);
+                setUsers(response.data);
             } catch (err) {
-                setError(err.message);
+                if (err.response) {
+                    setError(err.response.data.message || 'Failed to fetch users');
+                } else {
+                    setError(err.message);
+                }
             } finally {
                 setLoading(false);
             }
         };
 
         fetchUsers();
-    }, [isAdmin]);
+    }, [isAdmin, getToken]);
 
     if (loading) {
         return <div className="text-center">Loading users...</div>;
@@ -56,7 +56,7 @@ const UserList = () => {
 
     return (
         <div className="bg-white p-6 rounded-lg shadow-md">
-            <h3 className="text-xl font-bold mb-4">User List</h3>
+            <h3 className="text-xl font-bold mb-4">רשימת משתמשים</h3>
             <ul className="divide-y divide-gray-200">
                 {users.length > 0 ? (
                     users.map((user) => (
@@ -67,13 +67,13 @@ const UserList = () => {
                             </div>
                             {user.isAdmin && (
                                 <span className="bg-green-100 text-green-800 text-xs font-semibold px-2.5 py-0.5 rounded-full">
-                                    Admin
+                                    מנהל מערכת
                                 </span>
                             )}
                         </li>
                     ))
                 ) : (
-                    <p className="text-center text-gray-500">No users found.</p>
+                    <p className="text-center text-gray-500">אין משתמשים עדיין</p>
                 )}
             </ul>
         </div>

@@ -20,8 +20,10 @@ const CheckoutForm = ({ cartItems, showNotification, onOrderComplete }) => {
 
     const calculateTotal = () => {
         return cartItems.reduce((acc, item) => {
-            if (typeof item.price === 'number' && typeof item.quantity === 'number') {
-                return acc + item.price * item.quantity;
+            const priceToUse = item.product.isOnSale ? item.product.salePrice : item.product.price;
+
+            if (typeof priceToUse === 'number' && typeof item.quantity === 'number') {
+                return acc + priceToUse * item.quantity;
             }
             return acc;
         }, 0);
@@ -37,7 +39,7 @@ const CheckoutForm = ({ cartItems, showNotification, onOrderComplete }) => {
 
         const orderData = {
             orderItems: cartItems.map(item => ({
-                product: item._id,
+                product: item.product._id,
                 quantity: item.quantity
             })),
             shippingAddress: {
@@ -61,10 +63,10 @@ const CheckoutForm = ({ cartItems, showNotification, onOrderComplete }) => {
 
     return (
         <div className="p-8 max-w-lg mx-auto bg-white rounded-lg shadow-md mt-10">
-            <h2 className="text-2xl font-bold mb-6 text-center">Checkout</h2>
+            <h2 className="text-2xl font-bold mb-6 text-center">פרטי הזמנה</h2>
             <form onSubmit={handleSubmit}>
                 <div className="mb-4">
-                    <label className="block text-gray-700 text-sm font-bold mb-2">Name</label>
+                    <label className="block text-gray-700 text-sm font-bold mb-2">שם מלא</label>
                     <input
                         className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight"
                         type="text"
@@ -75,7 +77,7 @@ const CheckoutForm = ({ cartItems, showNotification, onOrderComplete }) => {
                     />
                 </div>
                 <div className="mb-4">
-                    <label className="block text-gray-700 text-sm font-bold mb-2">Street</label>
+                    <label className="block text-gray-700 text-sm font-bold mb-2">רחוב</label>
                     <input
                         className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight"
                         type="text"
@@ -86,7 +88,7 @@ const CheckoutForm = ({ cartItems, showNotification, onOrderComplete }) => {
                     />
                 </div>
                 <div className="mb-4">
-                    <label className="block text-gray-700 text-sm font-bold mb-2">City</label>
+                    <label className="block text-gray-700 text-sm font-bold mb-2">עיר</label>
                     <input
                         className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight"
                         type="text"
@@ -97,7 +99,7 @@ const CheckoutForm = ({ cartItems, showNotification, onOrderComplete }) => {
                     />
                 </div>
                 <div className="mb-6">
-                    <label className="block text-gray-700 text-sm font-bold mb-2">Zip Code</label>
+                    <label className="block text-gray-700 text-sm font-bold mb-2">מיקוד</label>
                     <input
                         className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight"
                         type="tel"
@@ -108,7 +110,7 @@ const CheckoutForm = ({ cartItems, showNotification, onOrderComplete }) => {
                     />
                 </div>
                 <div className="mb-6">
-                    <label className="block text-gray-700 text-sm font-bold mb-2">Phone Number</label>
+                    <label className="block text-gray-700 text-sm font-bold mb-2">מספר טלפון</label>
                     <input
                         className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight"
                         type="tel"
@@ -126,14 +128,14 @@ const CheckoutForm = ({ cartItems, showNotification, onOrderComplete }) => {
                     </select>
                 </div>
                 <div className="flex justify-between items-center bg-gray-100 p-4 rounded-md mb-6">
-                    <h3 className="text-xl font-bold text-gray-800">Total Price:</h3>
-                    <p className="text-xl font-bold text-green-600">${calculateTotal().toFixed(2)}</p>
+                    <h3 className="text-xl font-bold text-gray-800">סה״כ: </h3>
+                    <p className="text-xl font-bold text-green-600">₪{calculateTotal().toFixed(2)}</p>
                 </div>
                 <div className="flex items-center justify-center">
                     <button type="submit" disabled={isFormIncomplete}
                         className={`w-full text-white font-bold py-2 px-4 rounded-md transition-colors duration-300
                     ${isFormIncomplete ? 'bg-gray-400 cursor-not-allowed' : 'bg-green-500 hover:bg-green-600'}`}>
-                        Place Order
+                        שלח הזמנה
                     </button>
                 </div>
             </form>

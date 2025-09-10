@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import axios from 'axios';
 
 const RegisterForm = ({ onRegister, showNotification }) => {
     const [formData, setFormData] = useState({
@@ -15,30 +16,18 @@ const RegisterForm = ({ onRegister, showNotification }) => {
     const handleSubmit = async (e) => {
         e.preventDefault();
         try {
-            const response = await fetch('http://localhost:5001/api/auth/register', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify(formData),
-            });
+            const response = await axios.post('http://localhost:5001/api/auth/register', formData);
 
-            if (!response.ok) {
-                const errorData = await response.json();
-                throw new Error(errorData.message || 'Failed to register');
-            }
-
-            const data = await response.json();
-
-            if (!data.token) {
-                throw new Error('No token received from the server.');
-            }
-
-            onRegister(data.token);
+            const { token } = response.data;
+            onRegister(token);
             showNotification('Registration successful! You are now logged in.', 'success');
-        } catch (err) {
-            console.error("Registration error:", err);
-            showNotification(err.message || 'Registration failed', 'error');
+        } catch (error) {
+            if (error.response) {
+                showNotification(error.response.data.message, 'error');
+            } else {
+                showNotification(`There was an error: ${error.message}`, 'error');
+            }
+            console.error('Registration failed:', error);
         }
     };
 
@@ -47,7 +36,7 @@ const RegisterForm = ({ onRegister, showNotification }) => {
             <h2 className="text-xl font-bold mb-4">Register</h2>
             <form onSubmit={handleSubmit}>
                 <div className="mb-4">
-                    <label className="block text-gray-700 text-sm font-bold mb-2">Username</label>
+                    <label className="block text-gray-700 text-sm font-bold mb-2">שם משתמש</label>
                     <input
                         className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight"
                         type="text"
@@ -58,7 +47,7 @@ const RegisterForm = ({ onRegister, showNotification }) => {
                     />
                 </div>
                 <div className="mb-4">
-                    <label className="block text-gray-700 text-sm font-bold mb-2">Email</label>
+                    <label className="block text-gray-700 text-sm font-bold mb-2">מייל</label>
                     <input
                         className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight"
                         type="email"
@@ -69,7 +58,7 @@ const RegisterForm = ({ onRegister, showNotification }) => {
                     />
                 </div>
                 <div className="mb-6">
-                    <label className="block text-gray-700 text-sm font-bold mb-2">Password</label>
+                    <label className="block text-gray-700 text-sm font-bold mb-2">סיסמא</label>
                     <input
                         className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight"
                         type="password"
@@ -84,7 +73,7 @@ const RegisterForm = ({ onRegister, showNotification }) => {
                         className="bg-green-500 hover:bg-green-700 text-white font-bold py-2 px-4 rounded"
                         type="submit"
                     >
-                        Register
+                        הרשמה
                     </button>
                 </div>
             </form>

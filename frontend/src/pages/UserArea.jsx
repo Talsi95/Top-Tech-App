@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '../AuthContext';
 import { useNavigate } from 'react-router-dom';
+import axios from 'axios';
 
 const UserArea = () => {
     const { isAuthenticated, user, getToken } = useAuth();
@@ -17,21 +18,18 @@ const UserArea = () => {
 
         const fetchUserData = async () => {
             try {
-                const response = await fetch('http://localhost:5001/api/auth/profile', {
+                const token = getToken();
+                if (!token) throw new Error('Authentication token not found');
+
+                const response = await axios.get('http://localhost:5001/api/auth/profile', {
                     headers: {
-                        Authorization: `Bearer ${getToken()}`
+                        Authorization: `Bearer ${token}`
                     },
                 });
-
-                if (!response.ok) {
-                    throw new Error('Failed to fetch user data');
-                }
-
-                const data = await response.json();
-                setUserData(data);
+                setUserData(response.data)
                 setLoading(false);
             } catch (err) {
-                setError(err.message);
+                setError(err.response?.data?.message || err.message);
                 setLoading(false);
             }
         };
