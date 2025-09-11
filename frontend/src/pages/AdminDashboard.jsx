@@ -11,7 +11,7 @@ const AdminDashboard = ({ showNotification }) => {
 
     useEffect(() => {
         if (!isAuthenticated || !isAdmin) {
-            showNotification('You do not have permission to view this page.', 'error');
+            showNotification('אין לך הרשאה להיכנס לדף זה', 'error');
             navigate('/');
         }
     }, [isAuthenticated, isAdmin, navigate, showNotification]);
@@ -19,14 +19,14 @@ const AdminDashboard = ({ showNotification }) => {
     if (isAuthenticated && isAdmin) {
         return (
             <div className="container mx-auto p-8">
-                <h2 className="text-3xl font-bold text-gray-800 mb-6 text-center">Admin Dashboard</h2>
+                <h2 className="text-3xl font-bold text-gray-800 mb-6 text-center">איזור מנהל</h2>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                     <div className="bg-white p-6 rounded-lg shadow-md">
-                        <h3 className="text-xl font-bold mb-4">Add New Product</h3>
+                        <h3 className="text-xl font-bold mb-4">הוסף מוצר חדש</h3>
                         <ProductForm showNotification={showNotification} />
                     </div>
                     <div className="bg-white p-6 rounded-lg shadow-md">
-                        <h3 className="text-xl font-bold mb-4">User List</h3>
+                        <h3 className="text-xl font-bold mb-4">רשימת משתמשים</h3>
                         <UserList showNotification={showNotification} />
                     </div>
                 </div>

@@ -1,4 +1,3 @@
-// import { useState, useEffect } from 'react';
 import { useAuth } from '../AuthContext';
 import { useNavigate } from 'react-router-dom';
 
@@ -7,7 +6,7 @@ const ProductList = ({ onAddToCart, onUpdateProduct, onDeleteProduct, products }
     const navigate = useNavigate();
 
     if (products.length === 0) {
-        return <div className="text-center text-gray-500">No products found. Please add some!</div>;
+        return <div className="text-center text-gray-500">אופס.. נראה שאין תוצאות עבור חיפוש זה</div>;
     }
 
 
@@ -29,8 +28,8 @@ const ProductList = ({ onAddToCart, onUpdateProduct, onDeleteProduct, products }
                                 {product.isOnSale ? (
                                     <div className="flex items-end justify-between">
                                         <div>
-                                            <span className="text-red-600 font-bold text-2xl">${product.salePrice.toFixed(2)}</span>
-                                            <span className="text-gray-400 line-through text-sm ml-2">${product.price.toFixed(2)}</span>
+                                            <span className="text-gray-400 line-through text-sm ml-2">₪{product.price.toFixed(2)}</span><br></br>
+                                            <span className="text-red-600 font-bold text-2xl">₪{product.salePrice.toFixed(2)}</span>
                                         </div>
                                         <button
                                             onClick={() => onAddToCart(product)}
@@ -41,7 +40,7 @@ const ProductList = ({ onAddToCart, onUpdateProduct, onDeleteProduct, products }
                                     </div>
                                 ) : (
                                     <div className="flex items-center justify-between">
-                                        <span className="text-gray-800 font-bold text-xl">${product.price.toFixed(2)}</span>
+                                        <span className="text-gray-800 font-bold text-xl">₪{product.price.toFixed(2)}</span>
                                         <button
                                             onClick={() => onAddToCart(product)}
                                             className="bg-green-500 hover:bg-green-600 text-white font-bold py-2 px-4 rounded-md transition duration-300"

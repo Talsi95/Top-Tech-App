@@ -9,7 +9,7 @@ const CartDrawer = ({ isOpen, onClose, cartItems, onRemoveFromCart, totalPrice }
     const { user, isAuthenticated } = useAuth();
     const handleCheckoutClick = () => {
         if (!isAuthenticated) {
-            alert('You must be logged in to checkout!');
+            alert('התחבר/הרשם בכדי לבצע הזמנה');
             return;
         }
         navigate('/checkout');

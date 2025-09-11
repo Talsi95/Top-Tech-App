@@ -14,12 +14,12 @@ const LoginForm = ({ onLogin, showNotification }) => {
             });
             const { token } = response.data;
             onLogin(token);
-            showNotification('Login successful!', 'success');
+            showNotification('התחברת בהצלחה', 'success');
         } catch (error) {
             if (error.response) {
                 showNotification(error.response.data.message, 'error');
             } else {
-                showNotification(`There was an error: ${error.message}`, 'error');
+                showNotification(`אופס יש תקלה: ${error.message}`, 'error');
             }
             console.error('Login failed:', error);
         }

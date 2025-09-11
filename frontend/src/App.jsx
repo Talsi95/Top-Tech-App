@@ -119,19 +119,19 @@ const App = () => {
 
     try {
       login(token);
-      showNotification('Logged in successfully!', 'success');
+      showNotification('התחברת בהצלחה', 'success');
       setShowLogin(false);
       setShowRegister(false);
     } catch (error) {
       console.error("Error decoding token:", error);
-      showNotification('Failed to log in. Please check your credentials.', 'error');
+      showNotification('אופס.. אחד מהנתונים שגוי', 'error');
     }
   };
 
   const handleLogout = () => {
     logout();
     setCartItems([]);
-    showNotification('Logged out successfully.', 'success');
+    showNotification('התנתק בהצלחה', 'success');
   };
 
   const handleAddToCart = useCallback(async (product) => {
@@ -155,7 +155,7 @@ const App = () => {
       return newCart;
     });
 
-    showNotification(`${product.name} added to cart`, 'success');
+    showNotification(`${product.name} נוסף לעגלה`, 'success');
   }, [saveCart, showNotification]);
 
   const handleUpdateQuantity = useCallback(async (productId, action) => {
@@ -173,7 +173,7 @@ const App = () => {
       saveCart(updatedCart);
       return updatedCart;
     });
-    showNotification('Cart updated successfully.', 'success');
+    showNotification('עגלה עודכנה בהצלחה', 'success');
   }, [saveCart, showNotification]);
 
   const handleRemoveFromCart = useCallback(async (productId) => {
@@ -182,7 +182,7 @@ const App = () => {
       saveCart(updatedCart);
       return updatedCart;
     });
-    showNotification('Product removed from cart', 'success');
+    showNotification('מוצר הוסר מהעגלה', 'success');
   }, [saveCart, showNotification]);
 
   const handleDeleteProduct = useCallback(async (id) => {
@@ -196,8 +196,7 @@ const App = () => {
         });
 
         setProducts(prevProducts => prevProducts.filter(product => product._id !== id));
-        showNotification('Product deleted successfully!', 'success');
-        //window.location.reload();
+        showNotification('מוצר נמחק בהצלחה', 'success');
 
       } catch (err) {
         const errorMessage = err.response ? err.response.data.message : err.message;
@@ -215,7 +214,7 @@ const App = () => {
       });
 
       const data = response.data;
-      showNotification('Order placed successfully!', 'success');
+      showNotification('הזמנה בוצעה בהצלחה', 'success');
 
       setCartItems([]);
       await saveCart([]);
@@ -226,7 +225,7 @@ const App = () => {
 
     } catch (error) {
       const errorMessage = error.response ? error.response.data.message : error.message;
-      showNotification(`Error: ${errorMessage}`, 'error');
+      showNotification(`שגיאה: ${errorMessage}`, 'error');
 
       return { success: false, message: errorMessage };
     }
@@ -238,11 +237,11 @@ const App = () => {
   }, 0);
 
   if (loading) {
-    return <div className="text-center text-xl font-semibold">Loading products...</div>;
+    return <div className="text-center text-xl font-semibold">טוען מוצרים...</div>;
   }
 
   if (error) {
-    return <div className="text-center text-red-500 text-xl font-semibold">Error: {error}</div>;
+    return <div className="text-center text-red-500 text-xl font-semibold">שגיאה: {error}</div>;
   }
 
 
@@ -254,7 +253,11 @@ const App = () => {
         onShowRegister={() => { setShowRegister(true); setShowLogin(false); }}
         cartItemsCount={cartItemsCount}
         onToggleDrawer={toggleCartDrawer}
+        isAuthenticated={isAuthenticated}
+        isAdmin={isAdmin}
+        user={user}
       />
+
       <CartDrawer
         isOpen={isDrawerOpen}
         onClose={toggleCartDrawer}
@@ -263,7 +266,8 @@ const App = () => {
         onUpdateQuantity={handleUpdateQuantity}
         totalPrice={totalPrice}
       />
-      <div className="container mx-auto p-8 flex-grow">
+
+      <div className="pt-28 container mx-auto p-8 flex-grow">
         <header className="text-center mb-8">
           <h1 className="text-4xl font-bold text-gray-800">ברוכים הבאים לטופ טק</h1>
           {!isAuthenticated && (showLogin || showRegister) && (
@@ -278,12 +282,9 @@ const App = () => {
             <Route path="/" element={
               <HomePage
                 products={products}
-                cartItems={cartItems}
                 handleAddToCart={handleAddToCart}
-                handleUpdateQuantity={handleUpdateQuantity}
-                handleRemoveFromCart={handleRemoveFromCart}
-                showNotification={showNotification}
                 handleDeleteProduct={handleDeleteProduct}
+                showNotification={showNotification}
               />
             } />
             <Route path="/profile" element={<UserArea />} />
@@ -299,11 +300,73 @@ const App = () => {
             } />
           </Routes>
         </main>
-        <Notification message={notification.message} type={notification.type} onClose={() => setNotification({ message: '', type: '' })} />
       </div>
+      <Notification message={notification.message} type={notification.type} onClose={() => setNotification({ message: '', type: '' })} />
       <Footer />
     </div>
   );
 };
 
 export default App;
+
+
+
+{/* <div className="bg-gray-100 min-h-screen flex flex-col">
+    //   <div className='pt-20'>
+    //     <Navbar */}
+//       onLogout={handleLogout}
+//       onShowLogin={() => { setShowLogin(true); setShowRegister(false); }}
+//       onShowRegister={() => { setShowRegister(true); setShowLogin(false); }}
+//       cartItemsCount={cartItemsCount}
+//       onToggleDrawer={toggleCartDrawer}
+//     />
+
+//     <CartDrawer
+//       isOpen={isDrawerOpen}
+//       onClose={toggleCartDrawer}
+//       cartItems={cartItems}
+//       onRemoveFromCart={handleRemoveFromCart}
+//       onUpdateQuantity={handleUpdateQuantity}
+//       totalPrice={totalPrice}
+//     />
+//     <div className="container mx-auto p-8 flex-grow">
+//       <header className="text-center mb-8">
+//         <h1 className="text-4xl font-bold text-gray-800">ברוכים הבאים לטופ טק</h1>
+//         {!isAuthenticated && (showLogin || showRegister) && (
+//           <div className="mt-4 flex justify-center space-x-4">
+//             {showLogin && <LoginForm onLogin={handleLogin} showNotification={showNotification} />}
+//             {showRegister && <RegisterForm onRegister={handleLogin} showNotification={showNotification} />}
+//           </div>
+//         )}
+//       </header>
+//       <main>
+//         <Routes>
+//           <Route path="/" element={
+//             <HomePage
+//               products={products}
+//               cartItems={cartItems}
+//               handleAddToCart={handleAddToCart}
+//               handleUpdateQuantity={handleUpdateQuantity}
+//               handleRemoveFromCart={handleRemoveFromCart}
+//               showNotification={showNotification}
+//               handleDeleteProduct={handleDeleteProduct}
+//             />
+//           } />
+//           <Route path="/profile" element={<UserArea />} />
+//           <Route path="/admin" element={<AdminDashboard showNotification={showNotification} />} />
+//           <Route path="/product-form/:id" element={<ProductFormPage showNotification={showNotification} />} />
+//           <Route path="/product-form" element={<ProductFormPage showNotification={showNotification} />} />
+//           <Route path="/checkout" element={
+//             <CheckoutForm
+//               cartItems={cartItems}
+//               showNotification={showNotification}
+//               onOrderComplete={handleCreateOrder}
+//             />
+//           } />
+//         </Routes>
+//       </main>
+//     </div>
+// <Notification message={notification.message} type={notification.type} onClose={() => setNotification({ message: '', type: '' })} />
+//   </div>
+//   <Footer />
+// </div >

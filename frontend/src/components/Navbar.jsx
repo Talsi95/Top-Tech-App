@@ -2,7 +2,8 @@ import { useState } from 'react';
 import { NavLink, Link } from 'react-router-dom';
 import { useAuth } from '../AuthContext';
 import { FaShoppingCart, FaTimes, FaBars } from 'react-icons/fa';
-import topTechLogo from '../assets/topTechLogo.png';
+// import topTechLogo from '../assets/topTechLogo.png';
+import t_tech from '../assets/t_tech.PNG';
 
 const Navbar = ({ onLogout, onShowLogin, onShowRegister, onToggleDrawer = () => { }, cartItemsCount }) => {
     const { isAuthenticated, user, isAdmin } = useAuth();
@@ -13,10 +14,10 @@ const Navbar = ({ onLogout, onShowLogin, onShowRegister, onToggleDrawer = () => 
     };
 
     return (
-        <nav className="bg-white shadow-md">
+        <nav className="bg-sky-400 shadow-md fixed top-0 w-full z-50">
             <div className="container mx-auto px-6 py-3 flex justify-between items-center">
                 <Link to="/" className="text-xl font-bold text-gray-800">
-                    <img src={topTechLogo} alt="Top Tech Logo" className="h-8" />
+                    <img src={t_tech} alt="Top Tech Logo" className="h-20" />
                 </Link>
                 <div className="flex items-center space-x-4">
                     <div className="hidden md:flex items-center space-x-4">
@@ -79,7 +80,7 @@ const Navbar = ({ onLogout, onShowLogin, onShowRegister, onToggleDrawer = () => 
                     {isAuthenticated ? (
                         <>
                             <NavLink to="/profile" onClick={toggleMenu} className="block px-3 py-2 rounded-md text-base font-medium text-gray-700 hover:bg-gray-200">איזור אישי</NavLink>
-                            <button onClick={() => { onLogout(); toggleMenu(); }} className="w-full text-left px-3 py-2 rounded-md text-base font-medium text-gray-700 hover:bg-gray-200">Logout</button>
+                            <button onClick={() => { onLogout(); toggleMenu(); }} className="w-full text-left px-3 py-2 rounded-md text-base font-medium text-gray-700 hover:bg-gray-200">התנתק</button>
                         </>
                     ) : (
                         <>

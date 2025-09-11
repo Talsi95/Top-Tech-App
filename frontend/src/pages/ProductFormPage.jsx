@@ -17,7 +17,7 @@ const ProductFormPage = ({ showNotification }) => {
     useEffect(() => {
         const fetchProduct = async () => {
             if (!isAdmin) {
-                setPageNotification({ message: 'You do not have permission to view this page.', type: 'error' });
+                setPageNotification({ message: 'אין לך הרשאה להיכנס לדף זה', type: 'error' });
                 navigate('/');
                 return;
             }
@@ -30,7 +30,7 @@ const ProductFormPage = ({ showNotification }) => {
             try {
                 const token = getToken();
                 if (!token) {
-                    showNotification('You must be logged in to view this page.', 'error');
+                    showNotification('נדרשת התחברות בכדי להיכנס לדף זה', 'error');
                     navigate('/');
                     return;
                 }
@@ -45,8 +45,8 @@ const ProductFormPage = ({ showNotification }) => {
 
             } catch (err) {
                 if (err.response) {
-                    setError(err.response.data.message || 'Failed to fetch product');
-                    showNotification(`Error: ${err.response.data.message || 'Failed to fetch product'}`, 'error');
+                    setError(err.response.data.message || 'אירעה שגיאה בשליפת הנתונים');
+                    showNotification(`Error: ${err.response.data.message || 'אירעה שגיאה:'}`, 'error');
                 } else {
                     setError(err.message);
                     showNotification(`Error: ${err.message}`, 'error');
@@ -59,12 +59,12 @@ const ProductFormPage = ({ showNotification }) => {
     }, [id, isAdmin, getToken, navigate, setPageNotification, showNotification]);
 
     const handleUpdateSuccess = () => {
-        showNotification('Product updated successfully!', 'success');
+        showNotification('מוצר עודכן בהצלחה', 'success');
         navigate('/');
     };
 
     if (loading) {
-        return <div className="text-center">Loading...</div>;
+        return <div className="text-center">טוען...</div>;
     }
 
     if (error) {

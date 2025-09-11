@@ -33,7 +33,7 @@ const CheckoutForm = ({ cartItems, showNotification, onOrderComplete }) => {
         e.preventDefault();
 
         if (cartItems.length === 0) {
-            showNotification('Your cart is empty!', 'error');
+            showNotification('העגלה שלך ריקה', 'error');
             return;
         }
 
@@ -54,7 +54,7 @@ const CheckoutForm = ({ cartItems, showNotification, onOrderComplete }) => {
         const result = await onOrderComplete(orderData);
 
         if (result.success) {
-            showNotification('Order placed successfully!', 'success');
+            showNotification('הזמנה בוצעה בהצלחה', 'success');
             navigate('/profile');
         }
     };

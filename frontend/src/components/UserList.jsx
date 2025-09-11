@@ -12,7 +12,7 @@ const UserList = () => {
     useEffect(() => {
         const fetchUsers = async () => {
             if (!isAdmin) {
-                setError('You do not have permission to view this page.');
+                setError('אין לך הרשאה להיכנס לדף זה');
                 setLoading(false);
                 return;
             }
@@ -34,7 +34,7 @@ const UserList = () => {
                 setUsers(response.data);
             } catch (err) {
                 if (err.response) {
-                    setError(err.response.data.message || 'Failed to fetch users');
+                    setError(err.response.data.message || 'אירעה שגיאה בשליפת הנתונים');
                 } else {
                     setError(err.message);
                 }
@@ -47,7 +47,7 @@ const UserList = () => {
     }, [isAdmin, getToken]);
 
     if (loading) {
-        return <div className="text-center">Loading users...</div>;
+        return <div className="text-center">טוען נתונים...</div>;
     }
 
     if (error) {
@@ -56,7 +56,7 @@ const UserList = () => {
 
     return (
         <div className="bg-white p-6 rounded-lg shadow-md">
-            <h3 className="text-xl font-bold mb-4">רשימת משתמשים</h3>
+            <h3 className="text-xl font-bold mb-4">כל המשתמשים</h3>
             <ul className="divide-y divide-gray-200">
                 {users.length > 0 ? (
                     users.map((user) => (

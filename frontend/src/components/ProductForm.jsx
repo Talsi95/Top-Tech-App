@@ -106,7 +106,7 @@ const ProductForm = ({ showNotification, existingProduct, onUpdateSuccess }) => 
                     'Authorization': `Bearer ${token}`
                 }
             });
-            showNotification(`Product ${isUpdating ? 'updated' : 'created'} successfully!`, 'success');
+            showNotification(`מוצר ${isUpdating ? 'עודכן' : 'נוצר'} בהצלחה`, 'success');
             navigate('/');
         } catch (err) {
             if (err.response) {
@@ -120,7 +120,7 @@ const ProductForm = ({ showNotification, existingProduct, onUpdateSuccess }) => 
 
     return (
         <div className="bg-white p-6 rounded-lg shadow-md max-w-lg mx-auto mb-8">
-            <h2 className="text-xl font-bold mb-4">{existingProduct ? 'Update Product' : 'Add New Product'}</h2>
+            <h2 className="text-xl font-bold mb-4">{existingProduct ? 'עריכת מוצר קיים' : 'הוספת מוצר חדש'}</h2>
             <form onSubmit={handleSubmit}>
                 <div className="mb-4">
                     <label className="block text-gray-700">שם מוצר</label>
@@ -159,7 +159,7 @@ const ProductForm = ({ showNotification, existingProduct, onUpdateSuccess }) => 
                     <input className="w-full mt-1 p-2 border rounded-md" type="text" name="category" value={formData.category} onChange={handleChange} required />
                 </div>
                 <button className="w-full bg-green-500 hover:bg-green-600 text-white font-bold py-2 px-4 rounded-md" type="submit">
-                    {existingProduct ? 'Update Product' : 'Add Product'}
+                    {existingProduct ? 'עדכן מוצר' : 'הוסף מוצר'}
                 </button>
             </form>
         </div>

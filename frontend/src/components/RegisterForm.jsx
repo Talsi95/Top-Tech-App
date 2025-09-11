@@ -20,12 +20,12 @@ const RegisterForm = ({ onRegister, showNotification }) => {
 
             const { token } = response.data;
             onRegister(token);
-            showNotification('Registration successful! You are now logged in.', 'success');
+            showNotification('הרשמה בוצעה בהצלחה', 'success');
         } catch (error) {
             if (error.response) {
                 showNotification(error.response.data.message, 'error');
             } else {
-                showNotification(`There was an error: ${error.message}`, 'error');
+                showNotification(`אופס אירעה שגיאה: ${error.message}`, 'error');
             }
             console.error('Registration failed:', error);
         }
