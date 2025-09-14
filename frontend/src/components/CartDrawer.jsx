@@ -2,7 +2,7 @@ import { FaTimes, FaRegTrashAlt } from 'react-icons/fa';
 import { useAuth } from '../AuthContext';
 import { useNavigate } from 'react-router-dom';
 
-const CartDrawer = ({ isOpen, onClose, cartItems, onRemoveFromCart, totalPrice }) => {
+const CartDrawer = ({ isOpen, onClose, cartItems, onRemoveFromCart, totalPrice, onUpdateQuantity }) => {
     const drawerClasses = `fixed top-0 right-0 h-full w-80 bg-white shadow-lg transform transition-transform duration-300 ease-in-out z-50 ${isOpen ? 'translate-x-0' : 'translate-x-full'
         }`;
     const navigate = useNavigate();
@@ -33,8 +33,23 @@ const CartDrawer = ({ isOpen, onClose, cartItems, onRemoveFromCart, totalPrice }
                             <img src={item.product.imageUrl} alt={item.product.name} className="w-16 h-16 object-cover rounded" />
                             <div className="flex-1">
                                 <h3 className="font-semibold text-sm">{item.product.name}</h3>
-                                <p className="text-gray-600 text-xs">${item.product.price.toFixed(2)} x {item.quantity}</p>
-                                <p className="text-gray-800 font-bold">${(item.product.price * item.quantity).toFixed(2)}</p>
+                                <p className="text-gray-600 text-xs">₪{item.product.price.toFixed(2)} x {item.quantity}</p>
+                                <p className="text-gray-800 font-bold">₪{(item.product.price * item.quantity).toFixed(2)}</p>
+                            </div>
+                            <div className="flex items-center">
+                                <button
+                                    onClick={() => onUpdateQuantity(item.product._id, 'decrease')}
+                                    className="bg-gray-200 text-gray-700 px-2 py-1 rounded-l hover:bg-gray-300"
+                                >
+                                    -
+                                </button>
+                                <span className="bg-gray-100 text-gray-700 px-3 py-1 text-sm">{item.quantity}</span>
+                                <button
+                                    onClick={() => onUpdateQuantity(item.product._id, 'increase')}
+                                    className="bg-gray-200 text-gray-700 px-2 py-1 rounded-r hover:bg-gray-300"
+                                >
+                                    +
+                                </button>
                             </div>
                             <button onClick={() => onRemoveFromCart(item.product._id)} className="text-red-500 hover:text-red-700">
                                 <FaRegTrashAlt />

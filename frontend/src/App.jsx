@@ -14,6 +14,8 @@ import LoginForm from './components/LoginForm';
 import Navbar from './components/NavBar';
 import Footer from './components/Footer';
 import CheckoutForm from './components/CheckoutForm';
+import SearchDrawer from './components/SearchDrawer';
+import ShowPage from './pages/ShowPage';
 import { useAuth } from './AuthContext';
 import axios from 'axios';
 
@@ -26,9 +28,29 @@ const App = () => {
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
   const [showLogin, setShowLogin] = useState(false);
   const [showRegister, setShowRegister] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [searchResults, setSearchResults] = useState([]);
+  const [isSearchDrawerOpen, setIsSearchDrawerOpen] = useState(false);
   const [notification, setNotification] = useState({ message: '', type: '' });
   const { user, isAuthenticated, isAdmin, login, logout, getToken } = useAuth();
   const navigate = useNavigate();
+
+  const handleSearchChange = (e) => {
+    const query = e.target.value;
+    setSearchQuery(query);
+    setIsSearchDrawerOpen(query.length > 0);
+
+    const filtered = products.filter(product =>
+      product.name.toLowerCase().includes(query.toLowerCase())
+    );
+    setSearchResults(filtered);
+  };
+
+  const closeSearchDrawer = () => {
+    setIsSearchDrawerOpen(false);
+    setSearchQuery('');
+  };
+
 
   const showNotification = (message, type) => {
     setNotification({ message, type });
@@ -131,7 +153,8 @@ const App = () => {
   const handleLogout = () => {
     logout();
     setCartItems([]);
-    showNotification('התנתק בהצלחה', 'success');
+    navigate('/');
+    showNotification('להתראות', 'success');
   };
 
   const handleAddToCart = useCallback(async (product) => {
@@ -256,7 +279,17 @@ const App = () => {
         isAuthenticated={isAuthenticated}
         isAdmin={isAdmin}
         user={user}
+        onSearchChange={handleSearchChange}
+        searchQuery={searchQuery}
       />
+
+      {isSearchDrawerOpen && (
+        <SearchDrawer
+          isOpen={isSearchDrawerOpen}
+          onClose={closeSearchDrawer}
+          results={searchResults}
+        />
+      )}
 
       <CartDrawer
         isOpen={isDrawerOpen}
@@ -291,6 +324,10 @@ const App = () => {
             <Route path="/admin" element={<AdminDashboard showNotification={showNotification} />} />
             <Route path="/product-form/:id" element={<ProductFormPage showNotification={showNotification} />} />
             <Route path="/product-form" element={<ProductFormPage showNotification={showNotification} />} />
+            <Route
+              path="/product/:id"
+              element={<ShowPage onAddToCart={handleAddToCart} />}
+            />
             <Route path="/checkout" element={
               <CheckoutForm
                 cartItems={cartItems}
@@ -303,7 +340,7 @@ const App = () => {
       </div>
       <Notification message={notification.message} type={notification.type} onClose={() => setNotification({ message: '', type: '' })} />
       <Footer />
-    </div>
+    </div >
   );
 };
 

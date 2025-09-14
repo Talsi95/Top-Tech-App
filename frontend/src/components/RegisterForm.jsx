@@ -33,7 +33,7 @@ const RegisterForm = ({ onRegister, showNotification }) => {
 
     return (
         <div className="bg-white p-6 rounded-lg shadow-md max-w-sm mx-auto">
-            <h2 className="text-xl font-bold mb-4">Register</h2>
+            <h2 className="text-xl font-bold mb-4">הרשמה</h2>
             <form onSubmit={handleSubmit}>
                 <div className="mb-4">
                     <label className="block text-gray-700 text-sm font-bold mb-2">שם משתמש</label>
@@ -68,7 +68,7 @@ const RegisterForm = ({ onRegister, showNotification }) => {
                         required
                     />
                 </div>
-                <div className="flex items-center justify-between">
+                <div className="flex items-center justify-center">
                     <button
                         className="bg-green-500 hover:bg-green-700 text-white font-bold py-2 px-4 rounded"
                         type="submit"

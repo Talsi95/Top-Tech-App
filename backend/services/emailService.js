@@ -12,14 +12,14 @@ const sendRegistrationEmail = async (userEmail, username) => {
     const mailOptions = {
         from: process.env.GMAIL_USER,
         to: userEmail,
-        subject: 'Registration Confirmation for My Veggies',
+        subject: 'אישור הרשמה לטופ טק',
         html: `
-      <h2>Welcome, ${username}!</h2>
-      <p>Thank you for registering to My Veggies app. Your account has been successfully created.</p>
-      <p>You can now log in and start shopping for fresh vegetables.</p>
+      <h2>ברוכים הבאים, ${username}!</h2>
+      <p>תודה שנרשמת לאפליקציית טופ טק. חשבונך נוצר בהצלחה.</p>
+      <p>עכשיו אתם יכולים להתחבר ולהתחיל לקנות ממוצרי הטכנולוגיה שלנו.</p>
       <br/>
-      <p>Best regards,</p>
-      <p>The My Veggies Team</p>
+      <p>בברכה,</p>
+      <p>הצוות של טופ טק</p>
     `,
     };
 
