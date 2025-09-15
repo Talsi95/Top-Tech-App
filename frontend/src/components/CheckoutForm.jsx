@@ -18,9 +18,11 @@ const CheckoutForm = ({ cartItems, showNotification, onOrderComplete }) => {
         setFormData({ ...formData, [name]: value });
     };
 
+    // Corrected function to handle variants
     const calculateTotal = () => {
         return cartItems.reduce((acc, item) => {
-            const priceToUse = item.product.isOnSale ? item.product.salePrice : item.product.price;
+            // Check for the price on the variant first, then fall back to the product price
+            const priceToUse = item.variant?.price ?? item.product?.price ?? 0;
 
             if (typeof priceToUse === 'number' && typeof item.quantity === 'number') {
                 return acc + priceToUse * item.quantity;
@@ -39,7 +41,9 @@ const CheckoutForm = ({ cartItems, showNotification, onOrderComplete }) => {
 
         const orderData = {
             orderItems: cartItems.map(item => ({
+                // This is the crucial fix: include the variant ID
                 product: item.product._id,
+                variant: item.variant ? item.variant._id : null,
                 quantity: item.quantity
             })),
             shippingAddress: {

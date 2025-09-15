@@ -6,33 +6,28 @@ const productSchema = new Schema({
         type: String,
         required: true
     },
-    price: {
-        type: Number,
-        required: true
-    },
     description: {
         type: String
     },
-    salePrice: {
-        type: Number,
-        default: null
-    },
-    isOnSale: {
-        type: Boolean,
-        default: false
-    },
-    imageUrl: {
-        type: String,
-        required: true
-    },
     category: {
-        type: String,
-        required: true
+        main: {
+            type: String,
+            required: true
+        },
+        sub: {
+            type: String,
+            required: true
+        }
     },
-    inStock: {
-        type: Boolean,
-        default: true
-    }
+    variants: [
+        {
+            color: { type: String, required: true },
+            storage: { type: String, required: false },
+            price: { type: Number, required: true },
+            stock: { type: Number, required: true, default: 0 },
+            imageUrl: { type: String, required: true }
+        }
+    ]
 }, {
     timestamps: true
 });

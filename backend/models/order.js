@@ -5,7 +5,12 @@ const orderItemSchema = new Schema({
     product: {
         type: mongoose.Schema.Types.ObjectId,
         required: true,
-        ref: 'Product' // מפנה למודל המוצר
+        ref: 'Product'
+    },
+    variant: {
+        type: mongoose.Schema.Types.ObjectId,
+        required: true,
+        ref: 'Product'
     },
     quantity: {
         type: Number,
@@ -51,7 +56,7 @@ const orderSchema = new Schema({
         type: Date
     }
 }, {
-    timestamps: true // מוסיף שדות של יצירה ועדכון
+    timestamps: true
 });
 
 const Order = mongoose.model('Order', orderSchema);

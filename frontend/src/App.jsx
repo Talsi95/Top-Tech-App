@@ -16,6 +16,7 @@ import Footer from './components/Footer';
 import CheckoutForm from './components/CheckoutForm';
 import SearchDrawer from './components/SearchDrawer';
 import ShowPage from './pages/ShowPage';
+import UpdateVariantForm from './components/UpdateVariantForm';
 import { useAuth } from './AuthContext';
 import axios from 'axios';
 
@@ -157,21 +158,27 @@ const App = () => {
     showNotification('להתראות', 'success');
   };
 
-  const handleAddToCart = useCallback(async (product) => {
-    setCartItems(prevItems => {
-      const isItemInCart = prevItems.find((item) => item.product._id === product._id);
+  const handleAddToCart = useCallback(async (product, variant) => {
+    if (!product || !variant) {
+      showNotification('שגיאה: לא נבחרה וריאציה למוצר', 'error');
+      return;
+    }
 
-      const priceToUse = product.isOnSale ? product.salePrice : product.price;
+    setCartItems(prevItems => {
+      // Fix: Use optional chaining to safely check if the variant exists on the item
+      const isItemInCart = prevItems.find(
+        (item) => item.product._id === product._id && item.variant?.[' _id'] === variant._id
+      );
 
       let newCart;
       if (isItemInCart) {
         newCart = prevItems.map((item) =>
-          item.product._id === product._id
+          item.product._id === product._id && item.variant?.[' _id'] === variant._id
             ? { ...item, quantity: item.quantity + 1 }
             : item
         );
       } else {
-        newCart = [...prevItems, { product: { ...product, price: priceToUse }, quantity: 1 }];
+        newCart = [...prevItems, { product, variant, quantity: 1 }];
       }
 
       saveCart(newCart);
@@ -181,11 +188,12 @@ const App = () => {
     showNotification(`${product.name} נוסף לעגלה`, 'success');
   }, [saveCart, showNotification]);
 
-  const handleUpdateQuantity = useCallback(async (productId, action) => {
+  const handleUpdateQuantity = useCallback(async (productId, variantId, action) => {
     setCartItems(prevItems => {
       const updatedCart = prevItems
         .map((item) => {
-          if (item.product._id === productId) {
+          // The fix: use both product ID and variant ID to find the correct item
+          if (item.product._id === productId && item.variant._id === variantId) {
             const newQuantity = action === 'increase' ? item.quantity + 1 : item.quantity - 1;
             return newQuantity > 0 ? { ...item, quantity: newQuantity } : null;
           }
@@ -199,9 +207,12 @@ const App = () => {
     showNotification('עגלה עודכנה בהצלחה', 'success');
   }, [saveCart, showNotification]);
 
-  const handleRemoveFromCart = useCallback(async (productId) => {
+  const handleRemoveFromCart = useCallback(async (productId, variantId) => {
     setCartItems(prevItems => {
-      const updatedCart = prevItems.filter((item) => item.product._id !== productId);
+      // The fix: filter based on both product ID and variant ID
+      const updatedCart = prevItems.filter(
+        (item) => !(item.product._id === productId && item.variant._id === variantId)
+      );
       saveCart(updatedCart);
       return updatedCart;
     });
@@ -256,7 +267,10 @@ const App = () => {
 
   const cartItemsCount = cartItems.reduce((total, item) => total + item.quantity, 0);
   const totalPrice = cartItems.reduce((total, item) => {
-    return total + (item.product?.price * item.quantity || 0);
+    // Check if the item has a variant, if so, use its price.
+    // Otherwise, use the old product price. If all else fails, use 0.
+    const priceToUse = item.variant?.price ?? item.product?.price ?? 0;
+    return total + (priceToUse * item.quantity);
   }, 0);
 
   if (loading) {
@@ -302,7 +316,7 @@ const App = () => {
 
       <div className="pt-28 container mx-auto p-8 flex-grow">
         <header className="text-center mb-8">
-          <h1 className="text-4xl font-bold text-gray-800">ברוכים הבאים לטופ טק</h1>
+          {/* <h1 className="text-4xl font-bold text-gray-800">ברוכים הבאים לטופ טק</h1> */}
           {!isAuthenticated && (showLogin || showRegister) && (
             <div className="mt-4 flex justify-center space-x-4">
               {showLogin && <LoginForm onLogin={handleLogin} showNotification={showNotification} />}
@@ -324,6 +338,7 @@ const App = () => {
             <Route path="/admin" element={<AdminDashboard showNotification={showNotification} />} />
             <Route path="/product-form/:id" element={<ProductFormPage showNotification={showNotification} />} />
             <Route path="/product-form" element={<ProductFormPage showNotification={showNotification} />} />
+            <Route path="/admin/update-variant/:id" element={<UpdateVariantForm />} />
             <Route
               path="/product/:id"
               element={<ShowPage onAddToCart={handleAddToCart} />}
@@ -345,65 +360,3 @@ const App = () => {
 };
 
 export default App;
-
-
-
-{/* <div className="bg-gray-100 min-h-screen flex flex-col">
-    //   <div className='pt-20'>
-    //     <Navbar */}
-//       onLogout={handleLogout}
-//       onShowLogin={() => { setShowLogin(true); setShowRegister(false); }}
-//       onShowRegister={() => { setShowRegister(true); setShowLogin(false); }}
-//       cartItemsCount={cartItemsCount}
-//       onToggleDrawer={toggleCartDrawer}
-//     />
-
-//     <CartDrawer
-//       isOpen={isDrawerOpen}
-//       onClose={toggleCartDrawer}
-//       cartItems={cartItems}
-//       onRemoveFromCart={handleRemoveFromCart}
-//       onUpdateQuantity={handleUpdateQuantity}
-//       totalPrice={totalPrice}
-//     />
-//     <div className="container mx-auto p-8 flex-grow">
-//       <header className="text-center mb-8">
-//         <h1 className="text-4xl font-bold text-gray-800">ברוכים הבאים לטופ טק</h1>
-//         {!isAuthenticated && (showLogin || showRegister) && (
-//           <div className="mt-4 flex justify-center space-x-4">
-//             {showLogin && <LoginForm onLogin={handleLogin} showNotification={showNotification} />}
-//             {showRegister && <RegisterForm onRegister={handleLogin} showNotification={showNotification} />}
-//           </div>
-//         )}
-//       </header>
-//       <main>
-//         <Routes>
-//           <Route path="/" element={
-//             <HomePage
-//               products={products}
-//               cartItems={cartItems}
-//               handleAddToCart={handleAddToCart}
-//               handleUpdateQuantity={handleUpdateQuantity}
-//               handleRemoveFromCart={handleRemoveFromCart}
-//               showNotification={showNotification}
-//               handleDeleteProduct={handleDeleteProduct}
-//             />
-//           } />
-//           <Route path="/profile" element={<UserArea />} />
-//           <Route path="/admin" element={<AdminDashboard showNotification={showNotification} />} />
-//           <Route path="/product-form/:id" element={<ProductFormPage showNotification={showNotification} />} />
-//           <Route path="/product-form" element={<ProductFormPage showNotification={showNotification} />} />
-//           <Route path="/checkout" element={
-//             <CheckoutForm
-//               cartItems={cartItems}
-//               showNotification={showNotification}
-//               onOrderComplete={handleCreateOrder}
-//             />
-//           } />
-//         </Routes>
-//       </main>
-//     </div>
-// <Notification message={notification.message} type={notification.type} onClose={() => setNotification({ message: '', type: '' })} />
-//   </div>
-//   <Footer />
-// </div >

@@ -82,7 +82,19 @@ router.get('/profile', protect, async (req, res) => {
             return res.status(404).json({ message: 'User not found' });
         }
 
-        const orders = await Order.find({ user: req.user.id }).populate('orderItems.product');
+        const orders = await Order.find({ user: req.user.id })
+            .populate({
+                path: 'orderItems.product',
+                model: 'Product',
+                populate: {
+                    path: 'variants'
+                }
+            })
+            .populate({
+                path: 'orderItems.variant',
+                model: 'Product'
+            })
+            .sort({ createdAt: -1 });
 
         const sanitizedOrders = orders.map(order => {
             const sanitizedItems = order.orderItems.filter(item => item.product !== null);
@@ -97,10 +109,11 @@ router.get('/profile', protect, async (req, res) => {
             username: user.username,
             email: user.email,
             isAdmin: user.isAdmin,
-            orders: orders,
+            orders: sanitizedOrders,
         });
 
     } catch (err) {
+        console.error(err);
         res.status(500).json({ message: 'Server error' });
     }
 });

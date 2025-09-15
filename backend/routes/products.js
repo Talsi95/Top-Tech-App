@@ -11,6 +11,7 @@ router.get('/', async (req, res) => {
         res.status(500).json({ message: err.message });
     }
 });
+
 router.get('/:id', async (req, res) => {
     try {
         const product = await Product.findById(req.params.id);
@@ -22,6 +23,7 @@ router.get('/:id', async (req, res) => {
         res.status(400).json({ message: 'Invalid product ID' });
     }
 });
+
 router.post('/', async (req, res) => {
     try {
         const newProduct = await Product.create(req.body);
@@ -30,21 +32,23 @@ router.post('/', async (req, res) => {
         res.status(400).json({ message: err.message });
     }
 });
+
 router.put('/:id', protect, admin, async (req, res) => {
     try {
-        const { name, description, price, salePrice, isOnSale, imageUrl, category } = req.body;
+        const { name, description, category, variants } = req.body;
 
         const updateFields = {
             name,
             description,
-            price,
-            imageUrl,
             category,
-            isOnSale: isOnSale,
-            salePrice: isOnSale ? salePrice : null
+            variants
         };
 
-        const product = await Product.findByIdAndUpdate(req.params.id, updateFields, { new: true, runValidators: true });
+        const product = await Product.findByIdAndUpdate(
+            req.params.id,
+            updateFields,
+            { new: true, runValidators: true }
+        );
 
         if (!product) {
             return res.status(404).json({ message: 'Product not found' });
@@ -55,6 +59,28 @@ router.put('/:id', protect, admin, async (req, res) => {
         res.status(400).json({ message: err.message });
     }
 });
+
+router.put('/:productId/variants/:variantId', protect, admin, async (req, res) => {
+    try {
+        const { productId, variantId } = req.params;
+        const updateFields = req.body;
+
+        const product = await Product.findOneAndUpdate(
+            { _id: productId, 'variants._id': variantId },
+            { $set: { 'variants.$': updateFields } },
+            { new: true, runValidators: true }
+        );
+
+        if (!product) {
+            return res.status(404).json({ message: 'Product or variant not found' });
+        }
+
+        res.status(200).json(product);
+    } catch (err) {
+        res.status(400).json({ message: err.message });
+    }
+});
+
 router.delete('/:id', protect, admin, async (req, res) => {
     try {
         const product = await Product.findByIdAndDelete(req.params.id);
@@ -66,4 +92,5 @@ router.delete('/:id', protect, admin, async (req, res) => {
         res.status(500).json({ message: err.message });
     }
 });
+
 module.exports = router;
