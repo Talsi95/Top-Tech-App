@@ -1,35 +1,22 @@
-version: '3.8'
-
 services:
-  frontend:
-    build: ./frontend
-    command: npm run build
-    volumes:
-      - ./frontend:/app
-      - /app/node_modules
+- type: web
+  name: my-backend
+  runtime: docker
+  dockerfilePath: ./backend/Dockerfile
+  envVars:
+      - key: MONGO_URI
+        value: mongodb+srv://talsi:Talsi201095@top-tech.t0e87hw.mongodb.net/?retryWrites=true&w=majority&appName=Top-Tech
+      - key: NODE_ENV
+        value: production
+      - key: JWT_SECRET
+        value: shma_israel_hashem_elokeinu_hashem_echad
+      - key: GMAIL_USER
+        value: tal5566172@gmail.com
+      - key: GMAIL_PASS
+      - value: oqvmaeweiuzbnhqh
 
-  backend:
-    build: ./backend
-    ports:
-      - "5001:5000"
-    volumes:
-      - ./backend:/app
-      - /app/node_modules
-    command: npm run dev
-    env_file:
-      - ./.env
-    environment:
-      - NODE_ENV=development
-    depends_on:
-      - frontend
-
-  nginx:
-    image: nginx:1.21-alpine
-    ports:
-      - "80:80"
-    volumes:
-      - ./nginx.conf:/etc/nginx/nginx.conf:ro
-      - ./frontend/dist:/usr/share/nginx/html:ro
-    depends_on:
-      - frontend
-      - backend
+- type: static
+  name: my-frontend
+  buildCommand: npm run build
+  staticPublishPath: ./dist
+  rootDir: frontend
