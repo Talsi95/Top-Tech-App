@@ -6,7 +6,7 @@ import UserArea from './pages/UserArea';
 import HomePage from './pages/HomePage';
 import CartDrawer from './components/CartDrawer';
 import Notification from './components/Notification';
-import Navbar from './components/NavBar';
+import Navbar from './components/Navbar';
 import Footer from './components/Footer';
 import CheckoutForm from './components/CheckoutForm';
 import SearchDrawer from './components/SearchDrawer';
