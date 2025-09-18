@@ -1,1 +1,14 @@
 @import "tailwindcss";
+
+.search-drawer {
+    max-height: 0;
+    opacity: 0;
+    overflow: hidden;
+    transition: max-height 0.5s ease-out, opacity 0.5s ease-out;
+}
+
+.search-drawer.open {
+    max-height: 500px;
+    /* Adjust this value as needed */
+    opacity: 1;
+}

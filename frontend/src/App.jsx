@@ -4,18 +4,16 @@ import ProductFormPage from './pages/ProductFormPage';
 import AdminDashboard from './pages/AdminDashboard';
 import UserArea from './pages/UserArea';
 import HomePage from './pages/HomePage';
-import ProductList from './components/ProductList';
-import ShoppingCart from './components/ShoppingCart';
 import CartDrawer from './components/CartDrawer';
-import ProductForm from './components/ProductForm';
 import Notification from './components/Notification';
-import RegisterForm from './components/RegisterForm';
-import LoginForm from './components/LoginForm';
 import Navbar from './components/NavBar';
 import Footer from './components/Footer';
 import CheckoutForm from './components/CheckoutForm';
 import SearchDrawer from './components/SearchDrawer';
 import ShowPage from './pages/ShowPage';
+import ProductsPage from './pages/ProductsPage';
+import LoginPage from './pages/LoginPage';
+import RegisterPage from './pages/RegisterPage';
 import UpdateVariantForm from './components/UpdateVariantForm';
 import { useAuth } from './AuthContext';
 import axios from 'axios';
@@ -27,8 +25,6 @@ const App = () => {
   const [error, setError] = useState(null);
   const [cartItems, setCartItems] = useState([]);
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
-  const [showLogin, setShowLogin] = useState(false);
-  const [showRegister, setShowRegister] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState([]);
   const [isSearchDrawerOpen, setIsSearchDrawerOpen] = useState(false);
@@ -103,7 +99,6 @@ const App = () => {
         }
       );
 
-      console.log('Cart saved to server successfully.');
     } catch (err) {
       console.error("Failed to save cart:", err.response ? err.response.data : err.message);
       throw new Error('Failed to save cart on server');
@@ -132,24 +127,6 @@ const App = () => {
   useEffect(() => {
     loadCart();
   }, [loadCart]);
-
-  const handleLogin = (token) => {
-    if (typeof token !== 'string' || !token) {
-      showNotification('Invalid or empty token received. Please try again.', 'error');
-      console.error('Expected a string token, but received:', token);
-      return;
-    }
-
-    try {
-      login(token);
-      showNotification('התחברת בהצלחה', 'success');
-      setShowLogin(false);
-      setShowRegister(false);
-    } catch (error) {
-      console.error("Error decoding token:", error);
-      showNotification('אופס.. אחד מהנתונים שגוי', 'error');
-    }
-  };
 
   const handleLogout = () => {
     logout();
@@ -267,11 +244,10 @@ const App = () => {
 
   const cartItemsCount = cartItems.reduce((total, item) => total + item.quantity, 0);
   const totalPrice = cartItems.reduce((total, item) => {
-    // Check if the item has a variant, if so, use its price.
-    // Otherwise, use the old product price. If all else fails, use 0.
     const priceToUse = item.variant?.price ?? item.product?.price ?? 0;
     return total + (priceToUse * item.quantity);
   }, 0);
+
 
   if (loading) {
     return <div className="text-center text-xl font-semibold">טוען מוצרים...</div>;
@@ -317,12 +293,12 @@ const App = () => {
       <div className="pt-28 container mx-auto p-8 flex-grow">
         <header className="text-center mb-8">
           {/* <h1 className="text-4xl font-bold text-gray-800">ברוכים הבאים לטופ טק</h1> */}
-          {!isAuthenticated && (showLogin || showRegister) && (
+          {/* {!isAuthenticated && (showLogin || showRegister) && (
             <div className="mt-4 flex justify-center space-x-4">
               {showLogin && <LoginForm onLogin={handleLogin} showNotification={showNotification} />}
               {showRegister && <RegisterForm onRegister={handleLogin} showNotification={showNotification} />}
             </div>
-          )}
+          )} */}
         </header>
         <main>
           <Routes>
@@ -338,7 +314,10 @@ const App = () => {
             <Route path="/admin" element={<AdminDashboard showNotification={showNotification} />} />
             <Route path="/product-form/:id" element={<ProductFormPage showNotification={showNotification} />} />
             <Route path="/product-form" element={<ProductFormPage showNotification={showNotification} />} />
+            <Route path="/login" element={<LoginPage showNotification={showNotification} />} />
+            <Route path="/register" element={<RegisterPage showNotification={showNotification} />} />
             <Route path="/admin/update-variant/:id" element={<UpdateVariantForm />} />
+            <Route path="/products" element={<ProductsPage />} />
             <Route
               path="/product/:id"
               element={<ShowPage onAddToCart={handleAddToCart} />}
@@ -357,6 +336,24 @@ const App = () => {
       <Footer />
     </div >
   );
+
+  function newFunction() {
+    const cartItemsCount = cartItems.reduce((total, item) => total + item.quantity, 0);
+    const totalPrice = cartItems.reduce((total, item) => {
+      const priceToUse = item.variant?.price ?? item.product?.price ?? 0;
+      return total + (priceToUse * item.quantity);
+    }, 0);
+    return { cartItemsCount, totalPrice };
+  }
 };
 
 export default App;
+
+function newFunction(cartItems) {
+  const cartItemsCount = cartItems.reduce((total, item) => total + item.quantity, 0);
+  const totalPrice = cartItems.reduce((total, item) => {
+    const priceToUse = item.variant?.price ?? item.product?.price ?? 0;
+    return total + (priceToUse * item.quantity);
+  }, 0);
+  return { cartItemsCount, totalPrice };
+}

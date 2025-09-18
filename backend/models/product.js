@@ -9,20 +9,29 @@ const productSchema = new Schema({
     description: {
         type: String
     },
-    category: {
-        main: {
-            type: String,
-            required: true
-        },
-        sub: {
-            type: String,
-            required: true
-        }
+    longDescription: {
+        type: String,
+        required: false
     },
+    additionalImages: [{
+        type: String,
+        required: false
+    }],
+    videos: [{
+        title: { type: String },
+        url: { type: String }
+    }],
+    technicalSpecs: [{
+        key: { type: String },
+        value: { type: String }
+    }],
+    category: { type: String, required: true },
+    subcategory: { type: String, required: true },
     variants: [
         {
             color: { type: String, required: true },
             storage: { type: String, required: false },
+            size: { type: String, required: false },
             price: { type: Number, required: true },
             stock: { type: Number, required: true, default: 0 },
             imageUrl: { type: String, required: true }

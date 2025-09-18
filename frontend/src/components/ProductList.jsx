@@ -55,7 +55,6 @@ const ProductList = ({ onAddToCart, onUpdateProduct, onDeleteProduct, products }
                                         <div className="flex items-center justify-between">
                                             <span className="text-gray-800 font-bold text-xl">₪{defaultVariant.price.toFixed(2)}</span>
                                             <button
-                                                // שינוי כאן: במקום להוסיף לעגלה, אנו מנווטים לדף המוצר
                                                 onClick={() => navigate(`/product/${product._id}`)}
                                                 className="mt-4 bg-sky-500 text-white px-4 py-2 rounded-md hover:bg-sky-600 transition-colors"
                                             >

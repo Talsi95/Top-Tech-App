@@ -4,8 +4,8 @@ import { FaTimes } from 'react-icons/fa';
 const SearchDrawer = ({ isOpen, onClose, results }) => {
     return (
         <div
-            className={`fixed top-0 left-0 w-full h-1/2 bg-white shadow-lg transform transition-transform duration-300 ease-in-out ${isOpen ? 'translate-y-0' : '-translate-y-full'}`}
-            style={{ zIndex: 60 }}
+            className={`absolute w-full mt-2 bg-white border border-gray-200 rounded-lg shadow-lg transform transition-all duration-300 ease-in-out ${isOpen ? 'max-h-96 opacity-100 pointer-events-auto' : 'max-h-0 opacity-0 overflow-hidden pointer-events-none'}`}
+            style={{ zIndex: 50 }}
         >
             <div className="flex justify-between items-center p-4 border-b">
                 <h2 className="text-xl font-semibold">תוצאות חיפוש</h2>

@@ -2,29 +2,16 @@ import { useState, useEffect } from 'react';
 import { useAuth } from '../AuthContext';
 import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
-
-// רשימת הקטגוריות ותתי-הקטגוריות
-const categories = {
-    'מכשירים ניידים': ['אייפון', 'גלקסי', 'גוגל פיקסל'],
-    'קונסולות משחק': ['סוני', 'אקסבוקס', 'נינטנדו'],
-    'מחשבים ניידים': ['Apple MacBook', 'Dell XPS', 'Lenovo'],
-    'טלוויזיות': ['LG', 'Samsung', 'Sony'],
-    'אוזניות': ['אלחוטיות', 'חוטיות', 'ביטול רעשים']
-};
-
-const variantFields = {
-    'מכשירים ניידים': ['color', 'storage'],
-    'קונסולות משחק': ['color', 'storage'],
-    'מחשבים ניידים': ['color', 'storage'],
-    'טלוויזיות': ['color', 'size'], // שינוי ל-size במקום storage
-    'אוזניות': ['color'] // רק צבע, ללא נפח או גודל
-};
+import { categories, getAdminCategories, getAdminVariantFields } from './categoriesData';
 
 const ProductForm = ({ showNotification, existingProduct, onUpdateSuccess }) => {
+    const adminCategories = getAdminCategories(categories);
+    const adminVariantFields = getAdminVariantFields(categories);
+
     const [formData, setFormData] = useState({
         name: '',
         description: '',
-        category: { main: '', sub: '' },
+        category: { main: Object.keys(adminCategories)[0] || '', sub: Object.values(adminCategories)[0]?.[0] || '' },
         variants: [
             {
                 color: '',
@@ -43,7 +30,6 @@ const ProductForm = ({ showNotification, existingProduct, onUpdateSuccess }) => 
 
     useEffect(() => {
         if (existingProduct) {
-            // התאמת הנתונים הקיימים למבנה החדש
             const { name, description, category, variants } = existingProduct;
             setFormData({
                 name,
@@ -63,7 +49,7 @@ const ProductForm = ({ showNotification, existingProduct, onUpdateSuccess }) => 
         const main = e.target.value;
         setFormData(prevData => ({
             ...prevData,
-            category: { main: main, sub: categories[main][0] || '' }
+            category: { main: main, sub: adminCategories[main]?.[0] || '' }
         }));
     };
 
@@ -118,8 +104,17 @@ const ProductForm = ({ showNotification, existingProduct, onUpdateSuccess }) => 
             const parsedSalePrice = parseFloat(v.salePrice);
             const parsedStock = parseInt(v.stock, 10);
 
-            if (!v.color.trim()) vErrors.color = 'צבע נדרש';
-            if (!v.storage.trim()) vErrors.storage = 'נפח נדרש';
+            const requiredFields = adminVariantFields[formData.category.main];
+            if (requiredFields && requiredFields.includes('color') && !v.color.trim()) {
+                vErrors.color = 'צבע נדרש';
+            }
+            if (requiredFields && requiredFields.includes('storage') && !v.storage.trim()) {
+                vErrors.storage = 'נפח נדרש';
+            }
+            if (requiredFields && requiredFields.includes('size') && !v.size?.trim()) {
+                vErrors.size = 'גודל נדרש';
+            }
+
             if (isNaN(parsedPrice) || parsedPrice <= 0) vErrors.price = 'מחיר חייב להיות מספר חיובי';
             if (isNaN(parsedStock) || parsedStock < 0) vErrors.stock = 'מלאי חייב להיות מספר חיובי או אפס';
             if (!v.imageUrl.trim()) vErrors.imageUrl = 'קישור תמונה נדרש';
@@ -147,10 +142,12 @@ const ProductForm = ({ showNotification, existingProduct, onUpdateSuccess }) => 
         const url = `http://localhost:5001/api/products/${existingProduct ? existingProduct._id : ''}`;
         const method = isUpdating ? 'PUT' : 'POST';
 
+        // *** MODIFIED PART START ***
         const productData = {
             name: formData.name,
             description: formData.description,
-            category: formData.category,
+            category: formData.category.main,       // Use formData.category.main here
+            subcategory: formData.category.sub,     // Add a new subcategory field here
             variants: formData.variants.map(v => ({
                 ...v,
                 price: parseFloat(v.price),
@@ -158,6 +155,7 @@ const ProductForm = ({ showNotification, existingProduct, onUpdateSuccess }) => 
                 salePrice: v.isOnSale ? parseFloat(v.salePrice) : null,
             })),
         };
+        // *** MODIFIED PART END ***
 
         try {
             const token = getToken();
@@ -206,7 +204,7 @@ const ProductForm = ({ showNotification, existingProduct, onUpdateSuccess }) => 
                     <label className="block text-gray-700">קטגוריה ראשית</label>
                     <select className="w-full mt-1 p-2 border rounded-md" value={formData.category.main} onChange={handleMainChange} required>
                         <option value="">בחר קטגוריה</option>
-                        {Object.keys(categories).map(cat => <option key={cat} value={cat}>{cat}</option>)}
+                        {Object.keys(adminCategories).map(cat => <option key={cat} value={cat}>{cat}</option>)}
                     </select>
                     {validationErrors.category && <p className="text-red-500 text-xs italic mt-1">{validationErrors.category}</p>}
                 </div>
@@ -216,7 +214,7 @@ const ProductForm = ({ showNotification, existingProduct, onUpdateSuccess }) => 
                         <label className="block text-gray-700">תת-קטגוריה</label>
                         <select className="w-full mt-1 p-2 border rounded-md" value={formData.category.sub} onChange={handleSubChange} required>
                             <option value="">בחר תת-קטגוריה</option>
-                            {categories[formData.category.main].map(sub => <option key={sub} value={sub}>{sub}</option>)}
+                            {adminCategories[formData.category.main].map(sub => <option key={sub} value={sub}>{sub}</option>)}
                         </select>
                         {validationErrors.category && <p className="text-red-500 text-xs italic mt-1">{validationErrors.category}</p>}
                     </div>
@@ -235,18 +233,26 @@ const ProductForm = ({ showNotification, existingProduct, onUpdateSuccess }) => 
                             </button>
                         )}
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            {formData.category.main && variantFields[formData.category.main].includes('color') && (
+                            {/* Dynamically render variant fields based on category */}
+                            {formData.category.main && adminVariantFields[formData.category.main]?.includes('color') && (
                                 <div>
                                     <label className="block text-gray-700">צבע</label>
                                     <input className="w-full mt-1 p-2 border rounded-md" type="text" name="color" value={variant.color} onChange={(e) => handleVariantChange(index, e)} required />
                                     {validationErrors.variants && validationErrors.variants[index]?.color && <p className="text-red-500 text-xs italic mt-1">{validationErrors.variants[index].color}</p>}
                                 </div>
                             )}
-                            {formData.category.main && variantFields[formData.category.main].includes('storage') && (
+                            {formData.category.main && adminVariantFields[formData.category.main]?.includes('storage') && (
                                 <div>
                                     <label className="block text-gray-700">נפח</label>
                                     <input className="w-full mt-1 p-2 border rounded-md" type="text" name="storage" value={variant.storage} onChange={(e) => handleVariantChange(index, e)} />
                                     {validationErrors.variants && validationErrors.variants[index]?.storage && <p className="text-red-500 text-xs italic mt-1">{validationErrors.variants[index].storage}</p>}
+                                </div>
+                            )}
+                            {formData.category.main && adminVariantFields[formData.category.main]?.includes('size') && (
+                                <div>
+                                    <label className="block text-gray-700">גודל (אינץ')</label>
+                                    <input className="w-full mt-1 p-2 border rounded-md" type="text" name="size" value={variant.size} onChange={(e) => handleVariantChange(index, e)} />
+                                    {validationErrors.variants && validationErrors.variants[index]?.size && <p className="text-red-500 text-xs italic mt-1">{validationErrors.variants[index].size}</p>}
                                 </div>
                             )}
                             <div>

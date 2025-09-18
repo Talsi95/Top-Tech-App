@@ -5,7 +5,20 @@ const { protect, admin } = require('../middleware/authMiddleware');
 
 router.get('/', async (req, res) => {
     try {
-        const products = await Product.find({});
+        const { category, subcategory } = req.query;
+
+        let filter = {};
+
+        if (category) {
+            filter.category = category;
+        }
+
+        if (subcategory) {
+            filter.subcategory = subcategory;
+        }
+
+        const products = await Product.find(filter);
+
         res.json(products);
     } catch (err) {
         res.status(500).json({ message: err.message });
@@ -35,18 +48,11 @@ router.post('/', async (req, res) => {
 
 router.put('/:id', protect, admin, async (req, res) => {
     try {
-        const { name, description, category, variants } = req.body;
-
-        const updateFields = {
-            name,
-            description,
-            category,
-            variants
-        };
-
+        // הסר את הפירוק המוגבל של האובייקט והשתמש ב-req.body כולו.
+        // Mongoose יעדכן רק שדות שקיימים בסכימה.
         const product = await Product.findByIdAndUpdate(
             req.params.id,
-            updateFields,
+            req.body, // מעביר את כל הנתונים מהבקשה
             { new: true, runValidators: true }
         );
 

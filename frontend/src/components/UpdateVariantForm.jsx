@@ -1,17 +1,15 @@
-// src/components/admin/UpdateVariantForm.jsx
 import { useState, useEffect } from 'react';
 import axios from 'axios';
 import { useAuth } from '../AuthContext';
 import { useParams } from 'react-router-dom';
 
 const UpdateVariantForm = () => {
-    const { id: productId } = useParams(); // Get product ID from URL
+    const { id: productId } = useParams();
     const { getToken } = useAuth();
     const [product, setProduct] = useState(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
 
-    // State to hold the temporary stock value for each variant being edited
     const [editedStock, setEditedStock] = useState({});
 
     useEffect(() => {
@@ -19,7 +17,6 @@ const UpdateVariantForm = () => {
             try {
                 const response = await axios.get(`http://localhost:5001/api/products/${productId}`);
                 setProduct(response.data);
-                // Initialize editedStock with current stock values
                 const initialStock = {};
                 response.data.variants.forEach(v => {
                     initialStock[v._id] = v.stock;
@@ -48,15 +45,14 @@ const UpdateVariantForm = () => {
 
         try {
             const updatedStock = editedStock[variantId];
-            if (updatedStock === undefined) return; // Don't send if no change
+            if (updatedStock === undefined) return;
 
             await axios.put(
                 `http://localhost:5001/api/products/${productId}/variants/${variantId}`,
-                { stock: parseInt(updatedStock, 10) }, // Only send the stock field
+                { stock: parseInt(updatedStock, 10) },
                 { headers: { Authorization: `Bearer ${token}` } }
             );
 
-            // Optimistically update the local state to reflect the change
             setProduct(prevProduct => {
                 const newVariants = prevProduct.variants.map(v =>
                     v._id === variantId ? { ...v, stock: parseInt(updatedStock, 10) } : v
