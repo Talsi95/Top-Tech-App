@@ -16,7 +16,7 @@ const ProductsPage = () => {
     useEffect(() => {
         const fetchProducts = async () => {
             try {
-                let url = 'http://localhost:5001/api/products';
+                let url = '/api/products';
 
                 // Add query parameters to the URL if they exist
                 const params = new URLSearchParams();

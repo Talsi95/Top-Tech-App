@@ -30,7 +30,7 @@ const ShowPage = ({ onAddToCart }) => {
     useEffect(() => {
         const fetchProduct = async () => {
             try {
-                const response = await axios.get(`http://localhost:5001/api/products/${id}`);
+                const response = await axios.get(`/api/products/${id}`);
                 const data = response.data;
                 setProduct(data);
 
@@ -76,7 +76,7 @@ const ShowPage = ({ onAddToCart }) => {
                 technicalSpecs: [...(product.technicalSpecs || []), ...newSpecs],
             };
 
-            await axios.put(`http://localhost:5001/api/products/${id}`, updatedProduct, {
+            await axios.put(`/api/products/${id}`, updatedProduct, {
                 headers: {
                     Authorization: `Bearer ${token}`
                 }

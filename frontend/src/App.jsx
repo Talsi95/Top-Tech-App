@@ -29,25 +29,32 @@ const App = () => {
   const [searchResults, setSearchResults] = useState([]);
   const [isSearchDrawerOpen, setIsSearchDrawerOpen] = useState(false);
   const [notification, setNotification] = useState({ message: '', type: '' });
-  const { user, isAuthenticated, isAdmin, login, logout, getToken } = useAuth();
+  const { user, isAuthenticated, isAdmin, logout, getToken } = useAuth();
   const navigate = useNavigate();
 
-  const handleSearchChange = (e) => {
+  // 1. שיפור בפונקציית החיפוש:
+  // שימוש ב- useCallback כדי לייעל את הפונקציה ולמנוע יצירה מחדש של הפונקציה בכל רינדור.
+  const handleSearchChange = useCallback((e) => {
     const query = e.target.value;
     setSearchQuery(query);
-    setIsSearchDrawerOpen(query.length > 0);
-
     const filtered = products.filter(product =>
       product.name.toLowerCase().includes(query.toLowerCase())
     );
     setSearchResults(filtered);
-  };
+  }, [products]); // התלות ב- products מבטיחה שהפילטור יתעדכן כשהמוצרים נטענים.
 
-  const closeSearchDrawer = () => {
-    setIsSearchDrawerOpen(false);
-    setSearchQuery('');
-  };
-
+  // 2. שיפור בפונקציית toggleSearchDrawer:
+  // ניקוי תוצאות החיפוש כאשר המגירה נפתחת, כדי למנוע הצגה של תוצאות ישנות.
+  const toggleSearchDrawer = useCallback(() => {
+    setIsSearchDrawerOpen(prev => {
+      if (!prev) {
+        // המגירה עומדת להיפתח, ננקה את התוצאות
+        setSearchQuery('');
+        setSearchResults([]);
+      }
+      return !prev;
+    });
+  }, []);
 
   const showNotification = (message, type) => {
     setNotification({ message, type });
@@ -61,7 +68,7 @@ const App = () => {
     setLoading(true);
     setError(null);
     try {
-      const response = await axios.get('http://localhost:5001/api/products');
+      const response = await axios.get('/api/products');
       setProducts(response.data);
     } catch (err) {
       console.error("Failed to fetch products:", err);
@@ -89,7 +96,7 @@ const App = () => {
         quantity: item.quantity
       }));
 
-      await axios.post('http://localhost:5001/api/cart',
+      await axios.post('/api/cart',
         { cartItems: simplifiedCart },
         {
           headers: {
@@ -98,7 +105,6 @@ const App = () => {
           }
         }
       );
-
     } catch (err) {
       console.error("Failed to save cart:", err.response ? err.response.data : err.message);
       throw new Error('Failed to save cart on server');
@@ -112,13 +118,12 @@ const App = () => {
     }
     try {
       const token = getToken();
-      const response = await axios.get('http://localhost:5001/api/cart', {
+      const response = await axios.get('/api/cart', {
         headers: {
           'Authorization': `Bearer ${token}`
         }
       });
       setCartItems(response.data);
-
     } catch (err) {
       console.error("Failed to load cart:", err.response ? err.response.data : err.message);
     }
@@ -142,15 +147,14 @@ const App = () => {
     }
 
     setCartItems(prevItems => {
-      // Fix: Use optional chaining to safely check if the variant exists on the item
       const isItemInCart = prevItems.find(
-        (item) => item.product._id === product._id && item.variant?.[' _id'] === variant._id
+        (item) => item.product._id === product._id && item.variant?._id === variant._id
       );
 
       let newCart;
       if (isItemInCart) {
         newCart = prevItems.map((item) =>
-          item.product._id === product._id && item.variant?.[' _id'] === variant._id
+          item.product._id === product._id && item.variant?._id === variant._id
             ? { ...item, quantity: item.quantity + 1 }
             : item
         );
@@ -169,7 +173,6 @@ const App = () => {
     setCartItems(prevItems => {
       const updatedCart = prevItems
         .map((item) => {
-          // The fix: use both product ID and variant ID to find the correct item
           if (item.product._id === productId && item.variant._id === variantId) {
             const newQuantity = action === 'increase' ? item.quantity + 1 : item.quantity - 1;
             return newQuantity > 0 ? { ...item, quantity: newQuantity } : null;
@@ -186,7 +189,6 @@ const App = () => {
 
   const handleRemoveFromCart = useCallback(async (productId, variantId) => {
     setCartItems(prevItems => {
-      // The fix: filter based on both product ID and variant ID
       const updatedCart = prevItems.filter(
         (item) => !(item.product._id === productId && item.variant._id === variantId)
       );
@@ -200,7 +202,7 @@ const App = () => {
     if (window.confirm('Are you sure you want to delete this product?')) {
       try {
         const token = getToken();
-        await axios.delete(`http://localhost:5001/api/products/${id}`, {
+        await axios.delete(`/api/products/${id}`, {
           headers: {
             Authorization: `Bearer ${token}`,
           },
@@ -208,7 +210,6 @@ const App = () => {
 
         setProducts(prevProducts => prevProducts.filter(product => product._id !== id));
         showNotification('מוצר נמחק בהצלחה', 'success');
-
       } catch (err) {
         const errorMessage = err.response ? err.response.data.message : err.message;
         showNotification(errorMessage, 'error');
@@ -218,26 +219,20 @@ const App = () => {
 
   const handleCreateOrder = async (orderData) => {
     try {
-      const response = await axios.post('http://localhost:5001/api/orders', orderData, {
+      const response = await axios.post('/api/orders', orderData, {
         headers: {
           Authorization: `Bearer ${getToken()}`,
         },
       });
-
       const data = response.data;
       showNotification('הזמנה בוצעה בהצלחה', 'success');
-
       setCartItems([]);
       await saveCart([]);
-
       navigate('/');
-
       return { success: true, orderId: data._id };
-
     } catch (error) {
       const errorMessage = error.response ? error.response.data.message : error.message;
       showNotification(`שגיאה: ${errorMessage}`, 'error');
-
       return { success: false, message: errorMessage };
     }
   };
@@ -248,7 +243,6 @@ const App = () => {
     return total + (priceToUse * item.quantity);
   }, 0);
 
-
   if (loading) {
     return <div className="text-center text-xl font-semibold">טוען מוצרים...</div>;
   }
@@ -257,29 +251,24 @@ const App = () => {
     return <div className="text-center text-red-500 text-xl font-semibold">שגיאה: {error}</div>;
   }
 
-
   return (
     <div className="bg-gray-100 min-h-screen flex flex-col">
       <Navbar
         onLogout={handleLogout}
-        onShowLogin={() => { setShowLogin(true); setShowRegister(false); }}
-        onShowRegister={() => { setShowRegister(true); setShowLogin(false); }}
+        onShowLogin={() => navigate('/login')}
+        onShowRegister={() => navigate('/register')}
         cartItemsCount={cartItemsCount}
         onToggleDrawer={toggleCartDrawer}
-        isAuthenticated={isAuthenticated}
-        isAdmin={isAdmin}
-        user={user}
-        onSearchChange={handleSearchChange}
-        searchQuery={searchQuery}
+        onToggleSearchDrawer={toggleSearchDrawer}
       />
 
-      {isSearchDrawerOpen && (
-        <SearchDrawer
-          isOpen={isSearchDrawerOpen}
-          onClose={closeSearchDrawer}
-          results={searchResults}
-        />
-      )}
+      <SearchDrawer
+        isOpen={isSearchDrawerOpen}
+        onClose={toggleSearchDrawer}
+        results={searchResults}
+        searchQuery={searchQuery}
+        onSearchChange={handleSearchChange}
+      />
 
       <CartDrawer
         isOpen={isDrawerOpen}
@@ -291,15 +280,6 @@ const App = () => {
       />
 
       <div className="pt-28 container mx-auto p-8 flex-grow">
-        <header className="text-center mb-8">
-          {/* <h1 className="text-4xl font-bold text-gray-800">ברוכים הבאים לטופ טק</h1> */}
-          {/* {!isAuthenticated && (showLogin || showRegister) && (
-            <div className="mt-4 flex justify-center space-x-4">
-              {showLogin && <LoginForm onLogin={handleLogin} showNotification={showNotification} />}
-              {showRegister && <RegisterForm onRegister={handleLogin} showNotification={showNotification} />}
-            </div>
-          )} */}
-        </header>
         <main>
           <Routes>
             <Route path="/" element={
@@ -334,26 +314,8 @@ const App = () => {
       </div>
       <Notification message={notification.message} type={notification.type} onClose={() => setNotification({ message: '', type: '' })} />
       <Footer />
-    </div >
+    </div>
   );
-
-  function newFunction() {
-    const cartItemsCount = cartItems.reduce((total, item) => total + item.quantity, 0);
-    const totalPrice = cartItems.reduce((total, item) => {
-      const priceToUse = item.variant?.price ?? item.product?.price ?? 0;
-      return total + (priceToUse * item.quantity);
-    }, 0);
-    return { cartItemsCount, totalPrice };
-  }
 };
 
 export default App;
-
-function newFunction(cartItems) {
-  const cartItemsCount = cartItems.reduce((total, item) => total + item.quantity, 0);
-  const totalPrice = cartItems.reduce((total, item) => {
-    const priceToUse = item.variant?.price ?? item.product?.price ?? 0;
-    return total + (priceToUse * item.quantity);
-  }, 0);
-  return { cartItemsCount, totalPrice };
-}

@@ -4,29 +4,37 @@ const app = express();
 const path = require('path');
 require('dotenv').config();
 const cors = require('cors');
+const API_PREFIX = '/api';
 
-const allowedOrigins = [
-    'http://localhost:5001',
-    'http://localhost:5173',
-    'http://localhost',
-    'http://127.0.0.1'
-];
-
-app.use(cors({
-    origin: function (origin, callback) {
-        // This is a much safer way to check the origin
-        if (!origin || allowedOrigins.includes(origin)) {
-            callback(null, true);
-        } else {
-            console.log("CORS blocked from origin: " + origin);
-            callback(new Error('Not allowed by CORS'));
-        }
-    },
-    credentials: true
-}));
+if (process.env.NODE_ENV === 'development') {
+    const allowedOrigins = [
+        'http://localhost:5001',
+        'http://localhost:5173',
+        'http://localhost',
+        'http://127.0.0.1'
+    ];
+    app.use(cors({
+        origin: function (origin, callback) {
+            if (!origin || allowedOrigins.includes(origin)) {
+                callback(null, true);
+            } else {
+                console.log("CORS blocked from origin: " + origin);
+                callback(new Error('Not allowed by CORS'));
+            }
+        },
+        credentials: true
+    }));
+}
 
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
+
+app.use(API_PREFIX, (req, res, next) => {
+    res.set('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
+    res.set('Pragma', 'no-cache');
+    res.set('Expires', '0');
+    next();
+});
 
 const productRoutes = require('./routes/products');
 const userRoutes = require('./routes/users');
@@ -37,10 +45,10 @@ app.use('/api/products', productRoutes);
 app.use('/api/auth', userRoutes);
 app.use('/api/cart', cartRoutes);
 app.use('/api/orders', orderRoutes);
-app.use(express.static(path.join(__dirname, '../frontend/dist')));
+app.use(express.static(path.join(__dirname, 'dist')));
 
 app.get(/^\/(?!api).*/, (req, res) => {
-    res.sendFile(path.join(__dirname, '../frontend/dist/index.html'));
+    res.sendFile(path.join(__dirname, 'dist/index.html'));
 });
 
 mongoose.connect(process.env.MONGO_URI, {

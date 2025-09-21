@@ -15,7 +15,7 @@ const UpdateVariantForm = () => {
     useEffect(() => {
         const fetchProduct = async () => {
             try {
-                const response = await axios.get(`http://localhost:5001/api/products/${productId}`);
+                const response = await axios.get(`/api/products/${productId}`);
                 setProduct(response.data);
                 const initialStock = {};
                 response.data.variants.forEach(v => {
@@ -48,7 +48,7 @@ const UpdateVariantForm = () => {
             if (updatedStock === undefined) return;
 
             await axios.put(
-                `http://localhost:5001/api/products/${productId}/variants/${variantId}`,
+                `/api/products/${productId}/variants/${variantId}`,
                 { stock: parseInt(updatedStock, 10) },
                 { headers: { Authorization: `Bearer ${token}` } }
             );

@@ -1,3 +1,4 @@
+# Stage 1: Build the Frontend
 FROM node:20 AS frontend-builder
 WORKDIR /app
 COPY ./frontend/package*.json ./
@@ -5,29 +6,20 @@ RUN npm install
 COPY ./frontend/. ./
 RUN npm run build
 
-# שלב 2: בניית ה-Backend והעתקת קבצים
-FROM node:18-alpine AS backend-builder
+
+# Stage 2: Create the Final Image
+FROM node:20-alpine
 WORKDIR /app
-COPY ./backend/package*.json ./
-RUN npm install
+
+# העתקת כל הקבצים של ה-Backend מהמחשב המקומי (מכיוון שאין צורך ב-Builder נפרד)
 COPY ./backend/. ./
+RUN npm install
 
-# שלב 3: בניית התמונה הסופית (כוללת את הכל)
-FROM node:18-alpine
-WORKDIR /app
-
-# התקנת serve כשרת סטטי
-RUN npm install -g serve
-
-# העתקת ה-dist של ה-frontend מהשלב הראשון
+# העתקת הקבצים הסטטיים של ה-Frontend משלב הבנייה הראשון
 COPY --from=frontend-builder /app/dist ./dist
 
-# העתקת הכל הקבצים והספריות של ה-backend
-COPY --from=backend-builder /app ./
+# הגדרת פורט 5000 שבו השרת שלך מאזין
+EXPOSE 5000
 
-# פקודת ההפעלה הסופית
-# הוספת -s ל-serve כדי שהאפליקציה תשרת את הקבצים הסטטיים מתיקיית ה-dist
-CMD ["serve", "-s", "dist"]
-
-# חשוב: אם ה-backend שלך אחראי על הגשת הקבצים הסטטיים, פקודה זו צריכה להיות שונה.
-# לדוגמה: CMD ["node", "server.js"] ואז בקוד ה-Node.js שלך תוסיף שורה שתשרת קבצים סטטיים מהתיקייה `dist`
+# הפקודה שמפעילה את השרת שלך
+CMD ["node", "app.js"]

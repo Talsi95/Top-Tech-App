@@ -25,6 +25,28 @@ router.get('/', async (req, res) => {
     }
 });
 
+router.get('/search', async (req, res) => {
+    try {
+        const { query } = req.query; // This is how you access the search term
+
+        // 1. Verify that the query exists and is not empty
+        if (!query) {
+            return res.status(400).json({ error: 'Search query is required.' });
+        }
+
+        // 2. Build the search query for MongoDB
+        // Using a case-insensitive regular expression is a good approach for search
+        const products = await Product.find({
+            name: { $regex: query, $options: 'i' }
+        });
+
+        res.json(products);
+    } catch (error) {
+        console.error('Search error:', error);
+        res.status(500).json({ error: 'Internal server error.' });
+    }
+});
+
 router.get('/:id', async (req, res) => {
     try {
         const product = await Product.findById(req.params.id);
