@@ -13,7 +13,7 @@ const RegisterPage = ({ showNotification }) => {
         e.preventDefault();
 
         try {
-            const response = await axios.post('/api/auth/register', {
+            const response = await axios.post(`${__API_URL__}/auth/register`, {
                 username,
                 email,
                 password,

@@ -16,7 +16,7 @@ const LoginPage = ({ showNotification }) => {
 
         try {
             // שימוש ב-Axios במקום ב-fetch
-            const response = await axios.post('/api/auth/login', {
+            const response = await axios.post(`${__API_URL__}/auth/login`, {
                 email,
                 password,
             });

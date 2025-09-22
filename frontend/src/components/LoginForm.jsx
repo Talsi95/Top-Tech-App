@@ -8,7 +8,7 @@ const LoginForm = ({ onLogin, showNotification }) => {
     const handleSubmit = async (e) => {
         e.preventDefault();
         try {
-            const response = await axios.post('/api/auth/login', {
+            const response = await axios.post(`${__API_URL__}/auth/login`, {
                 email,
                 password
             });

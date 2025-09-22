@@ -2,9 +2,9 @@ export const categories = [
     {
         name: 'מכשירים ניידים',
         subcategories: [
-            { name: 'אייפון', link: '/products?category=מכשירים ניידים&subcategory=אייפון' },
-            { name: 'גלקסי', link: '/products?category=מכשירים ניידים&subcategory=גלקסי' },
-            { name: 'גוגל פיקסל', link: '/products?category=מכשירים ניידים&subcategory=גוגל פיקסל' },
+            { name: 'אייפון - Apple', link: '/products?category=מכשירים ניידים&subcategory=אייפון' },
+            { name: 'גלקסי - Samsung', link: '/products?category=מכשירים ניידים&subcategory=גלקסי' },
+            { name: 'פיקסל - Google', link: '/products?category=מכשירים ניידים&subcategory=גוגל פיקסל' },
         ],
         variantFields: ['color', 'storage']
     },

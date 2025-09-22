@@ -19,7 +19,7 @@ const SearchDrawer = ({ isOpen, onClose }) => {
     const fetchSearchResults = async (query) => {
         if (query.length > 2) {
             try {
-                const response = await axios.get(`/api/products/search?query=${query}`);
+                const response = await axios.get(`${__API_URL__}/products/search?query=${query}`);
                 setSearchResults(response.data);
             } catch (error) {
                 console.error('Error fetching search results:', error);

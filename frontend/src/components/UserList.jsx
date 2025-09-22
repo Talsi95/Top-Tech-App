@@ -25,7 +25,7 @@ const UserList = () => {
                     return;
                 }
 
-                const response = await axios.get('/api/auth', {
+                const response = await axios.get(`${__API_URL__}/auth`, {
                     headers: {
                         Authorization: `Bearer ${token}`,
                     },

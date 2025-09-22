@@ -16,7 +16,7 @@ const RegisterForm = ({ onRegister, showNotification }) => {
     const handleSubmit = async (e) => {
         e.preventDefault();
         try {
-            const response = await axios.post('/api/auth/register', formData);
+            const response = await axios.post(`${__API_URL__}/auth/register`, formData);
 
             const { token } = response.data;
             onRegister(token);

@@ -32,8 +32,6 @@ const App = () => {
   const { user, isAuthenticated, isAdmin, logout, getToken } = useAuth();
   const navigate = useNavigate();
 
-  // 1. שיפור בפונקציית החיפוש:
-  // שימוש ב- useCallback כדי לייעל את הפונקציה ולמנוע יצירה מחדש של הפונקציה בכל רינדור.
   const handleSearchChange = useCallback((e) => {
     const query = e.target.value;
     setSearchQuery(query);
@@ -41,14 +39,11 @@ const App = () => {
       product.name.toLowerCase().includes(query.toLowerCase())
     );
     setSearchResults(filtered);
-  }, [products]); // התלות ב- products מבטיחה שהפילטור יתעדכן כשהמוצרים נטענים.
+  }, [products]);
 
-  // 2. שיפור בפונקציית toggleSearchDrawer:
-  // ניקוי תוצאות החיפוש כאשר המגירה נפתחת, כדי למנוע הצגה של תוצאות ישנות.
   const toggleSearchDrawer = useCallback(() => {
     setIsSearchDrawerOpen(prev => {
       if (!prev) {
-        // המגירה עומדת להיפתח, ננקה את התוצאות
         setSearchQuery('');
         setSearchResults([]);
       }
@@ -68,7 +63,7 @@ const App = () => {
     setLoading(true);
     setError(null);
     try {
-      const response = await axios.get('/api/products');
+      const response = await axios.get(`${__API_URL__}/products`);
       setProducts(response.data);
     } catch (err) {
       console.error("Failed to fetch products:", err);
@@ -96,7 +91,7 @@ const App = () => {
         quantity: item.quantity
       }));
 
-      await axios.post('/api/cart',
+      await axios.post(`${__API_URL__}/cart`,
         { cartItems: simplifiedCart },
         {
           headers: {
@@ -118,7 +113,7 @@ const App = () => {
     }
     try {
       const token = getToken();
-      const response = await axios.get('/api/cart', {
+      const response = await axios.get(`${__API_URL__}/cart`, {
         headers: {
           'Authorization': `Bearer ${token}`
         }
@@ -202,7 +197,7 @@ const App = () => {
     if (window.confirm('Are you sure you want to delete this product?')) {
       try {
         const token = getToken();
-        await axios.delete(`/api/products/${id}`, {
+        await axios.delete(`${__API_URL__}/products/${id}`, {
           headers: {
             Authorization: `Bearer ${token}`,
           },
@@ -219,7 +214,7 @@ const App = () => {
 
   const handleCreateOrder = async (orderData) => {
     try {
-      const response = await axios.post('/api/orders', orderData, {
+      const response = await axios.post(`${__API_URL__}/orders`, orderData, {
         headers: {
           Authorization: `Bearer ${getToken()}`,
         },

@@ -139,7 +139,7 @@ const ProductForm = ({ showNotification, existingProduct, onUpdateSuccess }) => 
         }
 
         const isUpdating = !!existingProduct;
-        const url = `/api/products/${existingProduct ? existingProduct._id : ''}`;
+        const url = `${__API_URL__}/products/${existingProduct ? existingProduct._id : ''}`;
         const method = isUpdating ? 'PUT' : 'POST';
 
         // *** MODIFIED PART START ***

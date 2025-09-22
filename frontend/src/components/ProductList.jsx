@@ -11,7 +11,7 @@ const ProductList = ({ onAddToCart, onUpdateProduct, onDeleteProduct, products }
 
     return (
         <div className="container mx-auto p-4">
-            <h2 className="text-3xl font-bold text-center text-gray-800 mb-8">המוצרים שלנו</h2>
+            <h2 className="text-3xl font-bold text-center text-gray-800 mb-8">כל המוצרים שלנו</h2>
             {products.length === 0 ? (
                 <p className="text-center text-gray-500">אין מוצרים עדיין, נא להוסיף!</p>
             ) : (

@@ -20,7 +20,7 @@ const UserArea = () => {
             }
 
             // Fetch user data and orders from the profile endpoint
-            const response = await axios.get('/api/auth/profile', {
+            const response = await axios.get(`${__API_URL__}/auth/profile`, {
                 headers: {
                     Authorization: `Bearer ${token}`
                 },

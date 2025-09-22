@@ -35,7 +35,7 @@ const ProductFormPage = ({ showNotification }) => {
                     return;
                 }
 
-                const response = await axios.get(`/api/products/${id}`, {
+                const response = await axios.get(`${__API_URL__}/products/${id}`, {
                     headers: {
                         'Authorization': `Bearer ${token}`
                     }
