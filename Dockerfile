@@ -11,6 +11,8 @@ RUN npm run build
 FROM node:20-alpine
 WORKDIR /app
 
+ENV NODE_ENV=production
+
 # העתקת כל הקבצים של ה-Backend מהמחשב המקומי (מכיוון שאין צורך ב-Builder נפרד)
 COPY ./backend/. ./
 RUN npm install

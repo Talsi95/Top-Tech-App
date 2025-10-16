@@ -1,10 +1,11 @@
 const express = require('express');
 const router = express.Router();
 const jwt = require('jsonwebtoken');
+const bcrypt = require('bcryptjs');
 const { body, validationResult } = require('express-validator');
 const User = require('../models/user');
 const Order = require('../models/order');
-const { sendRegistrationEmail } = require('../services/emailService');
+const { sendRegistrationEmail, sendResetPasswordEmail } = require('../services/emailService');
 const { protect, admin } = require('../middleware/authMiddleware');
 
 const registerValidationRules = [
@@ -71,6 +72,54 @@ router.post('/login', loginValidationRules, async (req, res) => {
         res.status(200).json({ token });
     } catch (err) {
         res.status(500).json({ message: err.message });
+    }
+});
+
+router.post('/forgot-password', async (req, res) => {
+    const { email } = req.body;
+
+    try {
+        const user = await User.findOne({ email });
+        if (!user) {
+            return res.status(200).json({ message: 'If a user with that email exists, a reset link has been sent.' });
+        }
+
+        const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET, { expiresIn: '1h' });
+        const resetUrl = `${process.env.FRONTEND_URL}/reset-password?token=${token}`;
+
+        await sendResetPasswordEmail(user.email, resetUrl);
+
+        res.status(200).json({ message: 'Password reset email sent. Check your inbox.' });
+
+    } catch (error) {
+        console.error('Forgot password error:', error);
+        res.status(500).json({ message: 'Server error. Please try again later.' });
+    }
+});
+
+router.post('/reset-password', async (req, res) => {
+    const { token, newPassword } = req.body;
+
+    try {
+        const decoded = jwt.verify(token, process.env.JWT_SECRET);
+        const user = await User.findById(decoded.id);
+
+        if (!user) {
+            return res.status(400).json({ message: 'Invalid or expired token.' });
+        }
+
+        const salt = await bcrypt.genSalt(10);
+        user.password = await bcrypt.hash(newPassword, salt);
+        await user.save();
+
+        res.status(200).json({ message: 'Password has been reset successfully.' });
+
+    } catch (error) {
+        if (error.name === 'TokenExpiredError' || error.name === 'JsonWebTokenError') {
+            return res.status(400).json({ message: 'Invalid or expired token.' });
+        }
+        console.error('Reset password error:', error);
+        res.status(500).json({ message: 'Server error. Please try again later.' });
     }
 });
 

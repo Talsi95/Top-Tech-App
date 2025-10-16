@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { Link } from 'react-router-dom';
 import axios from 'axios';
 
 const LoginForm = ({ onLogin, showNotification }) => {
@@ -56,6 +57,12 @@ const LoginForm = ({ onLogin, showNotification }) => {
                     >
                         התחברות
                     </button>
+                    <Link
+                        to="/forgot-password"
+                        className="inline-block mt-4 text-sm text-blue-500 hover:text-blue-800"
+                    >
+                        שכחתי סיסמא?
+                    </Link>
                 </div>
             </form>
         </div>

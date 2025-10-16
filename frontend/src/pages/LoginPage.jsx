@@ -1,13 +1,12 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { useAuth } from '../AuthContext';
 import { useNavigate, Link } from 'react-router-dom';
-import axios from 'axios'; // ייבוא ספריית Axios
+import axios from 'axios';
 
 const LoginPage = ({ showNotification }) => {
     const { login } = useAuth();
     const navigate = useNavigate();
 
-    // State for form inputs
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
 
@@ -15,24 +14,22 @@ const LoginPage = ({ showNotification }) => {
         e.preventDefault();
 
         try {
-            // שימוש ב-Axios במקום ב-fetch
             const response = await axios.post(`${__API_URL__}/auth/login`, {
                 email,
                 password,
             });
 
-            const { token } = response.data; // Axios מחלץ אוטומטית את ה-JSON מהתגובה
+            const { token } = response.data;
 
             if (token) {
                 login(token);
                 showNotification('התחברת בהצלחה', 'success');
-                navigate('/'); // הפנייה לדף הבית לאחר התחברות מוצלחת
+                navigate('/');
             } else {
                 showNotification('Invalid token received', 'error');
             }
         } catch (error) {
             console.error("Error logging in:", error);
-            // Axios מספק גישה קלה לתשובת השרת במקרה של שגיאה
             const errorMessage = error.response?.data?.message || 'אופס.. אחד מהנתונים שגוי';
             showNotification(errorMessage, 'error');
         }
@@ -63,9 +60,11 @@ const LoginPage = ({ showNotification }) => {
                             />
                         </div>
                         <div>
-                            <label htmlFor="password" className="sr-only">
-                                סיסמה
-                            </label>
+                            <div>
+                                <label htmlFor="password" className="sr-only">
+                                    סיסמה
+                                </label>
+                            </div>
                             <input
                                 id="password"
                                 name="password"
@@ -77,6 +76,12 @@ const LoginPage = ({ showNotification }) => {
                                 value={password}
                                 onChange={(e) => setPassword(e.target.value)}
                             />
+                            <Link
+                                to="/forgot-password"
+                                className="text-xs text-green-600 hover:text-green-500"
+                            >
+                                שכחתי סיסמא?
+                            </Link>
                         </div>
                     </div>
                     <div>

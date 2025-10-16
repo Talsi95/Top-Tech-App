@@ -9,7 +9,7 @@ const orderItemSchema = new Schema({
     },
     variant: {
         type: mongoose.Schema.Types.ObjectId,
-        required: true,
+        required: false,
         ref: 'Product'
     },
     quantity: {
@@ -17,6 +17,7 @@ const orderItemSchema = new Schema({
         required: true
     }
 });
+
 
 const orderSchema = new Schema({
     user: {
@@ -28,7 +29,8 @@ const orderSchema = new Schema({
     shippingAddress: {
         street: { type: String, required: true },
         city: { type: String, required: true },
-        zipCode: { type: String, required: true }
+        zipCode: { type: String, required: true },
+        phone: { type: String, required: true }
     },
     paymentMethod: {
         type: String,
@@ -38,6 +40,12 @@ const orderSchema = new Schema({
         type: Number,
         required: true,
         default: 0.0
+    },
+    paymentResult: {
+        id: { type: String },
+        status: { type: String },
+        update_time: { type: String },
+        email_address: { type: String }
     },
     isPaid: {
         type: Boolean,

@@ -7,13 +7,15 @@ import HomePage from './pages/HomePage';
 import CartDrawer from './components/CartDrawer';
 import Notification from './components/Notification';
 import Navbar from './components/Navbar';
+import CheckoutPage from './pages/CheckoutPage';
 import Footer from './components/Footer';
-import CheckoutForm from './components/CheckoutForm';
 import SearchDrawer from './components/SearchDrawer';
 import ShowPage from './pages/ShowPage';
 import ProductsPage from './pages/ProductsPage';
 import LoginPage from './pages/LoginPage';
 import RegisterPage from './pages/RegisterPage';
+import ForgotPassword from './pages/ForgotPassword';
+import ResetPassword from './pages/ResetPassword';
 import UpdateVariantForm from './components/UpdateVariantForm';
 import { useAuth } from './AuthContext';
 import axios from 'axios';
@@ -88,6 +90,7 @@ const App = () => {
 
       const simplifiedCart = currentCart.map(item => ({
         product: item.product._id,
+        variant: item.variant ? item.variant._id : null,
         quantity: item.quantity
       }));
 
@@ -223,7 +226,7 @@ const App = () => {
       showNotification('הזמנה בוצעה בהצלחה', 'success');
       setCartItems([]);
       await saveCart([]);
-      navigate('/');
+      navigate('/profile');
       return { success: true, orderId: data._id };
     } catch (error) {
       const errorMessage = error.response ? error.response.data.message : error.message;
@@ -291,6 +294,8 @@ const App = () => {
             <Route path="/product-form" element={<ProductFormPage showNotification={showNotification} />} />
             <Route path="/login" element={<LoginPage showNotification={showNotification} />} />
             <Route path="/register" element={<RegisterPage showNotification={showNotification} />} />
+            <Route path="/forgot-password" element={<ForgotPassword />} />
+            <Route path="/reset-password" element={<ResetPassword />} />
             <Route path="/admin/update-variant/:id" element={<UpdateVariantForm />} />
             <Route path="/products" element={<ProductsPage />} />
             <Route
@@ -298,7 +303,7 @@ const App = () => {
               element={<ShowPage onAddToCart={handleAddToCart} />}
             />
             <Route path="/checkout" element={
-              <CheckoutForm
+              <CheckoutPage
                 cartItems={cartItems}
                 showNotification={showNotification}
                 onOrderComplete={handleCreateOrder}

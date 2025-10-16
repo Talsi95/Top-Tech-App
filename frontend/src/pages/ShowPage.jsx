@@ -1,7 +1,7 @@
 import { useEffect, useState, useCallback } from 'react';
 import { useParams } from 'react-router-dom';
 import axios from 'axios';
-import { FaCartPlus, FaPlus, FaSave, FaArrowLeft, FaArrowRight } from 'react-icons/fa';
+import { FaCartPlus, FaPlus, FaSave, FaTrashAlt } from 'react-icons/fa';
 import { useAuth } from '../AuthContext';
 
 const ShowPage = ({ onAddToCart }) => {
@@ -102,6 +102,30 @@ const ShowPage = ({ onAddToCart }) => {
             setError('Failed to save content. Please try again.');
         } finally {
             setIsSaving(false);
+        }
+    };
+
+    const handleDeleteImage = async (imageIndex) => {
+        if (!isAdmin || !window.confirm('האם אתה בטוח שברצונך למחוק תמונה זו?')) {
+            return;
+        }
+
+        const token = getToken();
+        const updatedImages = product.additionalImages.filter((_, index) => index !== imageIndex);
+
+        try {
+            await axios.put(`${__API_URL__}/products/${id}`, { additionalImages: updatedImages }, {
+                headers: { Authorization: `Bearer ${token}` }
+            });
+
+            // Update local state to reflect the deletion
+            setProduct(prev => ({
+                ...prev,
+                additionalImages: updatedImages
+            }));
+        } catch (error) {
+            console.error('Error deleting image:', error);
+            setError('Failed to delete image. Please try again.');
         }
     };
 
@@ -283,6 +307,7 @@ const ShowPage = ({ onAddToCart }) => {
                 </div>
 
                 {/* Additional Images Gallery */}
+                {/* Additional Images Gallery */}
                 <div className="mt-8 bg-white p-6 rounded-lg shadow-md">
                     <h3 className="text-2xl font-bold mb-4 flex justify-between items-center">
                         גלריית תמונות
@@ -293,31 +318,25 @@ const ShowPage = ({ onAddToCart }) => {
                         )}
                     </h3>
                     {product?.additionalImages?.length > 0 && (
-                        <div className="relative">
-                            <img
-                                src={product.additionalImages[currentImageIndex]}
-                                alt={`${product.name} ${currentImageIndex + 1}`}
-                                className="w-full h-auto max-h-96 object-contain rounded-lg shadow-md"
-                            />
-                            {product.additionalImages.length > 1 && (
-                                <>
-                                    <button
-                                        onClick={handlePreviousImage}
-                                        className="absolute top-1/2 left-4 transform -translate-y-1/2 text-white bg-black bg-opacity-50 p-3 rounded-full hover:bg-opacity-75 transition-colors"
-                                    >
-                                        <FaArrowRight />
-                                    </button>
-                                    <button
-                                        onClick={handleNextImage}
-                                        className="absolute top-1/2 right-4 transform -translate-y-1/2 text-white bg-black bg-opacity-50 p-3 rounded-full hover:bg-opacity-75 transition-colors"
-                                    >
-                                        <FaArrowLeft />
-                                    </button>
-                                </>
-                            )}
-                            <div className="text-center mt-4 text-gray-600">
-                                {currentImageIndex + 1} / {product.additionalImages.length}
-                            </div>
+                        <div className="flex flex-col gap-8">
+                            {product.additionalImages.map((img, index) => (
+                                <div key={index} className="relative w-full rounded-lg overflow-hidden shadow-md group">
+                                    <img
+                                        src={img}
+                                        alt={`${product.name} ${index + 1}`}
+                                        className="w-full h-auto object-cover"
+                                    />
+                                    {/* כפתור המחיקה */}
+                                    {isAdmin && (
+                                        <button
+                                            onClick={() => handleDeleteImage(index)}
+                                            className="absolute top-2 right-2 p-2 bg-red-600 text-white rounded-full opacity-0 group-hover:opacity-100 transition-opacity duration-300"
+                                        >
+                                            <FaTrashAlt className="w-4 h-4" />
+                                        </button>
+                                    )}
+                                </div>
+                            ))}
                         </div>
                     )}
                     {isAddingImages && (
@@ -394,6 +413,3 @@ const ShowPage = ({ onAddToCart }) => {
 };
 
 export default ShowPage;
-
-
-// md:grid-cols-1 lg:grid-cols-2
