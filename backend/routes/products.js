@@ -27,15 +27,12 @@ router.get('/', async (req, res) => {
 
 router.get('/search', async (req, res) => {
     try {
-        const { query } = req.query; // This is how you access the search term
+        const { query } = req.query;
 
-        // 1. Verify that the query exists and is not empty
         if (!query) {
             return res.status(400).json({ error: 'Search query is required.' });
         }
 
-        // 2. Build the search query for MongoDB
-        // Using a case-insensitive regular expression is a good approach for search
         const products = await Product.find({
             name: { $regex: query, $options: 'i' }
         });
@@ -70,11 +67,9 @@ router.post('/', async (req, res) => {
 
 router.put('/:id', protect, admin, async (req, res) => {
     try {
-        // הסר את הפירוק המוגבל של האובייקט והשתמש ב-req.body כולו.
-        // Mongoose יעדכן רק שדות שקיימים בסכימה.
         const product = await Product.findByIdAndUpdate(
             req.params.id,
-            req.body, // מעביר את כל הנתונים מהבקשה
+            req.body,
             { new: true, runValidators: true }
         );
 

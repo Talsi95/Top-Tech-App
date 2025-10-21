@@ -108,8 +108,7 @@ router.post('/reset-password', async (req, res) => {
             return res.status(400).json({ message: 'Invalid or expired token.' });
         }
 
-        const salt = await bcrypt.genSalt(10);
-        user.password = await bcrypt.hash(newPassword, salt);
+        user.password = newPassword;
         await user.save();
 
         res.status(200).json({ message: 'Password has been reset successfully.' });
@@ -135,13 +134,6 @@ router.get('/profile', protect, async (req, res) => {
             .populate({
                 path: 'orderItems.product',
                 model: 'Product',
-                populate: {
-                    path: 'variants'
-                }
-            })
-            .populate({
-                path: 'orderItems.variant',
-                model: 'Product'
             })
             .sort({ createdAt: -1 });
 

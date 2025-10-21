@@ -13,7 +13,7 @@ const ForgotPassword = () => {
 
         try {
             await axios.post(`${__API_URL__}/auth/forgot-password`, { email });
-            setMessage('קישור לאיפוס סיסמה נשלח לכתובת המייל שלך. אנא בדוק את תיבת הדואר הנכנס.');
+            setMessage('קישור לאיפוס סיסמה נשלח לכתובת המייל שלך. אנא בדוק את תיבת הדואר הנכנס. (יש לבדוק בתיקיית ספאם)');
         } catch (err) {
             if (err.response && err.response.data && err.response.data.message) {
                 setError(err.response.data.message);

@@ -13,8 +13,9 @@ const ShowPage = ({ onAddToCart }) => {
     const [selectedStorage, setSelectedStorage] = useState(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
+    const [hasStorage, setHasStorage] = useState(false);
 
-    const [newImages, setNewImages] = useState([]);
+    const [newImages, setNewImages] = useState([{ url: '', description: '' }]);
     const [newVideos, setNewVideos] = useState([]);
     const [newSpecs, setNewSpecs] = useState([{ key: '', value: '' }]);
     const [newLongDescription, setNewLongDescription] = useState('');
@@ -25,19 +26,28 @@ const ShowPage = ({ onAddToCart }) => {
     const [isSaving, setIsSaving] = useState(false);
     const [isAddingDescription, setIsAddingDescription] = useState(false);
 
-    const [currentImageIndex, setCurrentImageIndex] = useState(0);
-
     useEffect(() => {
         const fetchProduct = async () => {
             try {
                 const response = await axios.get(`${__API_URL__}/products/${id}`);
                 const data = response.data;
+
                 setProduct(data);
                 setNewLongDescription(data.longDescription || '');
 
                 if (data.variants && data.variants.length > 0) {
+                    const productHasStorage = data.variants.some(v => v.storage && v.storage.trim() !== '');
+                    setHasStorage(productHasStorage);
+
                     setSelectedColor(data.variants[0].color);
-                    setSelectedStorage(data.variants[0].storage);
+
+                    if (productHasStorage) {
+                        setSelectedStorage(data.variants[0].storage);
+                    } else {
+                        setSelectedStorage(null);
+                    }
+                } else {
+                    setSelectedVariant(data.variants?.[0] || null);
                 }
             } catch (err) {
                 setError("Failed to load product details.");
@@ -49,20 +59,45 @@ const ShowPage = ({ onAddToCart }) => {
     }, [id]);
 
     useEffect(() => {
-        if (product && selectedColor && selectedStorage) {
-            const newVariant = product.variants.find(
-                v => v.color === selectedColor && v.storage === selectedStorage
-            );
-            setSelectedVariant(newVariant || null);
-        }
-    }, [selectedColor, selectedStorage, product]);
+        if (!product) return;
 
-    const uniqueColors = [...new Set(product?.variants.map(v => v.color))];
-    const uniqueStorage = [...new Set(product?.variants.map(v => v.storage))];
+        let newVariant = null;
+
+        if (hasStorage) {
+            if (selectedColor && selectedStorage) {
+                newVariant = product.variants.find(
+                    v => v.color === selectedColor && v.storage === selectedStorage
+                );
+            }
+        } else {
+            if (selectedColor) {
+                newVariant = product.variants.find(
+                    v => v.color === selectedColor
+                );
+            } else if (product.variants.length === 1) {
+                newVariant = product.variants[0];
+            }
+        }
+
+        setSelectedVariant(newVariant || null);
+    }, [selectedColor, selectedStorage, product, hasStorage]);
+
+
+
+    const uniqueColors = product?.variants ? [...new Set(product.variants.map(v => v.color).filter(c => c))] : [];
+    const uniqueStorage = hasStorage && product?.variants
+        ? [...new Set(product.variants.map(v => v.storage).filter(s => s && s.trim() !== ''))]
+        : [];
 
     const isCombinationValid = useCallback((color, storage) => {
-        return product?.variants.some(v => v.color === color && v.storage === storage);
-    }, [product]);
+        if (!product?.variants) return false;
+
+        if (hasStorage) {
+            return product.variants.some(v => v.color === color && v.storage === storage);
+        } else {
+            return product.variants.some(v => v.color === color);
+        }
+    }, [product, hasStorage]);
 
     const isOutOfStock = selectedVariant?.stock === 0;
 
@@ -72,8 +107,10 @@ const ShowPage = ({ onAddToCart }) => {
         const token = getToken();
         setIsSaving(true);
 
+        const filteredNewImages = newImages.filter(img => img.url.trim() !== '');
+
         const updatedProduct = {
-            additionalImages: [...(product.additionalImages || []), ...newImages],
+            additionalImages: [...(product.additionalImages || []), ...filteredNewImages],
             videos: [...(product.videos || []), ...newVideos],
             technicalSpecs: [...(product.technicalSpecs || []), ...newSpecs],
             longDescription: newLongDescription
@@ -89,7 +126,7 @@ const ShowPage = ({ onAddToCart }) => {
                 ...updatedProduct
             }));
 
-            setNewImages([]);
+            setNewImages([{ url: '', description: '' }]);
             setNewVideos([]);
             setNewSpecs([{ key: '', value: '' }]);
             setIsAddingImages(false);
@@ -111,14 +148,14 @@ const ShowPage = ({ onAddToCart }) => {
         }
 
         const token = getToken();
-        const updatedImages = product.additionalImages.filter((_, index) => index !== imageIndex);
+
+        const updatedImages = (product.additionalImages || []).filter((_, index) => index !== imageIndex);
 
         try {
             await axios.put(`${__API_URL__}/products/${id}`, { additionalImages: updatedImages }, {
                 headers: { Authorization: `Bearer ${token}` }
             });
 
-            // Update local state to reflect the deletion
             setProduct(prev => ({
                 ...prev,
                 additionalImages: updatedImages
@@ -139,16 +176,20 @@ const ShowPage = ({ onAddToCart }) => {
         setNewSpecs(updatedSpecs);
     };
 
-    const handlePreviousImage = () => {
-        setCurrentImageIndex(prevIndex => (prevIndex === 0 ? product.additionalImages.length - 1 : prevIndex - 1));
+    const handleAddImageField = () => {
+        setNewImages(prev => [...prev, { url: '', description: '' }]);
     };
 
-    const handleNextImage = () => {
-        setCurrentImageIndex(prevIndex => (prevIndex === product.additionalImages.length - 1 ? 0 : prevIndex + 1));
+    const handleNewImageChange = (index, field, value) => {
+        const updatedImages = [...newImages];
+        updatedImages[index][field] = value;
+        setNewImages(updatedImages);
     };
 
     if (loading) return <div className="text-center text-xl font-semibold mt-10">טוען מוצר...</div>;
     if (error) return <div className="text-center text-red-500 text-xl font-semibold mt-10">{error}</div>;
+
+    const showVariantError = product?.variants?.length > 1 && !selectedVariant;
 
     return (
         <div className="container mx-auto p-4 md:p-8">
@@ -180,7 +221,9 @@ const ShowPage = ({ onAddToCart }) => {
                                 </span>
                             </div>
                         ) : (
-                            <div className="text-red-500 text-sm mt-4">השילוב שבחרת אינו קיים. נא בחר שילוב אחר.</div>
+                            showVariantError && (
+                                <div className="text-red-500 text-sm mt-4">השילוב שבחרת אינו קיים. נא בחר שילוב אחר.</div>
+                            )
                         )}
 
                         <div className="mb-6">
@@ -204,7 +247,8 @@ const ShowPage = ({ onAddToCart }) => {
                                     ))}
                                 </div>
                             )}
-                            {uniqueStorage.length > 0 && (
+
+                            {hasStorage && uniqueStorage.length > 0 && (
                                 <div className="mb-4">
                                     <span className="text-gray-700 font-semibold block mb-2">נפח:</span>
                                     {uniqueStorage.map(storage => {
@@ -307,7 +351,6 @@ const ShowPage = ({ onAddToCart }) => {
                 </div>
 
                 {/* Additional Images Gallery */}
-                {/* Additional Images Gallery */}
                 <div className="mt-8 bg-white p-6 rounded-lg shadow-md">
                     <h3 className="text-2xl font-bold mb-4 flex justify-between items-center">
                         גלריית תמונות
@@ -319,34 +362,60 @@ const ShowPage = ({ onAddToCart }) => {
                     </h3>
                     {product?.additionalImages?.length > 0 && (
                         <div className="flex flex-col gap-8">
-                            {product.additionalImages.map((img, index) => (
-                                <div key={index} className="relative w-full rounded-lg overflow-hidden shadow-md group">
-                                    <img
-                                        src={img}
-                                        alt={`${product.name} ${index + 1}`}
-                                        className="w-full h-auto object-cover"
-                                    />
-                                    {/* כפתור המחיקה */}
-                                    {isAdmin && (
-                                        <button
-                                            onClick={() => handleDeleteImage(index)}
-                                            className="absolute top-2 right-2 p-2 bg-red-600 text-white rounded-full opacity-0 group-hover:opacity-100 transition-opacity duration-300"
-                                        >
-                                            <FaTrashAlt className="w-4 h-4" />
-                                        </button>
-                                    )}
-                                </div>
-                            ))}
+                            {product.additionalImages.map((imgItem, index) => {
+                                const imageUrl = imgItem.url;
+                                const imageDescription = imgItem.description;
+
+                                return (
+                                    <div key={index}>
+                                        {imageDescription && imageDescription.trim() !== '' && (
+                                            <h4 className="text-xl font-extrabold text-gray-800 mb-4 uppercase tracking-wide border-b-2 pb-2 border-gray-100">
+                                                {imageDescription}
+                                            </h4>
+                                        )}
+
+                                        <div className="relative w-full rounded-lg overflow-hidden shadow-md group">
+                                            <img
+                                                src={imageUrl}
+                                                alt={imageDescription || `${product.name} ${index + 1}`}
+                                                className="w-full h-auto object-cover"
+                                                onError={(e) => { e.target.onerror = null; e.target.src = 'https://placehold.co/800x600/eeeeee/282828?text=תמונה+חסרה'; }}
+                                            />
+                                            {isAdmin && (
+                                                <button
+                                                    onClick={() => handleDeleteImage(index)}
+                                                    className="absolute top-2 right-2 p-2 bg-red-600 text-white rounded-full opacity-0 group-hover:opacity-100 transition-opacity duration-300"
+                                                >
+                                                    <FaTrashAlt className="w-4 h-4" />
+                                                </button>
+                                            )}
+                                        </div>
+                                    </div>
+                                );
+                            })}
                         </div>
                     )}
                     {isAddingImages && (
-                        <div className="mt-4">
-                            <input
-                                type="text"
-                                placeholder="הוסף כתובת URL לתמונה"
-                                onChange={(e) => setNewImages([e.target.value])}
-                                className="w-full px-3 py-2 border rounded-md"
-                            />
+                        <div className="mt-4 space-y-4">
+                            {newImages.map((img, index) => (
+                                <div key={index} className="space-y-2 p-3 border rounded-md bg-gray-50">
+                                    <input
+                                        type="text"
+                                        placeholder="כתובת URL לתמונה"
+                                        value={img.url}
+                                        onChange={(e) => handleNewImageChange(index, 'url', e.target.value)}
+                                        className="w-full px-3 py-2 border rounded-md"
+                                    />
+                                    <input
+                                        type="text"
+                                        placeholder="תיאור קצר לתמונה (אופציונלי)"
+                                        value={img.description}
+                                        onChange={(e) => handleNewImageChange(index, 'description', e.target.value)}
+                                        className="w-full px-3 py-2 border rounded-md"
+                                    />
+                                </div>
+                            ))}
+                            <button onClick={handleAddImageField} className="mt-2 bg-gray-200 text-gray-700 px-4 py-2 rounded-md hover:bg-gray-300 transition-colors">הוסף תמונה נוספת</button>
                         </div>
                     )}
                 </div>
