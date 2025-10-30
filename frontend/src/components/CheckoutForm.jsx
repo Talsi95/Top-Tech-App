@@ -36,7 +36,15 @@ const CheckoutForm = ({ cartItems, showNotification, onOrderComplete }) => {
 
     const calculateTotal = () => {
         return cartItems.reduce((acc, item) => {
-            const priceToUse = item.variant?.price ?? item.product?.price ?? 0;
+            const regularPrice = item.variant?.price ?? item.product?.price ?? 0;
+            const salePrice = item.variant?.salePrice;
+            const isOnSale = item.variant?.isOnSale;
+
+            const priceToUse =
+                isOnSale && salePrice && salePrice > 0
+                    ? salePrice
+                    : regularPrice;
+
             if (typeof priceToUse === 'number' && typeof item.quantity === 'number') {
                 return acc + priceToUse * item.quantity;
             }

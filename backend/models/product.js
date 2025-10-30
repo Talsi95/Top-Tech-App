@@ -41,7 +41,16 @@ const productSchema = new Schema({
             size: { type: String, required: false },
             price: { type: Number, required: true },
             stock: { type: Number, required: true, default: 0 },
-            imageUrl: { type: String, required: true }
+            imageUrl: { type: String, required: true },
+            isOnSale: {
+                type: Boolean,
+                default: false
+            },
+            salePrice: {
+                type: Number,
+                required: false,
+                default: null
+            }
         }
     ]
 }, {

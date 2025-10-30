@@ -40,6 +40,7 @@ const ProductForm = ({ showNotification, existingProduct, onUpdateSuccess }) => 
                     price: v.price || '',
                     salePrice: v.salePrice || '',
                     stock: v.stock || '',
+                    isOnSale: v.isOnSale || (v.salePrice && v.salePrice > 0),
                 }))
             });
         }
@@ -142,12 +143,11 @@ const ProductForm = ({ showNotification, existingProduct, onUpdateSuccess }) => 
         const url = `${__API_URL__}/products/${existingProduct ? existingProduct._id : ''}`;
         const method = isUpdating ? 'PUT' : 'POST';
 
-        // *** MODIFIED PART START ***
         const productData = {
             name: formData.name,
             description: formData.description,
-            category: formData.category.main,       // Use formData.category.main here
-            subcategory: formData.category.sub,     // Add a new subcategory field here
+            category: formData.category.main,
+            subcategory: formData.category.sub,
             variants: formData.variants.map(v => ({
                 ...v,
                 price: parseFloat(v.price),
@@ -155,7 +155,6 @@ const ProductForm = ({ showNotification, existingProduct, onUpdateSuccess }) => 
                 salePrice: v.isOnSale ? parseFloat(v.salePrice) : null,
             })),
         };
-        // *** MODIFIED PART END ***
 
         try {
             const token = getToken();
@@ -233,7 +232,6 @@ const ProductForm = ({ showNotification, existingProduct, onUpdateSuccess }) => 
                             </button>
                         )}
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            {/* Dynamically render variant fields based on category */}
                             {formData.category.main && adminVariantFields[formData.category.main]?.includes('color') && (
                                 <div>
                                     <label className="block text-gray-700">צבע</label>

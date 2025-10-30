@@ -236,8 +236,17 @@ const App = () => {
   };
 
   const cartItemsCount = cartItems.reduce((total, item) => total + item.quantity, 0);
+
   const totalPrice = cartItems.reduce((total, item) => {
-    const priceToUse = item.variant?.price ?? item.product?.price ?? 0;
+    const regularPrice = item.variant?.price ?? item.product?.price ?? 0;
+    const salePrice = item.variant?.salePrice;
+    const isOnSale = item.variant?.isOnSale;
+
+    const priceToUse =
+      isOnSale && salePrice && salePrice > 0
+        ? salePrice
+        : regularPrice;
+
     return total + (priceToUse * item.quantity);
   }, 0);
 

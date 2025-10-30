@@ -45,11 +45,17 @@ const ProductList = ({ onAddToCart, onUpdateProduct, onDeleteProduct, products }
                                                 <span className="text-red-600 font-bold text-2xl">₪{defaultVariant.salePrice.toFixed(2)}</span>
                                             </div>
                                             <button
+                                                onClick={() => navigate(`/product/${product._id}`)}
+                                                className="mt-4 bg-sky-500 text-white px-4 py-2 rounded-md hover:bg-sky-600 transition-colors"
+                                            >
+                                                בחר תצורה
+                                            </button>
+                                            {/* <button
                                                 onClick={() => onAddToCart(product, defaultVariant)}
                                                 className="bg-green-500 hover:bg-green-600 text-white font-bold py-2 px-4 rounded-md transition duration-300"
                                             >
                                                 הוסף לסל
-                                            </button>
+                                            </button> */}
                                         </div>
                                     ) : (
                                         <div className="flex items-center justify-between">
