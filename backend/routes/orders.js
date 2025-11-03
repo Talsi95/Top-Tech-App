@@ -3,7 +3,7 @@ const router = express.Router();
 const Order = require('../models/order');
 const Product = require('../models/product');
 const { sendOrderConfirmationEmail } = require('../services/emailService');
-const { protect } = require('../middleware/authMiddleware');
+const { protect, admin } = require('../middleware/authMiddleware');
 const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
 
 const rollbackStock = async (orderItems) => {
@@ -126,6 +126,62 @@ router.post('/', protect, async (req, res) => {
 
         console.error(`Order processing failed: ${err.message}`);
         res.status(statusCode).json({ message: err.message });
+    }
+});
+
+router.get('/', protect, admin, async (req, res) => {
+    try {
+        const orders = await Order.find({})
+            .populate('user', 'username email')
+            .populate({
+                path: 'orderItems.product',
+                model: 'Product',
+            })
+            .sort({ createdAt: -1 });
+
+        const sanitizedOrders = orders.map(order => {
+            const sanitizedItems = order.orderItems.filter(item => item.product !== null);
+            return {
+                ...order.toObject(),
+                orderItems: sanitizedItems
+            };
+        });
+
+        res.status(200).json(sanitizedOrders);
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ message: 'Failed to fetch all orders' });
+    }
+});
+
+router.get('/new', protect, admin, async (req, res) => {
+    try {
+        const orders = await Order.find({ isUnseen: true })
+            .populate('user', 'username email')
+            .select('_id totalPrice createdAt user')
+            .sort({ createdAt: -1 });
+
+        res.status(200).json(orders);
+    } catch (err) {
+        res.status(500).json({ message: 'Failed to fetch new orders' });
+    }
+});
+
+router.patch('/:id/seen', protect, admin, async (req, res) => {
+    try {
+        const order = await Order.findByIdAndUpdate(
+            req.params.id,
+            { isUnseen: false },
+            { new: true }
+        );
+
+        if (order) {
+            res.json({ message: 'Order marked as seen', orderId: req.params.id });
+        } else {
+            res.status(404).json({ message: 'Order not found' });
+        }
+    } catch (err) {
+        res.status(500).json({ message: 'Failed to update order status' });
     }
 });
 

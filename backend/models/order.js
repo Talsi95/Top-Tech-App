@@ -60,6 +60,11 @@ const orderSchema = new Schema({
         required: true,
         default: false
     },
+    isUnseen: {
+        type: Boolean,
+        required: true,
+        default: true
+    },
     deliveredAt: {
         type: Date
     }

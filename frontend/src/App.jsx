@@ -30,6 +30,7 @@ const App = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState([]);
   const [isSearchDrawerOpen, setIsSearchDrawerOpen] = useState(false);
+  const [newOrders, setNewOrders] = useState([]);
   const [notification, setNotification] = useState({ message: '', type: '' });
   const { user, isAuthenticated, isAdmin, logout, getToken } = useAuth();
   const navigate = useNavigate();
@@ -235,6 +236,62 @@ const App = () => {
     }
   };
 
+  const fetchNewOrders = useCallback(async () => {
+    if (!isAuthenticated || !isAdmin) return;
+
+    const token = getToken();
+    if (!token) {
+      console.error('No token available for admin notification API call.');
+      return;
+    }
+
+    try {
+      const config = {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      };
+      const { data } = await axios.get(`${__API_URL__}/orders/new`, config);
+      setNewOrders(data);
+    } catch (error) {
+      console.error('Error fetching new orders:', error.response ? error.response.data : error.message);
+    }
+  }, [isAuthenticated, isAdmin, getToken]);
+
+  const markOrderAsSeen = useCallback(async (orderId) => {
+    if (!isAuthenticated || !isAdmin) return;
+
+    const token = getToken();
+    if (!token) {
+      console.error('No token available for marking order as seen.');
+      return;
+    }
+
+    try {
+      const config = {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      };
+      await axios.patch(`${__API_URL__}/orders/${orderId}/seen`, {}, config);
+
+      setNewOrders(prevOrders => prevOrders.filter(order => order._id !== orderId));
+
+    } catch (error) {
+      console.error('Error marking order as seen:', error.response ? error.response.data : error.message);
+    }
+  }, [isAuthenticated, isAdmin, getToken]);
+
+  useEffect(() => {
+    if (isAdmin) {
+      fetchNewOrders();
+
+      // אופציה: Polling - בדיקה חוזרת כל 30 שניות
+      // const intervalId = setInterval(fetchNewOrders, 30000); 
+      // return () => clearInterval(intervalId);
+    }
+  }, [isAdmin, fetchNewOrders]);
+
   const cartItemsCount = cartItems.reduce((total, item) => total + item.quantity, 0);
 
   const totalPrice = cartItems.reduce((total, item) => {
@@ -267,6 +324,8 @@ const App = () => {
         cartItemsCount={cartItemsCount}
         onToggleDrawer={toggleCartDrawer}
         onToggleSearchDrawer={toggleSearchDrawer}
+        adminNewOrders={newOrders}
+        onMarkOrdersAsSeen={markOrderAsSeen}
       />
 
       <SearchDrawer
@@ -286,7 +345,8 @@ const App = () => {
         totalPrice={totalPrice}
       />
 
-      <div className="pt-28 container mx-auto p-8 flex-grow">
+      {/* <div claName="pt-28 container mx-auto p-8 flex-grow"> */}
+      <div className="pt-28 flex-grow">
         <main>
           <Routes>
             <Route path="/" element={

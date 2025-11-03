@@ -2,8 +2,18 @@ import { useState } from 'react';
 import { NavLink, Link } from 'react-router-dom';
 import { FaShoppingCart, FaTimes, FaBars, FaSearch } from 'react-icons/fa';
 import { useAuth } from '../AuthContext';
+import AdminNotifications from './AdminNotifications';
 
-const Navbar = ({ onLogout, onShowLogin, onShowRegister, onToggleDrawer = () => { }, cartItemsCount, onToggleSearchDrawer }) => {
+const Navbar = ({
+    onLogout,
+    onShowLogin,
+    onShowRegister,
+    onToggleDrawer = () => { },
+    cartItemsCount,
+    onToggleSearchDrawer,
+    adminNewOrders = [],
+    onMarkOrdersAsSeen
+}) => {
     const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
     const { user, isAuthenticated, isAdmin } = useAuth();
 
@@ -50,6 +60,12 @@ const Navbar = ({ onLogout, onShowLogin, onShowRegister, onToggleDrawer = () => 
 
                     {/* Desktop Auth Buttons */}
                     <div className="flex flex-row-reverse items-center space-x-reverse space-x-8">
+                        {isAdmin && (
+                            <AdminNotifications
+                                newOrders={adminNewOrders}
+                                onMarkOrderAsSeen={onMarkOrdersAsSeen}
+                            />
+                        )}
                         <button onClick={onToggleDrawer} className="relative text-gray-200 hover:text-white focus:outline-none">
                             <FaShoppingCart className="h-6 w-6" />
                             <span className="absolute -top-2 -right-2 bg-red-500 text-white text-xs rounded-full h-4 w-4 flex items-center justify-center">
@@ -75,6 +91,12 @@ const Navbar = ({ onLogout, onShowLogin, onShowRegister, onToggleDrawer = () => 
 
                 {/* Section 3: Mobile elements (always visible) */}
                 <div className="flex flex-row-reverse items-center space-x-6 md:hidden">
+                    {isAdmin && (
+                        <AdminNotifications
+                            newOrders={adminNewOrders}
+                            onMarkOrderAsSeen={onMarkOrdersAsSeen}
+                        />
+                    )}
                     {/* Mobile Search Button */}
                     <button onClick={onToggleSearchDrawer} className="text-gray-200 hover:text-white focus:outline-none">
                         <FaSearch className="h-6 w-6" />
