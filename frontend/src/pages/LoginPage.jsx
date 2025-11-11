@@ -10,28 +10,32 @@ const LoginPage = ({ showNotification }) => {
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
 
-    const handleLogin = async (e) => {
-        e.preventDefault();
+    const errorMessages = {
+        INVALID_PASSWORD: 'הסיסמה שגויה',
+        USER_NOT_FOUND: 'המשתמש לא נמצא',
+        VALIDATION_FAILED: 'הנתונים שהוזנו לא תקינים',
+    };
 
+    const handleSubmit = async (e) => {
+        e.preventDefault();
         try {
             const response = await axios.post(`${__API_URL__}/auth/login`, {
                 email,
-                password,
+                password
             });
-
             const { token } = response.data;
-
-            if (token) {
-                login(token);
-                showNotification('התחברת בהצלחה', 'success');
-                navigate('/');
-            } else {
-                showNotification('Invalid token received', 'error');
-            }
+            login(token);
+            showNotification('התחברת בהצלחה', 'success');
+            navigate('/');
         } catch (error) {
-            console.error("Error logging in:", error);
-            const errorMessage = error.response?.data?.message || 'אופס.. אחד מהנתונים שגוי';
-            showNotification(errorMessage, 'error');
+            if (error.response) {
+                const { errorCode } = error.response.data;
+                const errorMessage = errorMessages[errorCode] || 'אירעה שגיאה, אנא נסה שוב';
+                showNotification(errorMessage, 'error');
+            } else {
+                showNotification(`אופס יש תקלה: ${error.message}`, 'error');
+            }
+            console.error('Login failed:', error);
         }
     };
 
@@ -41,7 +45,7 @@ const LoginPage = ({ showNotification }) => {
                 <h2 className="text-center text-3xl font-bold text-gray-900">
                     התחברות
                 </h2>
-                <form className="mt-8 space-y-6" onSubmit={handleLogin}>
+                <form className="mt-8 space-y-6" onSubmit={handleSubmit}>
                     <div className="rounded-md shadow-sm -space-y-px">
                         <div>
                             <label htmlFor="email" className="sr-only">

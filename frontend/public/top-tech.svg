@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" width="128" height="128" role="img" aria-label="Top Tech favicon text rounded">
+  <title>Top Tech</title>
+  <!-- Rounded rectangle background -->
+  <rect x="4" y="4" width="120" height="120" rx="16" fill="#0a192f"/>
+  <!-- Centered text -->
+  <text x="50%" y="54%" font-family="Segoe UI, Roboto, Arial, sans-serif" font-size="22" font-weight="700"
+        fill="#0ea5ff" text-anchor="middle" dominant-baseline="middle">TOP TECH</text>
+</svg>

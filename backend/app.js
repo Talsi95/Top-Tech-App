@@ -7,6 +7,7 @@ const app = express();
 const path = require('path');
 const cors = require('cors');
 const API_PREFIX = '/api';
+const errorHandler = require('./middleware/errorHandler');
 
 if (process.env.NODE_ENV === 'development') {
     const allowedOrigins = [
@@ -52,6 +53,8 @@ app.use(express.static(path.join(__dirname, 'dist')));
 app.get(/^\/(?!api).*/, (req, res) => {
     res.sendFile(path.join(__dirname, 'dist/index.html'));
 });
+
+app.use(errorHandler);
 
 mongoose.connect(process.env.MONGO_URI, {
 

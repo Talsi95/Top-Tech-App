@@ -1,172 +1,37 @@
 const express = require('express');
 const router = express.Router();
-const jwt = require('jsonwebtoken');
-const bcrypt = require('bcryptjs');
-const { body, validationResult } = require('express-validator');
-const User = require('../models/user');
-const Order = require('../models/order');
-const { sendRegistrationEmail, sendResetPasswordEmail } = require('../services/emailService');
+const { body } = require('express-validator');
 const { protect, admin } = require('../middleware/authMiddleware');
+const asyncHandler = require('../middleware/asyncHandler');
+const { register, login, forgotPassword, resetPassword, profile, getAllUsers } = require('../controllers/userController');
 
 const registerValidationRules = [
     body('username')
         .isLength({ min: 3 })
-        .withMessage('Username must be at least 3 characters long'),
-    body('email').isEmail().withMessage('Please enter a valid email address'),
+        .withMessage('שם המשתמש חייב להיות באורך 3 תווים לפחות'),
+    body('email')
+        .isEmail()
+        .withMessage('אנא הזן כתובת אימייל תקינה'),
     body('password')
         .isLength({ min: 6 })
-        .withMessage('Password must be at least 6 characters long'),
+        .withMessage('הסיסמה חייבת להיות באורך 6 תווים לפחות'),
 ];
 
 const loginValidationRules = [
-    body('email').isEmail().withMessage('Please enter a valid email address'),
-    body('password').exists().withMessage('Password is required'),
+    body('email').isEmail().withMessage('אנא הזן כתובת אימייל תקינה'),
+    body('password').exists().withMessage('נדרש סיסמה להתחברות'),
 ];
 
-router.post('/register', registerValidationRules, async (req, res) => {
-    const errors = validationResult(req);
-    if (!errors.isEmpty()) {
-        return res.status(400).json({ errors: errors.array() });
-    }
+router.post('/register', registerValidationRules, asyncHandler(register));
 
-    try {
-        const { username, email, password } = req.body;
-        const newUser = new User({ username, email, password });
-        await newUser.save();
+router.post('/login', loginValidationRules, asyncHandler(login));
 
-        const token = jwt.sign({ id: newUser._id, username: newUser.username, isAdmin: newUser.isAdmin }, process.env.JWT_SECRET, { expiresIn: '1h' });
+router.post('/forgot-password', asyncHandler(forgotPassword));
 
-        res.status(201).json({ token });
+router.post('/reset-password', asyncHandler(resetPassword));
 
-    } catch (err) {
-        console.error('Registration failed:', err);
-        res.status(400).json({ message: err.message });
-    }
+router.get('/profile', protect, asyncHandler(profile));
 
-    try {
-        const { username, email } = req.body;
-        await sendRegistrationEmail(email, username);
-        console.log('Registration email sent successfully.');
-    } catch (emailErr) {
-        console.error('Failed to send registration email (non-blocking):', emailErr);
-    }
-});
-
-router.post('/login', loginValidationRules, async (req, res) => {
-    const errors = validationResult(req);
-    if (!errors.isEmpty()) {
-        return res.status(400).json({ errors: errors.array() });
-    }
-
-    try {
-        const { email, password } = req.body;
-
-        const user = await User.findOne({ email });
-
-        if (!user || !(await user.comparePassword(password))) {
-            return res.status(401).json({ message: 'Invalid credentials' });
-        }
-
-        const token = jwt.sign({ id: user._id, username: user.username, isAdmin: user.isAdmin }, process.env.JWT_SECRET, { expiresIn: '1h' });
-
-        res.status(200).json({ token });
-    } catch (err) {
-        res.status(500).json({ message: err.message });
-    }
-});
-
-router.post('/forgot-password', async (req, res) => {
-    const { email } = req.body;
-
-    try {
-        const user = await User.findOne({ email });
-        if (!user) {
-            return res.status(200).json({ message: 'If a user with that email exists, a reset link has been sent.' });
-        }
-
-        const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET, { expiresIn: '1h' });
-        const resetUrl = `${process.env.FRONTEND_URL}/reset-password?token=${token}`;
-
-        await sendResetPasswordEmail(user.email, resetUrl);
-
-        res.status(200).json({ message: 'Password reset email sent. Check your inbox.' });
-
-    } catch (error) {
-        console.error('Forgot password error:', error);
-        res.status(500).json({ message: 'Server error. Please try again later.' });
-    }
-});
-
-router.post('/reset-password', async (req, res) => {
-    const { token, newPassword } = req.body;
-
-    try {
-        const decoded = jwt.verify(token, process.env.JWT_SECRET);
-        const user = await User.findById(decoded.id);
-
-        if (!user) {
-            return res.status(400).json({ message: 'Invalid or expired token.' });
-        }
-
-        user.password = newPassword;
-        await user.save();
-
-        res.status(200).json({ message: 'Password has been reset successfully.' });
-
-    } catch (error) {
-        if (error.name === 'TokenExpiredError' || error.name === 'JsonWebTokenError') {
-            return res.status(400).json({ message: 'Invalid or expired token.' });
-        }
-        console.error('Reset password error:', error);
-        res.status(500).json({ message: 'Server error. Please try again later.' });
-    }
-});
-
-router.get('/profile', protect, async (req, res) => {
-    try {
-        const user = await User.findById(req.user.id).select('-password');
-
-        if (!user) {
-            return res.status(404).json({ message: 'User not found' });
-        }
-
-        const orders = await Order.find({ user: req.user.id })
-            .populate({
-                path: 'orderItems.product',
-                model: 'Product',
-            })
-            .sort({ createdAt: -1 });
-
-        const sanitizedOrders = orders.map(order => {
-            const sanitizedItems = order.orderItems.filter(item => item.product !== null);
-            return {
-                ...order.toObject(),
-                orderItems: sanitizedItems
-            };
-        });
-
-        res.status(200).json({
-            _id: user._id,
-            username: user.username,
-            email: user.email,
-            isAdmin: user.isAdmin,
-            orders: sanitizedOrders,
-        });
-
-    } catch (err) {
-        console.error(err);
-        res.status(500).json({ message: 'Server error' });
-    }
-});
-
-router.get('/', protect, admin, async (req, res) => {
-    try {
-        const users = await User.find({}).select('-password');
-        res.status(200).json(users);
-    } catch (err) {
-        res.status(500).json({ message: 'Failed to fetch users' });
-    }
-});
-
+router.get('/', protect, admin, asyncHandler(getAllUsers));
 
 module.exports = router;

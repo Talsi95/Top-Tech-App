@@ -83,7 +83,7 @@ const SearchDrawer = ({ isOpen, onClose }) => {
                                         {product.name}
                                     </Link>
                                     <p className="text-gray-400">
-                                        {product.variants[0]?.price ? `$${product.variants[0].price.toFixed(2)}` : 'מחיר לא זמין'}
+                                        {product.variants[0]?.price ? `₪${product.variants[0].price.toFixed(2)}` : 'מחיר לא זמין'}
                                     </p>
                                 </div>
                             </div>

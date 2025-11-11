@@ -3,8 +3,7 @@ import { useNavigate, Link } from 'react-router-dom';
 import axios from 'axios';
 
 const RegisterPage = ({ showNotification }) => {
-    const navigate = useNavigate();
-
+    const navigate = useNavigate()
     const [username, setUsername] = useState('');
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
@@ -23,7 +22,16 @@ const RegisterPage = ({ showNotification }) => {
             navigate('/login');
         } catch (error) {
             console.error("Error registering:", error);
-            const errorMessage = error.response?.data?.message || 'אופס.. ההרשמה נכשלה';
+
+            let errorMessage = 'אופס.. ההרשמה נכשלה';
+
+            if (error.response?.data?.errors) {
+                errorMessage = error.response.data.errors[0].msg;
+            }
+            else if (error.response?.data?.message) {
+                errorMessage = error.response.data.message;
+            }
+
             showNotification(errorMessage, 'error');
         }
     };
