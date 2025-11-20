@@ -48,11 +48,28 @@ const AllOrdersList = ({ showNotification }) => {
     }
 
     const OrderDetails = ({ order }) => {
+        let customerInfo;
+        if (order.isGuestOrder) {
+            const customerName = order.shippingAddress.fullName || 'אורח';
+            const customerEmail = order.shippingAddress.email || order.contactEmail || 'לא סופק אימייל';
+            customerInfo = (
+                <>
+                    <p><strong>לקוח:</strong> {customerName} (אורח)</p>
+                    <p><strong>אימייל/מזהה:</strong> {customerEmail}</p>
+                </>
+            );
+        } else {
+            customerInfo = (
+                <>
+                    <p><strong>לקוח:</strong> {order.user?.username || 'משתמש לא ידוע'} ({order.user?.email || 'לא ידוע'})</p>
+                </>
+            );
+        }
         return (
             <li key={order._id} className="mb-4 p-4 border rounded-md shadow-sm bg-gray-50">
                 <p><strong>מספר הזמנה:</strong> {order._id}</p>
                 <p><strong>תאריך:</strong> {new Date(order.createdAt).toLocaleDateString()}</p>
-                <p><strong>לקוח:</strong> {order.user.username} ({order.user.email})</p>
+                {customerInfo}
                 <p><strong>טלפון:</strong> {order.shippingAddress.phone}</p>
                 <p><strong>כתובת למשלוח:</strong> {order.shippingAddress.street}, {order.shippingAddress.city}, {order.shippingAddress.zipCode}</p>
                 <p><strong>סה״כ לתשלום:</strong> ₪{order.totalPrice.toFixed(2)}</p>

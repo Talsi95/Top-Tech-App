@@ -4,6 +4,7 @@ const { protect, admin } = require('../middleware/authMiddleware');
 const asyncHandler = require('../middleware/asyncHandler');
 const {
     getProducts,
+    getUniqueSubcategories,
     searchProducts,
     getProductById,
     createProduct,
@@ -14,6 +15,8 @@ const {
 
 
 router.get('/', asyncHandler(getProducts));
+
+router.get('/subcategories/unique', asyncHandler(getUniqueSubcategories));
 
 
 router.get('/search', asyncHandler(searchProducts));

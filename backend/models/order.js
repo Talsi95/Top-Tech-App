@@ -15,6 +15,11 @@ const orderItemSchema = new Schema({
     quantity: {
         type: Number,
         required: true
+    },
+    price: {
+        type: Number,
+        required: true,
+        min: 0
     }
 });
 
@@ -22,15 +27,27 @@ const orderItemSchema = new Schema({
 const orderSchema = new Schema({
     user: {
         type: mongoose.Schema.Types.ObjectId,
-        required: true,
+        required: false,
         ref: 'User'
+    },
+    guestToken: {
+        type: String,
+        required: function () {
+            return this.isGuestOrder;
+        }
+    },
+    isGuestOrder: {
+        type: Boolean,
+        default: false
     },
     orderItems: [orderItemSchema],
     shippingAddress: {
         street: { type: String, required: true },
         city: { type: String, required: true },
         zipCode: { type: String, required: true },
-        phone: { type: String, required: true }
+        email: { type: String, required: false },
+        phone: { type: String, required: true },
+        fullName: { type: String, required: true }
     },
     paymentMethod: {
         type: String,

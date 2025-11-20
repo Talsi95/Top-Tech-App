@@ -1,5 +1,7 @@
 const Order = require('../models/order');
 const Product = require('../models/product');
+const Otp = require('../models/otp');
+const GuestUser = require('../models/guestUser');
 const { sendOrderConfirmationEmail } = require('../services/emailService');
 const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
 
@@ -34,15 +36,46 @@ const createOrder = async (req, res) => {
     let paymentResult = {};
     const amountInCents = Math.round(totalPrice * 100);
 
+    let userId = null;
+    let contactIdentifier = null;
+    let finalShippingAddress = shippingAddress;
+    let guestTokenToStore = null;
+    let isGuestOrder = false;
+
+    if (req.user && !req.user.isGuest) {
+        userId = req.user.id;
+        contactIdentifier = req.user.email;
+    } else if (req.user && req.user.isGuest) {
+        isGuestOrder = true;
+        contactIdentifier = finalShippingAddress.email || finalShippingAddress.phone;
+        guestTokenToStore = req.user.token;
+    } else {
+        return res.status(401).json({ message: 'נדרשת התחברות או אימות אורח כדי להמשיך לקופה.' });
+    }
+
     try {
+        const productIds = orderItems.map(item => item.product);
+        const uniqueProductIds = [...new Set(productIds)];
+
+        const products = await Product.find({
+            _id: { $in: uniqueProductIds }
+        }).select('variants name');
+
+        const productMap = products.reduce((acc, product) => {
+            acc[product._id.toString()] = product;
+            return acc;
+        }, {});
+
+        const orderItemsWithPrice = [];
+
         for (const item of orderItems) {
-            const product = await Product.findById(item.product);
+            const product = productMap[item.product];
 
             if (!product) {
                 throw new Error(`Product not found: ${item.product}`);
             }
 
-            const variant = product.variants.find(v => v._id.toString() === item.variant);
+            const variant = product.variants.find(v => v._id?.toString() === item.variant);
 
             if (!variant) {
                 throw new Error(`Variant not found for product: ${product.name}`);
@@ -51,19 +84,34 @@ const createOrder = async (req, res) => {
             if (variant.stock < item.quantity) {
                 throw new Error(`Not enough stock for ${product.name}, requested: ${item.quantity}, available: ${variant.stock}`);
             }
+
+            const unitPrice = (variant.isOnSale && variant.salePrice && variant.salePrice > 0)
+                ? variant.salePrice
+                : variant.price;
+
             variant.stock -= item.quantity;
-            await product.save();
+
+            orderItemsWithPrice.push({
+                product: item.product,
+                variant: item.variant,
+                quantity: item.quantity,
+                price: unitPrice
+            });
         }
 
-        if (paymentMethod === 'credit-card' && paymentToken) {
+        await Promise.all(
+            Object.values(productMap).map(p => p.save())
+        );
 
+
+        if (paymentMethod === 'credit-card' && paymentToken) {
             const charge = await stripe.charges.create({
                 amount: amountInCents,
                 currency: 'ils',
                 source: paymentToken,
-                description: `Order from user ${req.user.id}`,
+                description: `Order from ${userId ? 'user' : 'guest'} ${userId || contactIdentifier}`,
                 metadata: {
-                    user_id: req.user.id,
+                    user_id: userId || 'Guest',
                     order_total: totalPrice.toFixed(2)
                 }
             });
@@ -73,16 +121,19 @@ const createOrder = async (req, res) => {
                 id: charge.id,
                 status: charge.status,
                 update_time: charge.created,
-                email_address: req.user.email || 'N/A'
+                email_address: contactIdentifier || 'N/A'
             };
 
         } else if (paymentMethod === 'credit-card' && !paymentToken) {
             throw new Error("Missing payment token for credit card transaction.");
         }
+
         const order = new Order({
-            user: req.user.id,
-            orderItems,
-            shippingAddress,
+            user: userId,
+            isGuestOrder: isGuestOrder,
+            guestToken: guestTokenToStore,
+            orderItems: orderItemsWithPrice,
+            shippingAddress: finalShippingAddress,
             paymentMethod,
             totalPrice,
             isPaid: isPaid,
@@ -92,22 +143,17 @@ const createOrder = async (req, res) => {
 
         const createdOrder = await order.save();
 
-        const userEmail = req.user ? req.user.email : 'N/A';
-        console.log(`DEBUG: Attempting to send confirmation email to: ${userEmail}`);
+        console.log(`DEBUG: Attempting to send confirmation email to: ${contactIdentifier}`);
 
         try {
-            if (req.user && req.user.email) {
-                await sendOrderConfirmationEmail(req.user.email, {
-                    ...createdOrder.toObject(),
-                    orderItems: orderItems
-                });
+            if (contactIdentifier) {
+                await sendOrderConfirmationEmail(contactIdentifier, createdOrder.toObject());
             } else {
-                console.warn("WARNING: Skipping email confirmation because req.user.email is missing.");
+                console.warn("WARNING: Skipping email confirmation because identifier is missing.");
             }
         } catch (emailError) {
             console.error(`Warning: Order ${createdOrder._id} saved, but confirmation email failed to send: ${emailError.message}`);
         }
-
 
         res.status(201).json(createdOrder);
 
@@ -132,28 +178,108 @@ const getAllOrders = async (req, res) => {
         .populate({
             path: 'orderItems.product',
             model: 'Product',
+            select: 'name variants',
         })
         .sort({ createdAt: -1 });
 
     const sanitizedOrders = orders.map(order => {
         const sanitizedItems = order.orderItems.filter(item => item.product !== null);
+
+        let userInfo = {};
+        if (order.user) {
+            userInfo = { username: order.user.username, email: order.user.email, id: order.user._id };
+        } else if (order.isGuestOrder) {
+            userInfo = {
+                username: order.shippingAddress?.fullName || 'אורח',
+                email: order.shippingAddress?.phone || order.paymentResult?.email_address || 'לא ידוע',
+                id: 'Guest'
+            };
+        } else {
+            userInfo = { username: 'לא ידוע', email: 'לא ידוע', id: 'N/A' };
+        }
         return {
             ...order.toObject(),
-            orderItems: sanitizedItems
+            orderItems: sanitizedItems,
+            userInfo: userInfo
         };
     });
 
     res.status(200).json(sanitizedOrders);
 };
 
+const guestOrder = async (req, res) => {
+    try {
+        const orderId = req.params.orderId;
+
+        const order = await Order.findById(orderId)
+            .populate('orderItems.product', 'name price imageUrl')
+            .lean();
+
+        if (!order) {
+            return res.status(404).json({ message: 'הזמנה לא נמצאה.' });
+        }
+
+        const isGuest = req.user.isGuest === true;
+        const tokenFromHeader = req.user.token;
+
+        if (isGuest) {
+            if (!order.guestToken || order.guestToken !== tokenFromHeader) {
+                return res.status(403).json({ message: 'אין הרשאה לצפות בהזמנה זו.' });
+            }
+        }
+
+        res.status(200).json(order);
+
+    } catch (error) {
+        console.error('Error fetching order details:', error);
+        res.status(500).json({ message: 'שגיאת שרת באחזור פרטי ההזמנה.' });
+    }
+};
+
 const getNewOrders = async (req, res) => {
 
     const orders = await Order.find({ isUnseen: true })
         .populate('user', 'username email')
-        .select('_id totalPrice createdAt user')
+        .populate({
+            path: 'orderItems.product',
+            model: 'Product',
+            select: 'name variants'
+        })
+        .select('_id totalPrice createdAt user orderItems isGuestOrder paymentResult shippingAddress')
         .sort({ createdAt: -1 });
 
-    res.status(200).json(orders);
+    const sanitizedOrders = orders.map(order => {
+        let userInfo = {};
+        const shippingAddress = order.shippingAddress;
+        if (order.user) {
+            userInfo = { username: order.user.username, email: order.user.email, id: order.user._id };
+        } else if (order.isGuestOrder) {
+
+            if (shippingAddress) {
+                userInfo = {
+                    username: shippingAddress.fullName || 'אורח',
+                    email: shippingAddress.email || shippingAddress.phone || order.paymentResult?.email_address || 'לא ידוע',
+                    id: 'Guest'
+                };
+            } else {
+                userInfo = { username: 'אורח', email: 'חסר כתובת', id: 'Guest' };
+            }
+
+        } else {
+            userInfo = { username: 'לא ידוע', email: 'לא ידוע', id: 'N/A' };
+        }
+
+        const sanitizedItems = order.orderItems.filter(item => item.product !== null);
+
+        return {
+            ...order.toObject(),
+            orderItems: sanitizedItems,
+            userInfo: userInfo
+        };
+    });
+
+
+    res.status(200).json(sanitizedOrders);
 };
 
 const markOrderAsSeen = async (req, res) => {
@@ -174,5 +300,6 @@ module.exports = {
     createOrder,
     getAllOrders,
     getNewOrders,
+    guestOrder,
     markOrderAsSeen
 };

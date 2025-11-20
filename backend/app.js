@@ -41,11 +41,13 @@ app.use(API_PREFIX, (req, res, next) => {
 
 const productRoutes = require('./routes/products');
 const userRoutes = require('./routes/users');
+const guestRoutes = require('./routes/guestRoutes')
 const cartRoutes = require('./routes/cart');
 const orderRoutes = require('./routes/orders');
 
 app.use('/api/products', productRoutes);
 app.use('/api/auth', userRoutes);
+app.use('/api/guest', guestRoutes);
 app.use('/api/cart', cartRoutes);
 app.use('/api/orders', orderRoutes);
 app.use(express.static(path.join(__dirname, 'dist')));

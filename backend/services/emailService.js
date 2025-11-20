@@ -1,7 +1,7 @@
 const sgMail = require('@sendgrid/mail');
 const PDFDocument = require('pdfkit');
 const path = require('path');
-const { get: bidiGet } = require('bidi-js');
+const bidi = require('bidi-js');
 
 sgMail.setApiKey(process.env.SENDGRID_API_KEY);
 
@@ -16,8 +16,16 @@ const HEBREW_FONT_PATH = path.join(
 
 const rtlText = (text) => {
     if (!text) return '';
+
+    const bidiProcessor = (typeof bidi === 'function') ? bidi : bidi.get;
+
+    if (typeof bidiProcessor !== 'function') {
+        console.error("Bidi library initialization failed. Check 'bidi-js' installation and export path.");
+        return text;
+    }
+
     try {
-        const result = bidiGet(text);
+        const result = bidiProcessor(text);
         return result.reordered;
     } catch (e) {
         console.error("Bidi processing failed, returning original text.", e.message);
@@ -38,7 +46,6 @@ const streamToBase64 = (stream) => {
 
 const generateOrderPdf = async (orderDetails) => {
 
-    // ההגדרה rtl: true חיונית למיקום נכון של הטקסט
     const doc = new PDFDocument({ size: 'A4', margin: 50, rtl: true });
 
     try {
@@ -47,20 +54,17 @@ const generateOrderPdf = async (orderDetails) => {
         console.error("Warning: Hebrew font file not found at path. Falling back to default font (may display squares).", e.message);
     }
 
-    // ודא שהנתונים קיימים לפני השימוש בהם
     const total = orderDetails.totalPrice ? orderDetails.totalPrice.toFixed(2) : '0.00';
     const totalTax = (orderDetails.totalPrice * 0.17).toFixed(2);
     const subtotal = (orderDetails.totalPrice / 1.17).toFixed(2);
     const shippingAddress = orderDetails.shippingAddress || {};
 
 
-    // כותרת - משתמשים ב-rtlText
     doc.fontSize(24).text(rtlText('טופ טק - חשבונית הזמנה'), { align: 'center' });
     doc.moveDown(1.5);
 
     doc.fontSize(12);
 
-    // פרטי הזמנה - משתמשים ב-rtlText
     doc.text(rtlText(`תאריך הוצאה: ${new Date().toLocaleDateString('he-IL')}`), { align: 'right' });
     doc.text(rtlText(`מספר הזמנה: ${orderDetails._id}`), { align: 'right' });
 
@@ -70,56 +74,44 @@ const generateOrderPdf = async (orderDetails) => {
 
 
     const tableTop = doc.y;
-    const itemGap = 220; // הגדלנו את רוחב שם המוצר
+    const itemGap = 220;
     const priceGap = 80;
     const qtyGap = 50;
-    const startX = 50; // קצה שמאל
-    const endX = 550; // קצה ימין
-    const columnWidth = (endX - startX - qtyGap - priceGap * 2) / 1; // 1 עמודת שם מוצר
+    const startX = 50;
+    const endX = 550;
+    const columnWidth = (endX - startX - qtyGap - priceGap * 2) / 1;
 
-    // כותרות הטבלה - מיושרות לפי RTL (כותרת המוצר מתחילה מימין, השאר במרכז/שמאל)
     doc.fontSize(10);
 
-    // סה"כ (צד שמאל)
     doc.text(rtlText('סה"כ'), endX - priceGap, tableTop, { width: priceGap, align: 'left' });
 
-    // מחיר ליחידה
     doc.text(rtlText('מחיר ליחידה'), endX - priceGap - priceGap, tableTop, { width: priceGap, align: 'center' });
 
-    // כמות
     doc.text(rtlText('כמות'), endX - priceGap - priceGap - qtyGap, tableTop, { width: qtyGap, align: 'center' });
 
-    // שם מוצר (מתחיל מצד ימין)
     doc.text(rtlText('שם מוצר'), startX, tableTop, { width: columnWidth, align: 'right' });
 
 
-    doc.moveTo(startX, tableTop + 15).lineTo(endX, tableTop + 15).stroke(); // קו הפרדה
+    doc.moveTo(startX, tableTop + 15).lineTo(endX, tableTop + 15).stroke();
 
     let position = tableTop + 30;
 
     orderDetails.orderItems.forEach(item => {
-        // ודא שפריט המוצר מאוכלס ושדותיו נגישים
         const itemName = item.product?.name || item.name || 'מוצר שנמחק';
         const itemPrice = item.price ? item.price.toFixed(2) : '0.00';
         const itemQuantity = item.quantity || 0;
         const itemTotal = (parseFloat(itemPrice) * itemQuantity).toFixed(2);
 
-        // ודא ששם הווריאציה נגיש (כפי שאוכלס ב-emailService.js)
         const variantName = item.variantName ? ` (${item.variantName})` : '';
 
-        // תוכן הטבלה
         doc.fontSize(10);
 
-        // סה"כ (צד שמאל)
         doc.text(`₪${itemTotal}`, endX - priceGap, position, { width: priceGap, align: 'left' });
 
-        // מחיר ליחידה
         doc.text(`₪${itemPrice}`, endX - priceGap - priceGap, position, { width: priceGap, align: 'center' });
 
-        // כמות
         doc.text(itemQuantity.toString(), endX - priceGap - priceGap - qtyGap, position, { width: qtyGap, align: 'center' });
 
-        // שם מוצר (צד ימין - משתמשים ב-rtlText)
         doc.text(rtlText(`${itemName}${variantName}`), startX, position, { width: columnWidth, align: 'right', lineBreak: false });
 
 
@@ -250,8 +242,42 @@ const sendOrderConfirmationEmail = async (userEmail, orderDetails) => {
     }
 };
 
+const sendOTPEmail = async (userEmail, otp) => {
+    const msg = {
+        to: userEmail,
+        from: process.env.SENDER_EMAIL,
+        subject: 'קוד אימות חד פעמי (OTP) - טופ טק',
+        html: `
+            <div dir="rtl" style="text-align: right; font-family: Arial, sans-serif; max-width: 600px; margin: auto;">
+                <h2 style="color: #007bff;">אימות הזמנה כאורח</h2>
+                <p>השתמש בקוד האימות החד-פעמי הבא כדי להשלים את ההזמנה שלך:</p>
+                <div style="background-color: #f0f0f0; padding: 15px; border-radius: 8px; text-align: center; margin: 20px 0;">
+                    <span style="font-size: 24px; font-weight: bold; color: #333;">${otp}</span>
+                </div>
+                <p>קוד זה תקף ל-10 דקות בלבד. אנא חזור לעמוד הקופה והכנס אותו.</p>
+                <p>אם לא ביקשת קוד זה, אנא התעלם ממייל זה.</p>
+                <br/>
+                <p>בברכה,</p>
+                <p>הצוות של טופ טק</p>
+            </div>
+        `,
+    };
+
+    try {
+        await sgMail.send(msg);
+        const response = await sgMail.send(msg);
+        console.log('OTP email sent successfully to', userEmail);
+        console.log('SendGrid Response (Status Code 202):', response[0].statusCode);
+        console.log('SendGrid Response Body (Headers):', response[0].headers);
+    } catch (error) {
+        console.error('Failed to send OTP email:', error.response ? error.response.body.errors : error);
+        throw new Error('Failed to send OTP email.');
+    }
+};
+
 module.exports = {
     sendRegistrationEmail,
     sendResetPasswordEmail,
-    sendOrderConfirmationEmail
+    sendOrderConfirmationEmail,
+    sendOTPEmail
 };

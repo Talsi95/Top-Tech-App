@@ -4,11 +4,8 @@ import smartphonesImg from '../assets/smartphones.png';
 import gamingConsolesImg from '../assets/consoles.png';
 import headphonesImg from '../assets/headphones.png';
 import tvImg from '../assets/tv.png';
-
-// Import the categories array from your external file
 import { categories } from './categoriesData';
 
-// A mapping to link category names to their respective images
 const categoryImages = {
     'מכשירים ניידים': smartphonesImg,
     'קונסולות משחק': gamingConsolesImg,

@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useStripe, useElements, CardElement } from '@stripe/react-stripe-js';
 
@@ -17,22 +17,36 @@ const CARD_ELEMENT_OPTIONS = {
     },
 };
 
-const CheckoutForm = ({ cartItems, showNotification, onOrderComplete }) => {
+const CheckoutForm = ({ cartItems, showNotification, onOrderComplete, guestToken, guestShippingAddress }) => {
     const navigate = useNavigate();
 
     const stripe = useStripe();
     const elements = useElements();
 
     const [formData, setFormData] = useState({
-        name: '',
+        fullName: '',
         street: '',
         city: '',
         zipCode: '',
         phone: '',
-        paymentMethod: '',
+        paymentMethod: ''
     });
+
     const [isProcessing, setIsProcessing] = useState(false);
     const [paymentError, setPaymentError] = useState(null);
+
+    useEffect(() => {
+        if (guestToken && guestShippingAddress) {
+            setFormData(prevData => ({
+                ...prevData,
+                street: guestShippingAddress.street || '',
+                city: guestShippingAddress.city || '',
+                zipCode: guestShippingAddress.zipCode || '',
+                phone: guestShippingAddress.phone || '',
+                email: guestShippingAddress.email || prevData.email
+            }));
+        }
+    }, [guestToken, guestShippingAddress]);
 
     const calculateTotal = () => {
         return cartItems.reduce((acc, item) => {
@@ -71,6 +85,14 @@ const CheckoutForm = ({ cartItems, showNotification, onOrderComplete }) => {
             return;
         }
 
+        const authToken = guestToken;
+
+        if (!authToken) {
+            showNotification('משתמש לא מזוהה. אנא התחבר או אמת את הזמנתך.', 'error');
+            setIsProcessing(false);
+            return;
+        }
+
         const totalPrice = totalToDisplay;
         let paymentToken = null;
 
@@ -93,7 +115,6 @@ const CheckoutForm = ({ cartItems, showNotification, onOrderComplete }) => {
             paymentToken = token.id;
         }
 
-
         const orderData = {
             orderItems: cartItems.map(item => ({
                 product: item.product._id,
@@ -101,9 +122,11 @@ const CheckoutForm = ({ cartItems, showNotification, onOrderComplete }) => {
                 quantity: item.quantity
             })),
             shippingAddress: {
+                fullName: formData.fullName,
                 street: formData.street,
                 city: formData.city,
                 zipCode: formData.zipCode,
+                email: formData.email,
                 phone: formData.phone,
             },
             paymentMethod: formData.paymentMethod,
@@ -111,11 +134,24 @@ const CheckoutForm = ({ cartItems, showNotification, onOrderComplete }) => {
             paymentToken: paymentToken,
         };
 
-        const result = await onOrderComplete(orderData);
+        const result = await onOrderComplete(orderData, authToken);
 
         if (result.success) {
             showNotification('הזמנה בוצעה בהצלחה', 'success');
-            navigate('/profile');
+
+            const isGuest = authToken.startsWith('GUEST_TOKEN_');
+            const orderId = result.orderId;
+
+            if (isGuest) {
+                navigate(`/order-confirmation/${orderId}`, {
+                    state: {
+                        guestToken: authToken
+                    }
+                });
+            } else {
+                navigate('/profile');
+            }
+
         } else {
             showNotification(result.message || 'הזמנה נכשלה. נסה שוב.', 'error');
         }
@@ -123,7 +159,7 @@ const CheckoutForm = ({ cartItems, showNotification, onOrderComplete }) => {
         setIsProcessing(false);
     };
 
-    const isFormIncomplete = !formData.name || !formData.street || !formData.city || !formData.zipCode || !formData.phone || !formData.paymentMethod;
+    const isFormIncomplete = !formData.fullName || !formData.street || !formData.city || !formData.zipCode || !formData.phone || !formData.paymentMethod;
 
     const isDisabled = isFormIncomplete || isProcessing || (formData.paymentMethod === 'credit-card' && !stripe);
 
@@ -134,7 +170,7 @@ const CheckoutForm = ({ cartItems, showNotification, onOrderComplete }) => {
 
                 <div className="mb-4">
                     <label className="block text-gray-700 text-sm font-bold mb-2">שם מלא</label>
-                    <input className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight" type="text" name="name" value={formData.name} onChange={handleChange} required />
+                    <input className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight" type="text" name="fullName" value={formData.fullName} onChange={handleChange} required />
                 </div>
                 <div className="mb-4">
                     <label className="block text-gray-700 text-sm font-bold mb-2">רחוב</label>

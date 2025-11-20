@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { Routes, Route, useNavigate } from 'react-router-dom';
+import { Routes, Route, useNavigate, useSearchParams } from 'react-router-dom';
 import ProductFormPage from './pages/ProductFormPage';
 import AdminDashboard from './pages/AdminDashboard';
 import UserArea from './pages/UserArea';
@@ -16,6 +16,8 @@ import LoginPage from './pages/LoginPage';
 import RegisterPage from './pages/RegisterPage';
 import ForgotPassword from './pages/ForgotPassword';
 import ResetPassword from './pages/ResetPassword';
+import GuestCheckoutPage from './pages/GuestCheckoutPage';
+import OrderConfirmationPage from './pages/OrderConfirmationPage';
 import UpdateVariantForm from './components/UpdateVariantForm';
 import { useAuth } from './AuthContext';
 import axios from 'axios';
@@ -32,6 +34,7 @@ const App = () => {
   const [isSearchDrawerOpen, setIsSearchDrawerOpen] = useState(false);
   const [newOrders, setNewOrders] = useState([]);
   const [notification, setNotification] = useState({ message: '', type: '' });
+  const [searchParams] = useSearchParams();
   const { user, isAuthenticated, isAdmin, logout, getToken } = useAuth();
   const navigate = useNavigate();
 
@@ -66,15 +69,19 @@ const App = () => {
     setLoading(true);
     setError(null);
     try {
-      const response = await axios.get(`${__API_URL__}/products`);
-      setProducts(response.data);
+      const url = `${__API_URL__}/products?${searchParams.toString()}`;
+
+      const response = await axios.get(url);
+
+      setProducts(response.data.products);
+
     } catch (err) {
       console.error("Failed to fetch products:", err);
       setError("Failed to load products. Please try again later.");
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [searchParams]);
 
   useEffect(() => {
     fetchProducts();
@@ -216,19 +223,28 @@ const App = () => {
     }
   }, [getToken, showNotification]);
 
-  const handleCreateOrder = async (orderData) => {
+
+  const handleCreateOrder = async (orderData, authToken) => {
+
+    const tokenToUse = authToken || getToken();
+
+    if (!tokenToUse) {
+      const errorMessage = "משתמש לא מזוהה. נדרש טוקן אורח או משתמש רשום.";
+      showNotification(`שגיאה: ${errorMessage}`, 'error');
+      return { success: false, message: errorMessage };
+    }
+
     try {
       const response = await axios.post(`${__API_URL__}/orders`, orderData, {
         headers: {
-          Authorization: `Bearer ${getToken()}`,
+          Authorization: `Bearer ${tokenToUse}`,
         },
       });
       const data = response.data;
-      showNotification('הזמנה בוצעה בהצלחה', 'success');
       setCartItems([]);
       await saveCart([]);
-      navigate('/profile');
       return { success: true, orderId: data._id };
+
     } catch (error) {
       const errorMessage = error.response ? error.response.data.message : error.message;
       showNotification(`שגיאה: ${errorMessage}`, 'error');
@@ -285,10 +301,6 @@ const App = () => {
   useEffect(() => {
     if (isAdmin) {
       fetchNewOrders();
-
-      // אופציה: Polling - בדיקה חוזרת כל 30 שניות
-      // const intervalId = setInterval(fetchNewOrders, 30000); 
-      // return () => clearInterval(intervalId);
     }
   }, [isAdmin, fetchNewOrders]);
 
@@ -345,7 +357,6 @@ const App = () => {
         totalPrice={totalPrice}
       />
 
-      {/* <div claName="pt-28 container mx-auto p-8 flex-grow"> */}
       <div className="pt-28 flex-grow">
         <main>
           <Routes>
@@ -363,6 +374,8 @@ const App = () => {
             <Route path="/product-form" element={<ProductFormPage showNotification={showNotification} />} />
             <Route path="/login" element={<LoginPage showNotification={showNotification} />} />
             <Route path="/register" element={<RegisterPage showNotification={showNotification} />} />
+            <Route path="/guest-checkout" element={<GuestCheckoutPage showNotification={showNotification} />} />
+            <Route path="/order-confirmation/:orderId" element={<OrderConfirmationPage showNotification={showNotification} />} />
             <Route path="/forgot-password" element={<ForgotPassword />} />
             <Route path="/reset-password" element={<ResetPassword />} />
             <Route path="/admin/update-variant/:id" element={<UpdateVariantForm />} />
