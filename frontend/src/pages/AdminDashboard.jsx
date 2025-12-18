@@ -1,9 +1,10 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '../AuthContext';
 import { useNavigate } from 'react-router-dom';
-import ProductForm from '../components/ProductForm';
+import ProductFormPage from '../pages/ProductFormPage';
 import UserList from '../components/UserList';
 import AllOrdersList from '../components/AllOrdersList';
+import CategoryManagement from '../components/CategoryManagement';
 
 const AdminDashboard = ({ showNotification }) => {
     const { isAuthenticated, isAdmin } = useAuth();
@@ -20,11 +21,13 @@ const AdminDashboard = ({ showNotification }) => {
     const renderContent = () => {
         switch (activeTab) {
             case 'addProduct':
-                return <ProductForm showNotification={showNotification} />;
+                return <ProductFormPage showNotification={showNotification} />;
             case 'users':
                 return <UserList showNotification={showNotification} />;
             case 'orders':
                 return <AllOrdersList showNotification={showNotification} />;
+            case 'categories':
+                return <CategoryManagement showNotification={showNotification} />;
             default:
                 return null;
         }
@@ -50,7 +53,8 @@ const AdminDashboard = ({ showNotification }) => {
                 <div className="flex justify-center border-b mb-8 space-x-4">
                     <TabButton tabName="addProduct" label="הוספת מוצר" />
                     <TabButton tabName="users" label="משתמשים" />
-                    <TabButton tabName="orders" label="כל ההזמנות" /> {/* 👈 הטאב החדש */}
+                    <TabButton tabName="orders" label="כל ההזמנות" />
+                    <TabButton tabName="categories" label="ניהול קטגוריות" />
                 </div>
 
                 <div className="max-w-4xl mx-auto">

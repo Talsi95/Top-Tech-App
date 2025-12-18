@@ -17,7 +17,7 @@ const CARD_ELEMENT_OPTIONS = {
     },
 };
 
-const CheckoutForm = ({ cartItems, showNotification, onOrderComplete, guestToken, guestShippingAddress }) => {
+const CheckoutForm = ({ cartItems, showNotification, onOrderComplete, guestToken }) => {
     const navigate = useNavigate();
 
     const stripe = useStripe();
@@ -36,17 +36,16 @@ const CheckoutForm = ({ cartItems, showNotification, onOrderComplete, guestToken
     const [paymentError, setPaymentError] = useState(null);
 
     useEffect(() => {
-        if (guestToken && guestShippingAddress) {
-            setFormData(prevData => ({
-                ...prevData,
-                street: guestShippingAddress.street || '',
-                city: guestShippingAddress.city || '',
-                zipCode: guestShippingAddress.zipCode || '',
-                phone: guestShippingAddress.phone || '',
-                email: guestShippingAddress.email || prevData.email
-            }));
-        }
-    }, [guestToken, guestShippingAddress]);
+        const storedEmail = localStorage.getItem('guestEmail');
+        const storedPhone = localStorage.getItem('guestPhone');
+        setFormData(prevData => ({
+            ...prevData,
+            email: storedEmail || prevData.email,
+            phone: storedPhone || prevData.phone,
+            fullName: '',
+        }));
+
+    }, []);
 
     const calculateTotal = () => {
         return cartItems.reduce((acc, item) => {
@@ -139,8 +138,14 @@ const CheckoutForm = ({ cartItems, showNotification, onOrderComplete, guestToken
         if (result.success) {
             showNotification('הזמנה בוצעה בהצלחה', 'success');
 
-            const isGuest = authToken.startsWith('GUEST_TOKEN_');
+            const isGuest = !!guestToken;
             const orderId = result.orderId;
+
+            if (isGuest) {
+                localStorage.removeItem('guestToken');
+                localStorage.removeItem('guestEmail');
+                localStorage.removeItem('guestPhone');
+            }
 
             if (isGuest) {
                 navigate(`/order-confirmation/${orderId}`, {

@@ -34,44 +34,6 @@ const DetailsForm = ({ phone, setPhone, email, setEmail, shippingAddress, handle
             />
         </div>
 
-        <div className="space-y-3 p-4 border rounded-lg bg-gray-50">
-            <h4 className="font-medium flex items-center justify-end text-sm text-gray-700">
-                פרטי משלוח <MapPin className="mr-2 text-blue-500" size={20} />
-            </h4>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                <input
-                    type="text"
-                    name="city"
-                    placeholder="עיר"
-                    value={shippingAddress.city}
-                    onChange={handleAddressChange}
-                    required
-                    className="w-full p-3 border border-gray-300 rounded-lg text-right"
-                    dir="rtl"
-                />
-                <input
-                    type="text"
-                    name="street"
-                    placeholder="רחוב ומספר בית"
-                    value={shippingAddress.street}
-                    onChange={handleAddressChange}
-                    required
-                    className="w-full p-3 border border-gray-300 rounded-lg text-right"
-                    dir="rtl"
-                />
-                <input
-                    type="text"
-                    name="zipCode"
-                    placeholder="מיקוד"
-                    value={shippingAddress.zipCode}
-                    onChange={handleAddressChange}
-                    required
-                    className="w-full p-3 border border-gray-300 rounded-lg text-right"
-                    dir="rtl"
-                />
-            </div>
-        </div>
-
         <button
             type="submit"
             disabled={loading}
@@ -148,28 +110,11 @@ const GuestCheckoutPage = ({ showNotification }) => {
     const [otp, setOtp] = useState('');
     const [loading, setLoading] = useState(false);
 
-    const [shippingAddress, setShippingAddress] = useState({
-        street: '',
-        city: '',
-        zipCode: '',
-    });
-
-    const handleAddressChange = (e) => {
-        setShippingAddress({ ...shippingAddress, [e.target.name]: e.target.value });
-    };
-
     const handleRequestOTP = async (e) => {
         e.preventDefault();
 
-        const addressFields = [shippingAddress.street, shippingAddress.city, shippingAddress.zipCode];
-
         if (!phone.startsWith('+') || phone.length < 10) {
             showNotification('אנא הזן מספר טלפון בפורמט בינלאומי (+XXX...).', 'error');
-            return;
-        }
-
-        if (addressFields.some(field => field.trim() === '')) {
-            showNotification('אנא מלא את כל פרטי המשלוח.', 'error');
             return;
         }
 
@@ -179,19 +124,17 @@ const GuestCheckoutPage = ({ showNotification }) => {
             await axios.post(`${__API_URL__}/guest/request-verify-otp`, {
                 phone,
                 email,
-                shippingAddress: { ...shippingAddress, phone }
             });
 
             showNotification(`קוד אימות נשלח לטלפון ${phone}.`, 'success');
             setStep('otp');
+            setLoading(false);
 
         } catch (error) {
             const message = error.response?.data?.message || 'שליחת ה-SMS נכשלה. נסה שוב.';
             showNotification(message, 'error');
 
-            console.warn("Bypass activated: Continuing to OTP step despite API failure for testing purposes.");
-            setStep('otp');
-        } finally {
+            console.error("OTP Request failed:", message);
             setLoading(false);
         }
     };
@@ -207,25 +150,18 @@ const GuestCheckoutPage = ({ showNotification }) => {
         setLoading(true);
         showNotification('מאמת קוד Twilio...', 'success');
         try {
-            const response = await axios.post(`${__API_URL__}/guest/verify-check-otp`, {
+            const response = await axios.post(`${__API_URL__}/guest/verify-otp`, {
                 phone,
                 otp
             });
             const data = response.data;
 
-            localStorage.setItem('guestEmailForOrder', email);
+            localStorage.setItem('guestToken', data.guestToken);
+            localStorage.setItem('guestEmail', data.email);
 
             showNotification('אימות הושלם בהצלחה! מנתב לקופה.', 'success');
 
-            navigate('/checkout', {
-                state: {
-                    guestToken: data.guestToken,
-                    guestShippingAddress: {
-                        ...data.shippingAddress,
-                        email: email
-                    }
-                }
-            });
+            navigate('/checkout');
 
         } catch (error) {
             const message = error.response?.data?.message || 'אימות נכשל. הקוד לא תקין או פג תוקף.';
@@ -249,8 +185,6 @@ const GuestCheckoutPage = ({ showNotification }) => {
                             setPhone={setPhone}
                             email={email}
                             setEmail={setEmail}
-                            shippingAddress={shippingAddress}
-                            handleAddressChange={handleAddressChange}
                             handleRequestOTP={handleRequestOTP}
                             loading={loading}
                             navigate={navigate}

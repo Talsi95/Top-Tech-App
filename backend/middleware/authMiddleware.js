@@ -8,16 +8,17 @@ const protect = async (req, res, next) => {
         try {
             token = req.headers.authorization.split(' ')[1];
 
-            if (token.startsWith('GUEST_TOKEN_')) {
+            const decoded = jwt.verify(token, process.env.JWT_SECRET);
+
+            if (decoded.isGuest === true) {
                 req.user = {
-                    id: 'guest',
+                    id: 'guest_' + decoded.email,
                     isGuest: true,
+                    email: decoded.email,
                     token: token
                 };
                 return next();
             }
-
-            const decoded = jwt.verify(token, process.env.JWT_SECRET);
 
             const user = await User.findById(decoded.id).select('id username email isAdmin');
 
@@ -29,6 +30,7 @@ const protect = async (req, res, next) => {
             req.user.isGuest = false;
 
             next();
+
         } catch (error) {
             console.error(`Auth failed: ${error.message}`);
             res.status(401).json({ message: 'Not authorized, token failed' });

@@ -13,6 +13,32 @@ const ProductFormPage = ({ showNotification }) => {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
     const [pageNotification, setPageNotification] = useState({ message: '', type: '' });
+    const [adminCategories, setAdminCategories] = useState({});
+    const [adminVariantFields, setAdminVariantFields] = useState({});
+    const [isLoadingCategories, setIsLoadingCategories] = useState(true);
+
+    useEffect(() => {
+        const fetchCategoriesData = async () => {
+            if (!isAdmin) return;
+
+            try {
+                const token = getToken();
+                if (!token) return;
+
+                const response = await axios.get(`${__API_URL__}/categories/admin-data`, {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+
+                setAdminCategories(response.data.adminCategories || {});
+                setAdminVariantFields(response.data.adminVariantFields || {});
+            } catch (error) {
+                showNotification('שגיאה בטעינת נתוני קטגוריות.', 'error');
+            } finally {
+                setIsLoadingCategories(false);
+            }
+        };
+        fetchCategoriesData();
+    }, [isAdmin, getToken, showNotification]);
 
     useEffect(() => {
         const fetchProduct = async () => {
@@ -63,8 +89,10 @@ const ProductFormPage = ({ showNotification }) => {
         navigate('/');
     };
 
-    if (loading) {
-        return <div className="text-center">טוען...</div>;
+    const isDataLoading = loading || isLoadingCategories;
+
+    if (isDataLoading) {
+        return <div className="text-center">טוען נתונים...</div>;
     }
 
     if (error) {
@@ -77,6 +105,9 @@ const ProductFormPage = ({ showNotification }) => {
                 showNotification={showNotification}
                 existingProduct={existingProduct}
                 onUpdateSuccess={handleUpdateSuccess}
+                adminCategories={adminCategories}
+                adminVariantFields={adminVariantFields}
+                isLoadingCategories={isLoadingCategories}
             />
             <Notification message={pageNotification.message} type={pageNotification.type} onClose={() => setPageNotification({ message: '', type: '' })} />
         </div>

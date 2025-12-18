@@ -32,9 +32,7 @@ const orderSchema = new Schema({
     },
     guestToken: {
         type: String,
-        required: function () {
-            return this.isGuestOrder;
-        }
+        required: false
     },
     isGuestOrder: {
         type: Boolean,

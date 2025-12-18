@@ -2,39 +2,62 @@ import { useState, useEffect } from 'react';
 import { useAuth } from '../AuthContext';
 import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
-import { categories, getAdminCategories, getAdminVariantFields } from './categoriesData';
 
-const ProductForm = ({ showNotification, existingProduct, onUpdateSuccess }) => {
-    const adminCategories = getAdminCategories(categories);
-    const adminVariantFields = getAdminVariantFields(categories);
+const ProductForm = ({ showNotification, existingProduct, onUpdateSuccess, adminCategories, adminVariantFields, isLoadingCategories }) => {
 
-    const [formData, setFormData] = useState({
-        name: '',
-        description: '',
-        category: { main: Object.keys(adminCategories)[0] || '', sub: Object.values(adminCategories)[0]?.[0] || '' },
-        variants: [
-            {
-                color: '',
-                storage: '',
-                price: '',
-                salePrice: '',
-                isOnSale: false,
-                imageUrl: '',
-                stock: ''
-            }
-        ]
-    });
+    const safeAdminCategories = adminCategories || {};
+    const safeAdminVariantFields = adminVariantFields || {};
+
+    const categoryKeys = Object.keys(safeAdminCategories);
+    const initialMainCategory = categoryKeys.length > 0 ? categoryKeys[0] : '';
+    const initialSubCategory = safeAdminCategories[initialMainCategory]?.[0] || '';
+
     const [validationErrors, setValidationErrors] = useState({});
     const { isAdmin, getToken } = useAuth();
     const navigate = useNavigate();
 
+    const [formData, setFormData] = useState(() => {
+        if (existingProduct) {
+            return {
+                name: existingProduct.name || '',
+                description: existingProduct.description || '',
+                category: { main: existingProduct.category, sub: existingProduct.subcategory },
+                variants: existingProduct.variants.map(v => ({
+                    ...v,
+                    price: v.price || '',
+                    salePrice: v.salePrice || '',
+                    stock: v.stock || '',
+                    isOnSale: v.isOnSale || (v.salePrice && v.salePrice > 0),
+                }))
+            };
+        }
+
+        return {
+            name: '',
+            description: '',
+            category: { main: initialMainCategory, sub: initialSubCategory },
+            variants: [
+                {
+                    color: '',
+                    storage: '',
+                    price: '',
+                    salePrice: '',
+                    isOnSale: false,
+                    imageUrl: '',
+                    stock: ''
+                }
+            ]
+        };
+    });
+
     useEffect(() => {
         if (existingProduct) {
-            const { name, description, category, variants } = existingProduct;
-            setFormData({
+            const { name, description, category, subcategory, variants } = existingProduct;
+            setFormData(prevData => ({
+                ...prevData,
                 name,
                 description,
-                category,
+                category: { main: category, sub: subcategory },
                 variants: variants.map(v => ({
                     ...v,
                     price: v.price || '',
@@ -42,7 +65,7 @@ const ProductForm = ({ showNotification, existingProduct, onUpdateSuccess }) => 
                     stock: v.stock || '',
                     isOnSale: v.isOnSale || (v.salePrice && v.salePrice > 0),
                 }))
-            });
+            }));
         }
     }, [existingProduct]);
 
@@ -50,7 +73,7 @@ const ProductForm = ({ showNotification, existingProduct, onUpdateSuccess }) => 
         const main = e.target.value;
         setFormData(prevData => ({
             ...prevData,
-            category: { main: main, sub: adminCategories[main]?.[0] || '' }
+            category: { main: main, sub: safeAdminCategories[main]?.[0] || '' }
         }));
     };
 
@@ -99,20 +122,21 @@ const ProductForm = ({ showNotification, existingProduct, onUpdateSuccess }) => 
         if (!formData.category.main) errors.category = 'קטגוריה ראשית נדרשת';
         if (!formData.category.sub) errors.category = 'תת-קטגוריה נדרשת';
 
+        const productRequiredFields = safeAdminVariantFields[formData.category.main] || [];
+
         const variantErrors = formData.variants.map((v, index) => {
             const vErrors = {};
             const parsedPrice = parseFloat(v.price);
             const parsedSalePrice = parseFloat(v.salePrice);
             const parsedStock = parseInt(v.stock, 10);
 
-            const requiredFields = adminVariantFields[formData.category.main];
-            if (requiredFields && requiredFields.includes('color') && !v.color.trim()) {
+            if (productRequiredFields.includes('color') && !v.color.trim()) {
                 vErrors.color = 'צבע נדרש';
             }
-            if (requiredFields && requiredFields.includes('storage') && !v.storage.trim()) {
+            if (productRequiredFields.includes('storage') && !v.storage.trim()) {
                 vErrors.storage = 'נפח נדרש';
             }
-            if (requiredFields && requiredFields.includes('size') && !v.size?.trim()) {
+            if (productRequiredFields.includes('size') && !v.size?.trim()) {
                 vErrors.size = 'גודל נדרש';
             }
 
@@ -184,6 +208,14 @@ const ProductForm = ({ showNotification, existingProduct, onUpdateSuccess }) => 
         }
     };
 
+    if (isLoadingCategories) {
+        return (
+            <div className="bg-white p-6 rounded-lg shadow-md max-w-lg mx-auto mb-8 text-center">
+                <h2 className="text-xl font-bold">טוען נתוני קטגוריות...</h2>
+            </div>
+        );
+    }
+
     return (
         <div className="bg-white p-6 rounded-lg shadow-md max-w-lg mx-auto mb-8">
             <h2 className="text-xl font-bold mb-4">{existingProduct ? 'עריכת מוצר קיים' : 'הוספת מוצר חדש'}</h2>
@@ -203,7 +235,7 @@ const ProductForm = ({ showNotification, existingProduct, onUpdateSuccess }) => 
                     <label className="block text-gray-700">קטגוריה ראשית</label>
                     <select className="w-full mt-1 p-2 border rounded-md" value={formData.category.main} onChange={handleMainChange} required>
                         <option value="">בחר קטגוריה</option>
-                        {Object.keys(adminCategories).map(cat => <option key={cat} value={cat}>{cat}</option>)}
+                        {Object.keys(safeAdminCategories).map(cat => <option key={cat} value={cat}>{cat}</option>)}
                     </select>
                     {validationErrors.category && <p className="text-red-500 text-xs italic mt-1">{validationErrors.category}</p>}
                 </div>
@@ -213,7 +245,7 @@ const ProductForm = ({ showNotification, existingProduct, onUpdateSuccess }) => 
                         <label className="block text-gray-700">תת-קטגוריה</label>
                         <select className="w-full mt-1 p-2 border rounded-md" value={formData.category.sub} onChange={handleSubChange} required>
                             <option value="">בחר תת-קטגוריה</option>
-                            {adminCategories[formData.category.main].map(sub => <option key={sub} value={sub}>{sub}</option>)}
+                            {safeAdminCategories[formData.category.main]?.map(sub => <option key={sub} value={sub}>{sub}</option>)}
                         </select>
                         {validationErrors.category && <p className="text-red-500 text-xs italic mt-1">{validationErrors.category}</p>}
                     </div>
@@ -232,21 +264,21 @@ const ProductForm = ({ showNotification, existingProduct, onUpdateSuccess }) => 
                             </button>
                         )}
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            {formData.category.main && adminVariantFields[formData.category.main]?.includes('color') && (
+                            {formData.category.main && safeAdminVariantFields[formData.category.main]?.includes('color') && (
                                 <div>
                                     <label className="block text-gray-700">צבע</label>
                                     <input className="w-full mt-1 p-2 border rounded-md" type="text" name="color" value={variant.color} onChange={(e) => handleVariantChange(index, e)} required />
                                     {validationErrors.variants && validationErrors.variants[index]?.color && <p className="text-red-500 text-xs italic mt-1">{validationErrors.variants[index].color}</p>}
                                 </div>
                             )}
-                            {formData.category.main && adminVariantFields[formData.category.main]?.includes('storage') && (
+                            {formData.category.main && safeAdminVariantFields[formData.category.main]?.includes('storage') && (
                                 <div>
                                     <label className="block text-gray-700">נפח</label>
                                     <input className="w-full mt-1 p-2 border rounded-md" type="text" name="storage" value={variant.storage} onChange={(e) => handleVariantChange(index, e)} />
                                     {validationErrors.variants && validationErrors.variants[index]?.storage && <p className="text-red-500 text-xs italic mt-1">{validationErrors.variants[index].storage}</p>}
                                 </div>
                             )}
-                            {formData.category.main && adminVariantFields[formData.category.main]?.includes('size') && (
+                            {formData.category.main && safeAdminVariantFields[formData.category.main]?.includes('size') && (
                                 <div>
                                     <label className="block text-gray-700">גודל (אינץ')</label>
                                     <input className="w-full mt-1 p-2 border rounded-md" type="text" name="size" value={variant.size} onChange={(e) => handleVariantChange(index, e)} />

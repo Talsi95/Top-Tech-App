@@ -11,13 +11,7 @@ const otpSchema = new mongoose.Schema({
         type: String,
         required: true,
     },
-    shippingAddress: {
-        street: String,
-        city: String,
-        zipCode: String,
-        email: { type: String, required: true },
-        phone: String,
-    },
+    email: { type: String, required: true },
     createdAt: {
         type: Date,
         default: Date.now,

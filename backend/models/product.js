@@ -36,11 +36,11 @@ const productSchema = new Schema({
     subcategory: { type: String, required: true },
     variants: [
         {
-            color: { type: String, required: true },
+            color: { type: String, required: false },
             storage: { type: String, required: false },
             size: { type: String, required: false },
             price: { type: Number, required: true },
-            stock: { type: Number, required: true, default: 0 },
+            stock: { type: Number, required: false, default: 0 },
             imageUrl: { type: String, required: true },
             isOnSale: {
                 type: Boolean,

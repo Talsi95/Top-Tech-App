@@ -1,4 +1,5 @@
 const Product = require('../models/product');
+const Category = require('../models/category');
 
 const getProducts = async (req, res) => {
     const { category, subcategory, ...queryFilters } = req.query;
@@ -110,23 +111,55 @@ const getProductById = async (req, res) => {
     res.status(200).json(product);
 };
 
+const validateProductVariants = async (productData) => {
+    const { category, variants } = productData;
+
+    const categoryData = await Category.findOne({ name: category });
+
+    if (!categoryData) {
+        throw new Error(`Category "${category}" not found in database.`);
+    }
+
+    const requiredFields = categoryData.variantFields;
+
+    for (const variant of variants) {
+        for (const field of requiredFields) {
+            if (!variant[field] || (typeof variant[field] === 'string' && variant[field].trim() === '')) {
+                throw new Error(`Variant validation failed: Field "${field}" is required for category "${category}".`);
+            }
+        }
+    }
+};
+
 const createProduct = async (req, res) => {
-    const newProduct = await Product.create(req.body);
-    res.status(201).json(newProduct);
+    try {
+        await validateProductVariants(req.body);
+
+        const newProduct = await Product.create(req.body);
+        res.status(201).json(newProduct);
+    } catch (error) {
+        res.status(400).json({ message: error.message });
+    }
 };
 
 const updateProduct = async (req, res) => {
-    const product = await Product.findByIdAndUpdate(
-        req.params.id,
-        req.body,
-        { new: true, runValidators: true }
-    );
+    try {
+        await validateProductVariants(req.body);
 
-    if (!product) {
-        return res.status(404).json({ message: 'Product not found' });
+        const product = await Product.findByIdAndUpdate(
+            req.params.id,
+            req.body,
+            { new: true, runValidators: true }
+        );
+
+        if (!product) {
+            return res.status(404).json({ message: 'Product not found' });
+        }
+
+        res.status(200).json(product);
+    } catch (error) {
+        res.status(400).json({ message: error.message });
     }
-
-    res.status(200).json(product);
 };
 
 const updateProductVariant = async (req, res) => {

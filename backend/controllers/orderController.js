@@ -26,7 +26,15 @@ const rollbackStock = async (orderItems) => {
 
 
 const createOrder = async (req, res) => {
-    const { orderItems, shippingAddress, paymentMethod, totalPrice, paymentToken } = req.body;
+    const {
+        orderItems,
+        shippingAddress,
+        paymentMethod,
+        totalPrice,
+        paymentToken,
+        otpCode,
+        phone
+    } = req.body;
 
     if (!orderItems || orderItems.length === 0) {
         return res.status(400).json({ message: 'No order items' });
@@ -49,6 +57,17 @@ const createOrder = async (req, res) => {
         isGuestOrder = true;
         contactIdentifier = finalShippingAddress.email || finalShippingAddress.phone;
         guestTokenToStore = req.user.token;
+    } else if (phone && otpCode) {
+
+        const verificationResult = await handleVerifyOTP(phone, otpCode);
+
+        if (!verificationResult.success) {
+            return res.status(401).json({ message: verificationResult.message });
+        }
+        isGuestOrder = true;
+        finalShippingAddress = verificationResult.shippingAddress;
+        contactIdentifier = finalShippingAddress.email;
+
     } else {
         return res.status(401).json({ message: 'נדרשת התחברות או אימות אורח כדי להמשיך לקופה.' });
     }

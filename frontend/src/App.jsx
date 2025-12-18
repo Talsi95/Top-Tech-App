@@ -88,11 +88,9 @@ const App = () => {
   }, [fetchProducts]);
 
   const saveCart = useCallback(async (currentCart) => {
-    if (!isAuthenticated) return;
-    try {
+    localStorage.setItem('cartItems', JSON.stringify(currentCart)); try {
       const token = getToken();
       if (!token) {
-        console.error('No token found, cannot save cart.');
         return;
       }
 
@@ -115,25 +113,57 @@ const App = () => {
       console.error("Failed to save cart:", err.response ? err.response.data : err.message);
       throw new Error('Failed to save cart on server');
     }
-  }, [isAuthenticated, getToken]);
+  }, [getToken]);
 
   const loadCart = useCallback(async () => {
+    const storedCart = localStorage.getItem('cartItems');
+    let localCart = [];
+    if (storedCart) {
+      try {
+        localCart = JSON.parse(storedCart);
+      } catch (e) {
+        console.error("Failed to parse cart data from localStorage", e);
+        localStorage.removeItem('cartItems');
+      }
+    }
     if (!isAuthenticated) {
-      setCartItems([]);
+      setCartItems(localCart);
       return;
     }
     try {
       const token = getToken();
+      if (!token) {
+        setCartItems(localCart);
+        console.error('User authenticated but token missing/expired.');
+        return;
+      }
       const response = await axios.get(`${__API_URL__}/cart`, {
         headers: {
           'Authorization': `Bearer ${token}`
         }
       });
-      setCartItems(response.data);
+      const dbCart = response.data;
+      if (localCart.length > 0) {
+
+        if (dbCart.length === 0 || dbCart.length < localCart.length) {
+
+          await saveCart(localCart);
+
+          setCartItems(localCart);
+
+        } else {
+          setCartItems(dbCart);
+          localStorage.removeItem('cartItems');
+        }
+
+      } else {
+        setCartItems(dbCart);
+      }
     } catch (err) {
-      console.error("Failed to load cart:", err.response ? err.response.data : err.message);
+      console.error("Failed to load cart from DB:", err.response ? err.response.data : err.message);
+      setCartItems(localCart);
     }
-  }, [isAuthenticated, getToken]);
+  }, [isAuthenticated, getToken, saveCart]);
 
   useEffect(() => {
     loadCart();

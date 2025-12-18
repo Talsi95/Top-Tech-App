@@ -2,7 +2,6 @@ import { useEffect, useState, useMemo } from 'react';
 import { useSearchParams, Link } from 'react-router-dom';
 import axios from 'axios';
 import ProductCard from '../components/ProductCard';
-import { categories } from '../components/categoriesData';
 import FiltersSidebar from '../components/FiltersSidebar';
 
 const ProductsPage = () => {
@@ -12,14 +11,17 @@ const ProductsPage = () => {
     const [error, setError] = useState(null);
     const [dynamicSubcategories, setDynamicSubcategories] = useState([]);
 
+    const [allCategories, setAllCategories] = useState([]);
+    const [isLoadingCategories, setIsLoadingCategories] = useState(true);
+
     const [availableFilters, setAvailableFilters] = useState({});
 
     const selectedCategoryName = searchParams.get('category');
     const selectedSubcategoryName = searchParams.get('subcategory');
 
     const relevantCategory = useMemo(() => {
-        return categories.find(cat => cat.name === selectedCategoryName);
-    }, [selectedCategoryName]);
+        return allCategories.find(cat => cat.name === selectedCategoryName);
+    }, [selectedCategoryName, allCategories]);
 
     const activeFilters = useMemo(() => {
         const filters = {};
@@ -30,6 +32,21 @@ const ProductsPage = () => {
         }
         return filters;
     }, [searchParams]);
+
+    useEffect(() => {
+        const fetchAllCategories = async () => {
+            try {
+                const response = await axios.get(`${__API_URL__}/categories`);
+                setAllCategories(response.data);
+            } catch (err) {
+                console.error("Failed to fetch all categories data:", err);
+            } finally {
+                setIsLoadingCategories(false);
+            }
+        };
+
+        fetchAllCategories();
+    }, []);
 
     useEffect(() => {
         const fetchDynamicSubcategories = async () => {
@@ -48,6 +65,8 @@ const ProductsPage = () => {
 
     useEffect(() => {
         const fetchProducts = async () => {
+            if (isLoadingCategories && !selectedCategoryName) return;
+
             setLoading(true);
             try {
                 const url = `${__API_URL__}/products?${searchParams.toString()}`;
@@ -66,7 +85,7 @@ const ProductsPage = () => {
         };
 
         fetchProducts();
-    }, [searchParams]);
+    }, [searchParams, isLoadingCategories]);
 
     const handleFilterChange = (filterKey, filterValue) => {
         const newSearchParams = new URLSearchParams(searchParams);

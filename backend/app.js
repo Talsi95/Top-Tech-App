@@ -44,12 +44,15 @@ const userRoutes = require('./routes/users');
 const guestRoutes = require('./routes/guestRoutes')
 const cartRoutes = require('./routes/cart');
 const orderRoutes = require('./routes/orders');
+const categoryRoutes = require('./routes/categoryRoutes');
 
 app.use('/api/products', productRoutes);
 app.use('/api/auth', userRoutes);
 app.use('/api/guest', guestRoutes);
 app.use('/api/cart', cartRoutes);
 app.use('/api/orders', orderRoutes);
+app.use('/api/categories', categoryRoutes);
+
 app.use(express.static(path.join(__dirname, 'dist')));
 
 app.get(/^\/(?!api).*/, (req, res) => {
