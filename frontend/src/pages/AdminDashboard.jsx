@@ -6,6 +6,13 @@ import UserList from '../components/UserList';
 import AllOrdersList from '../components/AllOrdersList';
 import CategoryManagement from '../components/CategoryManagement';
 
+/**
+ * AdminDashboard Component.
+ * The central management interface for administrators, featuring tabs for products, users, orders, and categories.
+ * 
+ * @param {Object} props - Component props.
+ * @param {Function} props.showNotification - Function to display a global notification.
+ */
 const AdminDashboard = ({ showNotification }) => {
     const { isAuthenticated, isAdmin } = useAuth();
     const navigate = useNavigate();
@@ -18,6 +25,10 @@ const AdminDashboard = ({ showNotification }) => {
         }
     }, [isAuthenticated, isAdmin, navigate, showNotification]);
 
+    /**
+     * Renders the component corresponding to the active tab.
+     * @returns {ReactNode} The component to render.
+     */
     const renderContent = () => {
         switch (activeTab) {
             case 'addProduct':
@@ -33,6 +44,12 @@ const AdminDashboard = ({ showNotification }) => {
         }
     };
 
+    /**
+     * Helper component for rendering a tab navigation button.
+     * @param {Object} props - Component props.
+     * @param {string} props.tabName - The identifier for the tab.
+     * @param {string} props.label - The display name for the tab.
+     */
     const TabButton = ({ tabName, label }) => (
         <button
             onClick={() => setActiveTab(tabName)}

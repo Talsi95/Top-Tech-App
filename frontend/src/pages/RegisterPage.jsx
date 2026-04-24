@@ -2,12 +2,24 @@ import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import axios from 'axios';
 
+/**
+ * RegisterPage Component.
+ * Provides a user interface for new users to create an account.
+ * 
+ * @param {Object} props - Component props.
+ * @param {Function} props.showNotification - Function to display a global notification.
+ */
 const RegisterPage = ({ showNotification }) => {
     const navigate = useNavigate()
     const [username, setUsername] = useState('');
     const [email, setEmail] = useState('');
+    const [phone, setPhone] = useState('');
     const [password, setPassword] = useState('');
 
+    /**
+     * Handles the registration form submission.
+     * @param {Event} e - The form submission event.
+     */
     const handleRegister = async (e) => {
         e.preventDefault();
 
@@ -15,6 +27,7 @@ const RegisterPage = ({ showNotification }) => {
             const response = await axios.post(`${__API_URL__}/auth/register`, {
                 username,
                 email,
+                phone,
                 password,
             });
 
@@ -74,6 +87,20 @@ const RegisterPage = ({ showNotification }) => {
                                 placeholder="כתובת אימייל"
                                 value={email}
                                 onChange={(e) => setEmail(e.target.value)}
+                            />
+                        </div>
+                        <div>
+                            <label htmlFor="phone" className="sr-only">
+                                מספר טלפון
+                            </label>
+                            <input
+                                id="phone"
+                                name="phone"
+                                type="tel"
+                                className="relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 focus:outline-none focus:ring-green-500 focus:border-green-500 focus:z-10 sm:text-sm"
+                                placeholder="מספר טלפון (אופציונלי)"
+                                value={phone}
+                                onChange={(e) => setPhone(e.target.value)}
                             />
                         </div>
                         <div>

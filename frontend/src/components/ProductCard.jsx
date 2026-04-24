@@ -1,5 +1,12 @@
 import { useNavigate } from 'react-router-dom';
 
+/**
+ * ProductCard Component.
+ * A concise summary view of a product, used within lists and grids.
+ * 
+ * @param {Object} props - Component props.
+ * @param {Object} props.product - The product data to display.
+ */
 const ProductCard = ({ product }) => {
     const navigate = useNavigate();
     const primaryVariant = product.variants?.[0] || {};

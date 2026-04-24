@@ -1,6 +1,11 @@
 const Product = require('../models/product');
 const Category = require('../models/category');
 
+/**
+ * Fetches products based on category, subcategory, and optional variant filters.
+ * @param {Object} req - Express request object.
+ * @param {Object} res - Express response object.
+ */
 const getProducts = async (req, res) => {
     const { category, subcategory, ...queryFilters } = req.query;
 
@@ -49,6 +54,11 @@ const getProducts = async (req, res) => {
     }
 };
 
+/**
+ * Extracts available unique filter values (color, storage, size) from a list of products.
+ * @param {Array} products - List of product documents.
+ * @returns {Object} Object containing unique values for each filter field.
+ */
 const getAvailableFilters = (products) => {
     const filters = {};
     const relevantFields = ['color', 'storage', 'size'];
@@ -75,6 +85,11 @@ const getAvailableFilters = (products) => {
     return result;
 };
 
+/**
+ * Fetches unique subcategories for a given category.
+ * @param {Object} req - Express request object.
+ * @param {Object} res - Express response object.
+ */
 const getUniqueSubcategories = async (req, res) => {
     const { category } = req.query;
 
@@ -89,6 +104,11 @@ const getUniqueSubcategories = async (req, res) => {
     }
 };
 
+/**
+ * Searches for products by name using a case-insensitive regex.
+ * @param {Object} req - Express request object.
+ * @param {Object} res - Express response object.
+ */
 const searchProducts = async (req, res) => {
     const { query } = req.query;
 
@@ -103,6 +123,11 @@ const searchProducts = async (req, res) => {
     res.json(products);
 };
 
+/**
+ * Fetches a single product by its ID.
+ * @param {Object} req - Express request object.
+ * @param {Object} res - Express response object.
+ */
 const getProductById = async (req, res) => {
     const product = await Product.findById(req.params.id);
     if (!product) {
@@ -111,6 +136,11 @@ const getProductById = async (req, res) => {
     res.status(200).json(product);
 };
 
+/**
+ * Validates that product variants contain all required fields based on the category.
+ * @param {Object} productData - The product data to validate.
+ * @throws {Error} If validation fails.
+ */
 const validateProductVariants = async (productData) => {
     const { category, variants } = productData;
 
@@ -131,6 +161,11 @@ const validateProductVariants = async (productData) => {
     }
 };
 
+/**
+ * Creates a new product after validating its variants.
+ * @param {Object} req - Express request object.
+ * @param {Object} res - Express response object.
+ */
 const createProduct = async (req, res) => {
     try {
         await validateProductVariants(req.body);
@@ -142,6 +177,11 @@ const createProduct = async (req, res) => {
     }
 };
 
+/**
+ * Updates an existing product after validating its variants.
+ * @param {Object} req - Express request object.
+ * @param {Object} res - Express response object.
+ */
 const updateProduct = async (req, res) => {
     try {
         await validateProductVariants(req.body);
@@ -162,6 +202,11 @@ const updateProduct = async (req, res) => {
     }
 };
 
+/**
+ * Updates a specific variant of a product.
+ * @param {Object} req - Express request object.
+ * @param {Object} res - Express response object.
+ */
 const updateProductVariant = async (req, res) => {
     const { productId, variantId } = req.params;
     const updateFields = req.body;
@@ -179,6 +224,11 @@ const updateProductVariant = async (req, res) => {
     res.status(200).json(product);
 };
 
+/**
+ * Deletes a product by its ID.
+ * @param {Object} req - Express request object.
+ * @param {Object} res - Express response object.
+ */
 const deleteProduct = async (req, res) => {
     const product = await Product.findByIdAndDelete(req.params.id);
     if (!product) {

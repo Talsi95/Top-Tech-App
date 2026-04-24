@@ -4,6 +4,20 @@ import { FaShoppingCart, FaTimes, FaBars, FaSearch } from 'react-icons/fa';
 import { useAuth } from '../AuthContext';
 import AdminNotifications from './AdminNotifications';
 
+/**
+ * Navbar Component.
+ * The primary navigation header, responsive and features authentication links, cart access, and admin notifications.
+ * 
+ * @param {Object} props - Component props.
+ * @param {Function} props.onLogout - Callback for user logout.
+ * @param {Function} props.onShowLogin - Callback to open the login modal/view.
+ * @param {Function} props.onShowRegister - Callback to open the registration modal/view.
+ * @param {Function} props.onToggleDrawer - Callback to toggle the shopping cart drawer.
+ * @param {number} props.cartItemsCount - Current number of unique items in the cart.
+ * @param {Function} props.onToggleSearchDrawer - Callback to toggle the global search drawer.
+ * @param {Array} props.adminNewOrders - List of new orders for admin notification badge.
+ * @param {Function} props.onMarkOrdersAsSeen - Callback to mark new orders as seen by admin.
+ */
 const Navbar = ({
     onLogout,
     onShowLogin,
@@ -15,7 +29,7 @@ const Navbar = ({
     onMarkOrdersAsSeen
 }) => {
     const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-    const { user, isAuthenticated, isAdmin } = useAuth();
+    const { user, isAuthenticated, isAdmin, isGuest } = useAuth();
 
     const toggleMobileMenu = () => {
         setIsMobileMenuOpen(!isMobileMenuOpen);
@@ -43,7 +57,11 @@ const Navbar = ({
                         </NavLink>
                         {isAuthenticated && (
                             <span className="text-sm text-gray-400">
-                                שלום, {user?.username}
+                                {isGuest ? (
+                                    "שלום, אורח"
+                                ) : (
+                                    `שלום, ${user?.username}`
+                                )}
                             </span>
                         )}
                         {isAuthenticated && (

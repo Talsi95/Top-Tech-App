@@ -1,17 +1,20 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
-import { Send, Lock, MapPin, Phone, LogIn } from 'lucide-react';
+import { Send, Lock, MapPin, Phone, LogIn, Mail } from 'lucide-react';
+import { auth } from '../firebaseConfig';
+import { getAuth, RecaptchaVerifier, signInWithPhoneNumber } from "firebase/auth";
+import { useAuth } from '../AuthContext';
 
 const DetailsForm = ({ phone, setPhone, email, setEmail, shippingAddress, handleAddressChange, handleRequestOTP, loading, navigate }) => (
     <form onSubmit={handleRequestOTP} className="space-y-4">
-        <h3 className="text-xl font-semibold text-gray-800 border-b pb-2 mb-4">1. פרטי טלפון ומשלוח</h3>
+        <h3 className="text-xl font-semibold text-gray-800 border-b pb-2 mb-4">1. פרטים למעקב הזמנה</h3>
 
         <div className="relative">
             <Phone className="absolute top-3 right-3 text-gray-400" size={20} />
             <input
                 type="tel"
-                placeholder="מספר טלפון (בפורמט בינלאומי +XXX)"
+                placeholder="מספר טלפון"
                 value={phone}
                 onChange={(e) => setPhone(e.target.value)}
                 required
@@ -20,17 +23,15 @@ const DetailsForm = ({ phone, setPhone, email, setEmail, shippingAddress, handle
             />
         </div>
 
-        <div className="mb-4">
-            <label htmlFor="email" className="block text-gray-700 text-sm font-bold mb-2">
-                כתובת אימייל (לקבלת אישור הזמנה)
-            </label>
+        <div className="relative">
+            <Mail className="absolute top-3 right-3 text-gray-400" size={20} />
             <input
-                id="email"
-                className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight"
                 type="email"
+                placeholder="מייל"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 required
+                className="w-full p-3 pr-10 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500 text-right"
             />
         </div>
 
@@ -101,71 +102,153 @@ const OTPForm = ({ phone, otp, setOtp, handleVerifyOTP, loading, setStep, showNo
     </form>
 );
 
+/**
+ * GuestCheckoutPage Component.
+ * Manages the guest checkout flow, including phone/email collection, OTP verification, and redirection to payment.
+ * 
+ * @param {Object} props - Component props.
+ * @param {Function} props.showNotification - Function to display a global notification.
+ */
 const GuestCheckoutPage = ({ showNotification }) => {
     const navigate = useNavigate();
+
+    const { login } = useAuth();
 
     const [step, setStep] = useState('details');
     const [phone, setPhone] = useState('');
     const [email, setEmail] = useState('');
     const [otp, setOtp] = useState('');
     const [loading, setLoading] = useState(false);
+    const [confirmationResult, setConfirmationResult] = useState(null);
+
+
+    /**
+     * Sends a request to the backend to generate and send an OTP to the user's phone.
+     * @param {Event} e - The form submission event.
+     */
+    // const handleRequestOTP = async (e) => {
+    //     e.preventDefault();
+
+    //     if (phone.length < 9) {
+    //         showNotification('אנא הזן מספר טלפון תקין.', 'error');
+    //         return;
+    //     }
+
+    //     setLoading(true);
+    //     showNotification('מבקש קוד אימות Twilio...', 'success');
+    //     try {
+    //         await axios.post(`${__API_URL__}/guest/request-verify-otp`, {
+    //             phone,
+    //             email,
+    //         });
+
+    //         showNotification(`קוד אימות נשלח לטלפון ${phone}.`, 'success');
+    //         setStep('otp');
+    //         setLoading(false);
+
+    //     } catch (error) {
+    //         const message = error.response?.data?.message || 'שליחת ה-SMS נכשלה. נסה שוב.';
+    //         showNotification(message, 'error');
+
+    //         console.error("OTP Request failed:", message);
+    //         setLoading(false);
+    //     }
+    // };
 
     const handleRequestOTP = async (e) => {
         e.preventDefault();
+        setLoading(true);
 
-        if (!phone.startsWith('+') || phone.length < 10) {
-            showNotification('אנא הזן מספר טלפון בפורמט בינלאומי (+XXX...).', 'error');
-            return;
+        // 1. מציאת האלמנט וניקוי התוכן שלו כדי למנוע את השגיאה
+        const recaptchaContainer = document.getElementById('recaptcha-container');
+        if (recaptchaContainer) {
+            recaptchaContainer.innerHTML = '';
         }
 
-        setLoading(true);
-        showNotification('מבקש קוד אימות Twilio...', 'success');
         try {
-            await axios.post(`${__API_URL__}/guest/request-verify-otp`, {
-                phone,
-                email,
+            // 2. יצירת ה-Verifier מחדש על אלמנט נקי
+            const recaptchaVerifier = new RecaptchaVerifier(auth, 'recaptcha-container', {
+                'size': 'invisible',
+                'callback': (response) => {
+                    // reCAPTCHA solved
+                }
             });
 
-            showNotification(`קוד אימות נשלח לטלפון ${phone}.`, 'success');
+            // פורמט מספר הטלפון (חשוב!)
+            let formattedPhone = phone.trim();
+            if (formattedPhone.startsWith('0')) {
+                formattedPhone = '+972' + formattedPhone.substring(1);
+            } else if (!formattedPhone.startsWith('+')) {
+                formattedPhone = '+972' + formattedPhone;
+            }
+
+            const confirmation = await signInWithPhoneNumber(auth, formattedPhone, recaptchaVerifier);
+            setConfirmationResult(confirmation);
+
             setStep('otp');
-            setLoading(false);
+            showNotification('קוד אימות נשלח לנייד', 'success');
 
         } catch (error) {
-            const message = error.response?.data?.message || 'שליחת ה-SMS נכשלה. נסה שוב.';
-            showNotification(message, 'error');
-
-            console.error("OTP Request failed:", message);
+            console.error("Firebase Auth Error", error);
+            showNotification('שגיאה בשליחת הקוד. וודא שהמספר תקין.', 'error');
+        } finally {
             setLoading(false);
         }
     };
 
+    /**
+     * Verifies the OTP entered by the user. If successful, stores the guest token and redirects to checkout.
+     * @param {Event} e - The form submission event.
+     */
+    // const handleVerifyOTP = async (e) => {
+    //     e.preventDefault();
+
+    //     if (otp.length !== 6) {
+    //         showNotification('קוד האימות חייב להיות בן 6 ספרות.', 'error');
+    //         return;
+    //     }
+
+    //     setLoading(true);
+    //     showNotification('מאמת קוד...', 'success');
+    //     try {
+    //         const response = await axios.post(`${__API_URL__}/guest/verify-otp`, {
+    //             phone,
+    //             otp
+    //         });
+    //         const data = response.data;
+
+    //         localStorage.setItem('guestToken', data.guestToken);
+    //         localStorage.setItem('guestEmail', data.email);
+
+    //         showNotification('אימות הושלם בהצלחה! מנתב לקופה.', 'success');
+
+    //         navigate('/checkout');
+
+    //     } catch (error) {
+    //         const message = error.response?.data?.message || 'אימות נכשל. הקוד לא תקין או פג תוקף.';
+    //         showNotification(message, 'error');
+    //     } finally {
+    //         setLoading(false);
+    //     }
+    // };
+
     const handleVerifyOTP = async (e) => {
         e.preventDefault();
-
-        if (otp.length !== 6) {
-            showNotification('קוד האימות חייב להיות בן 6 ספרות.', 'error');
-            return;
-        }
-
         setLoading(true);
-        showNotification('מאמת קוד Twilio...', 'success');
         try {
-            const response = await axios.post(`${__API_URL__}/guest/verify-otp`, {
-                phone,
-                otp
+            const result = await confirmationResult.confirm(otp);
+            const firebaseUser = result.user;
+
+            const response = await axios.post(`${__API_URL__}/guest/verify-firebase`, {
+                token: await firebaseUser.getIdToken(),
+                email: email
             });
-            const data = response.data;
-
-            localStorage.setItem('guestToken', data.guestToken);
-            localStorage.setItem('guestEmail', data.email);
-
-            showNotification('אימות הושלם בהצלחה! מנתב לקופה.', 'success');
-
+            const { guestToken } = response.data;
+            login(guestToken, true);
+            showNotification('אימות הושלם בהצלחה!', 'success');
             navigate('/checkout');
-
         } catch (error) {
-            const message = error.response?.data?.message || 'אימות נכשל. הקוד לא תקין או פג תוקף.';
-            showNotification(message, 'error');
+            showNotification('קוד שגוי', 'error');
         } finally {
             setLoading(false);
         }
@@ -175,8 +258,12 @@ const GuestCheckoutPage = ({ showNotification }) => {
         <div className="min-h-screen bg-gray-100 flex items-center justify-center p-4" dir="rtl">
             <div className="w-full max-w-lg bg-white p-6 sm:p-8 rounded-xl shadow-2xl border-t-4 border-blue-600">
                 <h1 className="text-3xl font-extrabold text-center mb-6 text-gray-900">
-                    המשך הזמנה כאורח
+                    פרטי התקשרות ומעקב הזמנה
                 </h1>
+
+                <p className="text-center text-gray-600 mb-6 font-medium">
+                    נא להזין טלפון ומייל שבאמצעותם תוכל לעקוב אחר סטטוס ההזמנה שלך
+                </p>
 
                 <div className="bg-white p-4 rounded-lg">
                     {step === 'details' ? (
@@ -201,6 +288,7 @@ const GuestCheckoutPage = ({ showNotification }) => {
                         />
                     )}
                 </div>
+                <div id="recaptcha-container"></div>
             </div>
         </div>
     );

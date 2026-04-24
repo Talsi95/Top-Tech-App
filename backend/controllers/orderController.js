@@ -5,6 +5,10 @@ const GuestUser = require('../models/guestUser');
 const { sendOrderConfirmationEmail } = require('../services/emailService');
 const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
 
+/**
+ * Rolls back stock levels for items in a failed order.
+ * @param {Array} orderItems - List of items in the order.
+ */
 const rollbackStock = async (orderItems) => {
     console.log("Starting stock rollback...");
     for (const item of orderItems) {
@@ -25,6 +29,12 @@ const rollbackStock = async (orderItems) => {
 };
 
 
+/**
+ * Creates a new order, handles payment (via Stripe), and updates stock levels.
+ * Supports registered users and guest orders (via token or OTP).
+ * @param {Object} req - Express request object.
+ * @param {Object} res - Express response object.
+ */
 const createOrder = async (req, res) => {
     const {
         orderItems,
@@ -45,31 +55,22 @@ const createOrder = async (req, res) => {
     const amountInCents = Math.round(totalPrice * 100);
 
     let userId = null;
-    let contactIdentifier = null;
-    let finalShippingAddress = shippingAddress;
-    let guestTokenToStore = null;
+    let finalEmail;
+    let finalPhone;
     let isGuestOrder = false;
 
-    if (req.user && !req.user.isGuest) {
-        userId = req.user.id;
-        contactIdentifier = req.user.email;
-    } else if (req.user && req.user.isGuest) {
-        isGuestOrder = true;
-        contactIdentifier = finalShippingAddress.email || finalShippingAddress.phone;
-        guestTokenToStore = req.user.token;
-    } else if (phone && otpCode) {
-
-        const verificationResult = await handleVerifyOTP(phone, otpCode);
-
-        if (!verificationResult.success) {
-            return res.status(401).json({ message: verificationResult.message });
+    if (req.user) {
+        if (req.user.isGuest) {
+            isGuestOrder = true;
+            finalEmail = req.user.email;
+            finalPhone = req.user.phone;
+        } else {
+            userId = req.user._id;
+            finalEmail = req.user.email;
+            finalPhone = shippingAddress.phone;
         }
-        isGuestOrder = true;
-        finalShippingAddress = verificationResult.shippingAddress;
-        contactIdentifier = finalShippingAddress.email;
-
     } else {
-        return res.status(401).json({ message: 'נדרשת התחברות או אימות אורח כדי להמשיך לקופה.' });
+        return res.status(401).json({ message: 'נדרשת התחברות או אימות אורח כדי להמשיך.' });
     }
 
     try {
@@ -128,7 +129,7 @@ const createOrder = async (req, res) => {
                 amount: amountInCents,
                 currency: 'ils',
                 source: paymentToken,
-                description: `Order from ${userId ? 'user' : 'guest'} ${userId || contactIdentifier}`,
+                description: `Order from ${userId ? 'user' : 'guest'} ${userId || finalEmail}`,
                 metadata: {
                     user_id: userId || 'Guest',
                     order_total: totalPrice.toFixed(2)
@@ -140,7 +141,7 @@ const createOrder = async (req, res) => {
                 id: charge.id,
                 status: charge.status,
                 update_time: charge.created,
-                email_address: contactIdentifier || 'N/A'
+                email_address: finalEmail || 'N/A'
             };
 
         } else if (paymentMethod === 'credit-card' && !paymentToken) {
@@ -150,9 +151,13 @@ const createOrder = async (req, res) => {
         const order = new Order({
             user: userId,
             isGuestOrder: isGuestOrder,
-            guestToken: guestTokenToStore,
+            guestToken: isGuestOrder ? req.user.token : null,
             orderItems: orderItemsWithPrice,
-            shippingAddress: finalShippingAddress,
+            shippingAddress: {
+                ...shippingAddress,
+                email: finalEmail,
+                phone: finalPhone
+            },
             paymentMethod,
             totalPrice,
             isPaid: isPaid,
@@ -162,13 +167,13 @@ const createOrder = async (req, res) => {
 
         const createdOrder = await order.save();
 
-        console.log(`DEBUG: Attempting to send confirmation email to: ${contactIdentifier}`);
+        console.log(`DEBUG: Attempting to send confirmation email to: ${finalEmail}`);
 
         try {
-            if (contactIdentifier) {
-                await sendOrderConfirmationEmail(contactIdentifier, createdOrder.toObject());
+            if (finalEmail) {
+                await sendOrderConfirmationEmail(finalEmail, createdOrder.toObject());
             } else {
-                console.warn("WARNING: Skipping email confirmation because identifier is missing.");
+                console.warn("WARNING: Skipping email confirmation because finalEmail is missing.");
             }
         } catch (emailError) {
             console.error(`Warning: Order ${createdOrder._id} saved, but confirmation email failed to send: ${emailError.message}`);
@@ -191,6 +196,12 @@ const createOrder = async (req, res) => {
     }
 };
 
+/**
+ * Fetches all orders from the database (admin only).
+ * Populates user and product info and sanitizes the output.
+ * @param {Object} req - Express request object.
+ * @param {Object} res - Express response object.
+ */
 const getAllOrders = async (req, res) => {
     const orders = await Order.find({})
         .populate('user', 'username email')
@@ -226,6 +237,12 @@ const getAllOrders = async (req, res) => {
     res.status(200).json(sanitizedOrders);
 };
 
+/**
+ * Fetches details for a specific guest order by ID.
+ * Verifies that the guest token matches.
+ * @param {Object} req - Express request object.
+ * @param {Object} res - Express response object.
+ */
 const guestOrder = async (req, res) => {
     try {
         const orderId = req.params.orderId;
@@ -255,6 +272,11 @@ const guestOrder = async (req, res) => {
     }
 };
 
+/**
+ * Fetches new (unseen) orders for the admin dashboard.
+ * @param {Object} req - Express request object.
+ * @param {Object} res - Express response object.
+ */
 const getNewOrders = async (req, res) => {
 
     const orders = await Order.find({ isUnseen: true })
@@ -301,6 +323,11 @@ const getNewOrders = async (req, res) => {
     res.status(200).json(sanitizedOrders);
 };
 
+/**
+ * Marks a specific order as seen by the admin.
+ * @param {Object} req - Express request object.
+ * @param {Object} res - Express response object.
+ */
 const markOrderAsSeen = async (req, res) => {
     const order = await Order.findByIdAndUpdate(
         req.params.id,

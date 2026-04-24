@@ -1,6 +1,16 @@
 import { useAuth } from '../AuthContext';
 import { useNavigate, Link } from 'react-router-dom';
 
+/**
+ * ProductList Component.
+ * Renders a grid of product cards. Primarily used for displaying general product listings.
+ * 
+ * @param {Object} props - Component props.
+ * @param {Function} props.onAddToCart - Callback for adding a product to the cart.
+ * @param {Function} props.onUpdateProduct - Callback for administrative product updates.
+ * @param {Function} props.onDeleteProduct - Callback for administrative product deletion.
+ * @param {Array} props.products - List of product objects to display.
+ */
 const ProductList = ({ onAddToCart, onUpdateProduct, onDeleteProduct, products }) => {
     const { isAdmin } = useAuth();
     const navigate = useNavigate();

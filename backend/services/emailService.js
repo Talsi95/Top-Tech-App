@@ -5,6 +5,7 @@ const bidi = require('bidi-js');
 
 sgMail.setApiKey(process.env.SENDGRID_API_KEY);
 
+// Path to the Hebrew font used for generating PDF invoices.
 const HEBREW_FONT_PATH = path.join(
     __dirname,
     '..',
@@ -14,6 +15,11 @@ const HEBREW_FONT_PATH = path.join(
     'NotoSansHebrew-VariableFont_wdth,wght.ttf'
 );
 
+/**
+ * Reorders Hebrew text for RTL display in PDFs.
+ * @param {string} text - The text to reorder.
+ * @returns {string} The reordered RTL text.
+ */
 const rtlText = (text) => {
     if (!text) return '';
 
@@ -33,6 +39,11 @@ const rtlText = (text) => {
     }
 };
 
+/**
+ * Converts a data stream to a Base64 string.
+ * @param {Stream} stream - The data stream to convert.
+ * @returns {Promise<string>} Base64 encoded string.
+ */
 const streamToBase64 = (stream) => {
     return new Promise((resolve, reject) => {
         const chunks = [];
@@ -44,6 +55,11 @@ const streamToBase64 = (stream) => {
     });
 };
 
+/**
+ * Generates a PDF invoice for an order with RTL support for Hebrew.
+ * @param {Object} orderDetails - The details of the order.
+ * @returns {Promise<string>} Base64 encoded PDF content.
+ */
 const generateOrderPdf = async (orderDetails) => {
 
     const doc = new PDFDocument({ size: 'A4', margin: 50, rtl: true });
@@ -134,6 +150,11 @@ const generateOrderPdf = async (orderDetails) => {
 };
 
 
+/**
+ * Sends a welcome email to a newly registered user.
+ * @param {string} userEmail - Recipient's email.
+ * @param {string} username - Recipient's username.
+ */
 const sendRegistrationEmail = async (userEmail, username) => {
     const msg = {
         to: userEmail,
@@ -159,6 +180,11 @@ const sendRegistrationEmail = async (userEmail, username) => {
     }
 };
 
+/**
+ * Sends a password reset link to the user's email.
+ * @param {string} userEmail - Recipient's email.
+ * @param {string} resetUrl - The password reset URL.
+ */
 const sendResetPasswordEmail = async (userEmail, resetUrl) => {
     const msg = {
         to: userEmail,
@@ -190,6 +216,11 @@ const sendResetPasswordEmail = async (userEmail, resetUrl) => {
     }
 };
 
+/**
+ * Sends an order confirmation email including a PDF invoice attachment.
+ * @param {string} userEmail - Recipient's email.
+ * @param {Object} orderDetails - The details of the confirmed order.
+ */
 const sendOrderConfirmationEmail = async (userEmail, orderDetails) => {
     const orderId = orderDetails._id;
     const total = orderDetails.totalPrice ? orderDetails.totalPrice.toFixed(2) : 'N/A';
@@ -242,6 +273,11 @@ const sendOrderConfirmationEmail = async (userEmail, orderDetails) => {
     }
 };
 
+/**
+ * Sends a one-time password (OTP) email for guest checkout verification.
+ * @param {string} userEmail - Recipient's email.
+ * @param {string} otp - The OTP code.
+ */
 const sendOTPEmail = async (userEmail, otp) => {
     const msg = {
         to: userEmail,
@@ -264,7 +300,6 @@ const sendOTPEmail = async (userEmail, otp) => {
     };
 
     try {
-        await sgMail.send(msg);
         const response = await sgMail.send(msg);
         console.log('OTP email sent successfully to', userEmail);
         console.log('SendGrid Response (Status Code 202):', response[0].statusCode);

@@ -1,16 +1,25 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useAuth } from '../AuthContext.jsx';
 import { useNavigate } from 'react-router-dom';
+import { Package, User, LogOut, Settings } from 'lucide-react';
 import axios from 'axios';
 
+/**
+ * UserArea Component.
+ * Displays the logged-in user's profile information and their order history.
+ */
 const UserArea = () => {
-    const { isAuthenticated, getToken } = useAuth();
+    const { isAuthenticated, getToken, logout } = useAuth();
     const navigate = useNavigate();
     const [userData, setUserData] = useState(null);
     const [userOrders, setUserOrders] = useState([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
 
+    /**
+     * Fetches user profile data and orders from the server.
+     * Verifies authentication by checking the token.
+     */
     const fetchUserDataAndOrders = useCallback(async () => {
         try {
             const token = getToken();
@@ -50,13 +59,35 @@ const UserArea = () => {
     }
 
     return (
-        <div className="container mx-auto p-8">
-            <h2 className="text-3xl font-bold mb-6 text-center text-gray-800">האיזור האישי שלי</h2>
+        <div className="container mx-auto p-8" dir="rtl">
+            <div className="flex justify-between items-center mb-8 bg-white p-6 rounded-xl shadow-sm border-r-4 border-blue-600">
+                <h2 className="text-3xl font-bold flex items-center text-gray-800">
+                    <User className="ml-3 text-blue-600" size={32} />
+                    {userData?.isGuest ? 'מעקב הזמנות אורח' : 'האיזור האישי שלי'}
+                </h2>
+                <div className="flex gap-4">
+                    {!userData?.isGuest && (
+                        <button
+                            onClick={() => navigate('/profile/edit')}
+                            className="flex items-center px-4 py-2 bg-blue-50 text-blue-600 rounded-lg hover:bg-blue-100 transition-colors font-semibold"
+                        >
+                            <Settings className="ml-2" size={20} /> עריכת פרופיל
+                        </button>
+                    )}
+                    <button
+                        onClick={logout}
+                        className="flex items-center px-4 py-2 bg-red-50 text-red-600 rounded-lg hover:bg-red-100 transition-colors font-semibold"
+                    >
+                        <LogOut className="ml-2" size={20} /> התנתק
+                    </button>
+                </div>
+            </div>
 
             <div className="bg-white p-6 rounded-lg shadow-md mb-6">
-                <h3 className="text-xl font-bold mb-4">פרטים אישיים</h3>
-                <p><strong>שם משתמש:</strong> {userData.username}</p>
-                <p><strong>מייל:</strong> {userData.email}</p>
+                <h3 className="text-xl font-bold mb-4">פרטים</h3>
+                <p><strong>סטטוס:</strong> {userData?.isGuest ? 'אורח' : userData?.username}</p>
+                <p><strong>טלפון:</strong> {userData?.phone || 'לא הוזן'}</p>
+                <p><strong>מייל למעקב:</strong> {userData?.email}</p>
             </div>
 
             <div className="bg-white p-6 rounded-lg shadow-md">

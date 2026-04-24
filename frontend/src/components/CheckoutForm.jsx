@@ -1,6 +1,8 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useStripe, useElements, CardElement } from '@stripe/react-stripe-js';
+import axios from 'axios';
+import { useAuth } from '../AuthContext';
 
 const CARD_ELEMENT_OPTIONS = {
     style: {
@@ -17,18 +19,30 @@ const CARD_ELEMENT_OPTIONS = {
     },
 };
 
+/**
+ * CheckoutForm Component.
+ * Collects shipping information and handles payment processing (Stripe or Cash on Delivery).
+ * 
+ * @param {Object} props - Component props.
+ * @param {Array} props.cartItems - Items currently in the cart.
+ * @param {Function} props.showNotification - Function to display a global notification.
+ * @param {Function} props.onOrderComplete - Callback for successful order placement.
+ * @param {string} props.guestToken - Authentication token for guest users.
+ */
 const CheckoutForm = ({ cartItems, showNotification, onOrderComplete, guestToken }) => {
     const navigate = useNavigate();
+    const { user, isGuest, getToken } = useAuth();
 
     const stripe = useStripe();
     const elements = useElements();
 
     const [formData, setFormData] = useState({
-        fullName: '',
+        fullName: !isGuest ? user?.username : '',
         street: '',
         city: '',
         zipCode: '',
-        phone: '',
+        phone: user?.phone || '',
+        email: user?.email || '',
         paymentMethod: ''
     });
 
@@ -36,16 +50,35 @@ const CheckoutForm = ({ cartItems, showNotification, onOrderComplete, guestToken
     const [paymentError, setPaymentError] = useState(null);
 
     useEffect(() => {
-        const storedEmail = localStorage.getItem('guestEmail');
-        const storedPhone = localStorage.getItem('guestPhone');
-        setFormData(prevData => ({
-            ...prevData,
-            email: storedEmail || prevData.email,
-            phone: storedPhone || prevData.phone,
-            fullName: '',
-        }));
+        const fetchUserData = async () => {
+            if (user && !user.email && !isGuest) {
+                try {
+                    const token = localStorage.getItem('token');
+                    const response = await axios.get(`${__API_URL__}/auth/profile`, {
+                        headers: { Authorization: `Bearer ${token}` }
+                    });
+                    const userData = response.data;
+                    setFormData(prev => ({
+                        ...prev,
+                        email: userData.email || prev.email,
+                        phone: userData.phone || prev.phone,
+                        fullName: userData.username || prev.fullName
+                    }));
+                } catch (error) {
+                    console.error("Failed to fetch user profile for auto-fill:", error);
+                }
+            } else if (user) {
+                setFormData(prev => ({
+                    ...prev,
+                    phone: isGuest ? (user.phone || prev.phone) : prev.phone,
+                    email: user.email || prev.email,
+                    fullName: !isGuest ? (user.username || prev.fullName) : prev.fullName
+                }));
+            }
+        };
 
-    }, []);
+        fetchUserData();
+    }, [user, isGuest]);
 
     const calculateTotal = () => {
         return cartItems.reduce((acc, item) => {
@@ -84,7 +117,7 @@ const CheckoutForm = ({ cartItems, showNotification, onOrderComplete, guestToken
             return;
         }
 
-        const authToken = guestToken;
+        const authToken = getToken();
 
         if (!authToken) {
             showNotification('משתמש לא מזוהה. אנא התחבר או אמת את הזמנתך.', 'error');
@@ -164,7 +197,7 @@ const CheckoutForm = ({ cartItems, showNotification, onOrderComplete, guestToken
         setIsProcessing(false);
     };
 
-    const isFormIncomplete = !formData.fullName || !formData.street || !formData.city || !formData.zipCode || !formData.phone || !formData.paymentMethod;
+    const isFormIncomplete = !formData.fullName || !formData.street || !formData.city || !formData.zipCode || !formData.phone || !formData.email || !formData.paymentMethod;
 
     const isDisabled = isFormIncomplete || isProcessing || (formData.paymentMethod === 'credit-card' && !stripe);
 
@@ -192,6 +225,10 @@ const CheckoutForm = ({ cartItems, showNotification, onOrderComplete, guestToken
                 <div className="mb-6">
                     <label className="block text-gray-700 text-sm font-bold mb-2">מספר טלפון</label>
                     <input className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight" type="tel" name="phone" value={formData.phone} onChange={handleChange} required />
+                </div>
+                <div className="mb-6">
+                    <label className="block text-gray-700 text-sm font-bold mb-2">מייל</label>
+                    <input className={`shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight${isGuest ? 'bg-gray-100 cursor-not-allowed' : ''}`} type="email" name="email" value={formData.email} readOnly={true} required />
                 </div>
 
                 <div className="mb-6">

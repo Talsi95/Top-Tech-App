@@ -3,6 +3,13 @@ import { useAuth } from '../AuthContext.jsx';
 import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
 
+/**
+ * AllOrdersList Component.
+ * A central administrative view for listing and managing all customer orders.
+ * 
+ * @param {Object} props - Component props.
+ * @param {Function} props.showNotification - Function to display a global notification.
+ */
 const AllOrdersList = ({ showNotification }) => {
     const { getToken } = useAuth();
     const navigate = useNavigate();

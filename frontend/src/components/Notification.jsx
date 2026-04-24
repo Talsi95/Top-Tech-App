@@ -1,5 +1,14 @@
 import { useEffect } from 'react';
 
+/**
+ * Notification Component.
+ * A transient UI feedback element for displaying success or error messages.
+ * 
+ * @param {Object} props - Component props.
+ * @param {string} props.message - The text to display.
+ * @param {string} props.type - The type of notification ('success' or 'error').
+ * @param {Function} props.onClose - Callback to clear the notification.
+ */
 const Notification = ({ message, type, onClose }) => {
     useEffect(() => {
         if (message) {

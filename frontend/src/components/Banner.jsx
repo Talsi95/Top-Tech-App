@@ -14,6 +14,10 @@ const categoryImages = {
     'אוזניות': headphonesImg,
 };
 
+/**
+ * Banner Component.
+ * A visually engaging hero section for the home page, featuring category shortcuts and promotional text.
+ */
 const Banner = () => {
     return (
         <div className="relative bg-gradient-to-r from-sky-500 to-blue-600 text-white py-16 px-6 rounded-3xl shadow-2xl mb-12 overflow-hidden transform hover:scale-105 transition-transform duration-500 ease-in-out">

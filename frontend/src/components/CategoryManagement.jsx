@@ -12,6 +12,13 @@ const initialNewCategory = {
     variantFields: [], // מתחיל ריק, האדמין בוחר מהנדרש
 };
 
+/**
+ * CategoryManagement Component.
+ * Administrative tool for managing product categories, subcategories, and their required variant fields.
+ * 
+ * @param {Object} props - Component props.
+ * @param {Function} props.showNotification - Function to display a global notification.
+ */
 const CategoryManagement = ({ showNotification }) => {
     const { getToken } = useAuth();
     const [categories, setCategories] = useState([]);
@@ -248,11 +255,19 @@ const CategoryManagement = ({ showNotification }) => {
                                     </button>
                                 </div>
 
-                                <p className="text-sm text-gray-600 mb-1">
-                                    **שדות וריאנט (חובה):** {category.variantFields?.join(', ') || 'אין'}
-                                </p>
                                 <p className="text-sm text-gray-500">
-                                    **תתי קטגוריות:** {category.subcategories?.map(sub => sub.name).join(' | ') || 'אין'}
+                                    **תתי קטגוריות:** {
+                                        Array.isArray(category.subcategories) && category.subcategories.length > 0
+                                            ? category.subcategories.map(sub => sub.name).join(' | ')
+                                            : 'אין'
+                                    }
+                                </p>
+                                <p className="text-sm text-gray-600 mb-1">
+                                    **שדות וריאנט (חובה):** {
+                                        Array.isArray(category.variantFields) && category.variantFields.length > 0
+                                            ? category.variantFields.join(', ')
+                                            : 'אין'
+                                    }
                                 </p>
                             </div>
                         ))}

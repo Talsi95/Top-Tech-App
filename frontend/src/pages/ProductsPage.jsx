@@ -3,7 +3,12 @@ import { useSearchParams, Link } from 'react-router-dom';
 import axios from 'axios';
 import ProductCard from '../components/ProductCard';
 import FiltersSidebar from '../components/FiltersSidebar';
+import Loader from '../components/Loader';
 
+/**
+ * ProductsPage Component.
+ * Displays a list of products with advanced filtering and category selection capabilities.
+ */
 const ProductsPage = () => {
     const [searchParams, setSearchParams] = useSearchParams();
     const [products, setProducts] = useState([]);
@@ -87,6 +92,11 @@ const ProductsPage = () => {
         fetchProducts();
     }, [searchParams, isLoadingCategories]);
 
+    /**
+     * Updates search parameters based on filter changes.
+     * @param {string} filterKey - The key of the filter to change (e.g., 'color').
+     * @param {string} filterValue - The value to set for the filter.
+     */
     const handleFilterChange = (filterKey, filterValue) => {
         const newSearchParams = new URLSearchParams(searchParams);
         const paramKey = `filter_${filterKey}`;
@@ -101,6 +111,9 @@ const ProductsPage = () => {
         setSearchParams(newSearchParams);
     };
 
+    /**
+     * Clears all active filters and resets to defaults.
+     */
     const handleResetFilters = () => {
         const newSearchParams = new URLSearchParams(searchParams);
 
@@ -116,7 +129,7 @@ const ProductsPage = () => {
         setSearchParams(newSearchParams);
     };
 
-    if (loading) return <div className="text-center mt-10">טוען מוצרים...</div>;
+    if (loading) return <Loader text='טוען מוצרים' />;
     if (error) return <div className="text-center mt-10 text-red-600">שגיאה: {error}</div>;
 
     return (

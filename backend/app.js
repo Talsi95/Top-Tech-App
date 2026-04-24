@@ -1,37 +1,30 @@
+// Entry point for the Express backend application.
 if (process.env.NODE_ENV !== "production") {
     require('dotenv').config();
 }
-const mongoose = require('mongoose');
 const express = require('express');
-const app = express();
 const path = require('path');
-const cors = require('cors');
+const app = express();
 const API_PREFIX = '/api';
 const errorHandler = require('./middleware/errorHandler');
+const connectDB = require('./config/db');
+const corsMiddleware = require('./middleware/corsMiddleware');
+const serviceAccount = require('./serviceAccountKey.json');
+const admin = require('firebase-admin');
 
+// Initialize database connection.
+connectDB();
+
+// Setup CORS for development environment.
 if (process.env.NODE_ENV === 'development') {
-    const allowedOrigins = [
-        'http://localhost:5001',
-        'http://localhost:5173',
-        'http://localhost',
-        'http://127.0.0.1'
-    ];
-    app.use(cors({
-        origin: function (origin, callback) {
-            if (!origin || allowedOrigins.includes(origin)) {
-                callback(null, true);
-            } else {
-                console.log("CORS blocked from origin: " + origin);
-                callback(new Error('Not allowed by CORS'));
-            }
-        },
-        credentials: true
-    }));
+    app.use(corsMiddleware);
 }
 
+// Request parsing middleware.
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
+// API Cache Control (no-cache by default for API routes).
 app.use(API_PREFIX, (req, res, next) => {
     res.set('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
     res.set('Pragma', 'no-cache');
@@ -39,6 +32,14 @@ app.use(API_PREFIX, (req, res, next) => {
     next();
 });
 
+if (!admin.apps.length) {
+    admin.initializeApp({
+        credential: admin.credential.cert(serviceAccount)
+    });
+    console.log("Firebase Admin Initialized Successfully");
+}
+
+// Import and use API routes.
 const productRoutes = require('./routes/products');
 const userRoutes = require('./routes/users');
 const guestRoutes = require('./routes/guestRoutes')
@@ -53,19 +54,15 @@ app.use('/api/cart', cartRoutes);
 app.use('/api/orders', orderRoutes);
 app.use('/api/categories', categoryRoutes);
 
+// Static file hosting for the frontend production build.
 app.use(express.static(path.join(__dirname, 'dist')));
 
+// SPA fallback: redirect non-API requests to the frontend index.html.
 app.get(/^\/(?!api).*/, (req, res) => {
     res.sendFile(path.join(__dirname, 'dist/index.html'));
 });
 
 app.use(errorHandler);
-
-mongoose.connect(process.env.MONGO_URI, {
-
-})
-    .then(() => console.log('MongoDB connected'))
-    .catch(err => console.error(err));
 
 app.listen(5000, '0.0.0.0', () => {
     console.log('Server running on port 5000');

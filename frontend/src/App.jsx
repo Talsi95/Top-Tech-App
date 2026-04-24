@@ -1,8 +1,9 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useCallback } from 'react';
 import { Routes, Route, useNavigate, useSearchParams } from 'react-router-dom';
 import ProductFormPage from './pages/ProductFormPage';
 import AdminDashboard from './pages/AdminDashboard';
 import UserArea from './pages/UserArea';
+import ProfileEditPage from './pages/ProfileEditPage';
 import HomePage from './pages/HomePage';
 import CartDrawer from './components/CartDrawer';
 import Notification from './components/Notification';
@@ -19,156 +20,77 @@ import ResetPassword from './pages/ResetPassword';
 import GuestCheckoutPage from './pages/GuestCheckoutPage';
 import OrderConfirmationPage from './pages/OrderConfirmationPage';
 import UpdateVariantForm from './components/UpdateVariantForm';
+import Loader from './components/Loader';
 import { useAuth } from './AuthContext';
-import axios from 'axios';
+
+// Hooks
+import useProducts from './hooks/useProducts';
+import useCart from './hooks/useCart';
+import useAdminOrders from './hooks/useAdminOrders';
+import useSearch from './hooks/useSearch';
 
 
+/**
+ * Main Application Component.
+ * Sets up routing, layout, and top-level state for notifications and drawers.
+ */
 const App = () => {
-  const [products, setProducts] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
-  const [cartItems, setCartItems] = useState([]);
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
-  const [searchQuery, setSearchQuery] = useState('');
-  const [searchResults, setSearchResults] = useState([]);
-  const [isSearchDrawerOpen, setIsSearchDrawerOpen] = useState(false);
-  const [newOrders, setNewOrders] = useState([]);
   const [notification, setNotification] = useState({ message: '', type: '' });
   const [searchParams] = useSearchParams();
-  const { user, isAuthenticated, isAdmin, logout, getToken } = useAuth();
+  const { isAuthenticated, isAdmin, logout, getToken } = useAuth();
   const navigate = useNavigate();
 
-  const handleSearchChange = useCallback((e) => {
-    const query = e.target.value;
-    setSearchQuery(query);
-    const filtered = products.filter(product =>
-      product.name.toLowerCase().includes(query.toLowerCase())
-    );
-    setSearchResults(filtered);
-  }, [products]);
-
-  const toggleSearchDrawer = useCallback(() => {
-    setIsSearchDrawerOpen(prev => {
-      if (!prev) {
-        setSearchQuery('');
-        setSearchResults([]);
-      }
-      return !prev;
-    });
-  }, []);
-
+  /**
+   * Displays a global notification.
+   * @param {string} message - The message to show.
+   * @param {string} type - The type of notification (e.g., 'success', 'error').
+   */
   const showNotification = (message, type) => {
     setNotification({ message, type });
   };
 
+  /**
+   * Toggles the shopping cart drawer.
+   */
   const toggleCartDrawer = useCallback(() => {
     setIsDrawerOpen(prev => !prev);
   }, []);
 
-  const fetchProducts = useCallback(async () => {
-    setLoading(true);
-    setError(null);
-    try {
-      const url = `${__API_URL__}/products?${searchParams.toString()}`;
+  const {
+    products,
+    loading,
+    error,
+    handleDeleteProduct
+  } = useProducts(searchParams);
 
-      const response = await axios.get(url);
+  const {
+    cartItems,
+    handleAddToCart,
+    handleUpdateQuantity,
+    handleRemoveFromCart,
+    handleCreateOrder,
+    cartItemsCount,
+    totalPrice,
+    setCartItems
+  } = useCart(isAuthenticated, getToken, showNotification);
 
-      setProducts(response.data.products);
+  const {
+    newOrders,
+    markOrderAsSeen
+  } = useAdminOrders(isAdmin, isAuthenticated, getToken);
 
-    } catch (err) {
-      console.error("Failed to fetch products:", err);
-      setError("Failed to load products. Please try again later.");
-    } finally {
-      setLoading(false);
-    }
-  }, [searchParams]);
+  const {
+    searchQuery,
+    searchResults,
+    isSearchDrawerOpen,
+    handleSearchChange,
+    toggleSearchDrawer
+  } = useSearch(products);
 
-  useEffect(() => {
-    fetchProducts();
-  }, [fetchProducts]);
-
-  const saveCart = useCallback(async (currentCart) => {
-    localStorage.setItem('cartItems', JSON.stringify(currentCart)); try {
-      const token = getToken();
-      if (!token) {
-        return;
-      }
-
-      const simplifiedCart = currentCart.map(item => ({
-        product: item.product._id,
-        variant: item.variant ? item.variant._id : null,
-        quantity: item.quantity
-      }));
-
-      await axios.post(`${__API_URL__}/cart`,
-        { cartItems: simplifiedCart },
-        {
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${token}`
-          }
-        }
-      );
-    } catch (err) {
-      console.error("Failed to save cart:", err.response ? err.response.data : err.message);
-      throw new Error('Failed to save cart on server');
-    }
-  }, [getToken]);
-
-  const loadCart = useCallback(async () => {
-    const storedCart = localStorage.getItem('cartItems');
-    let localCart = [];
-    if (storedCart) {
-      try {
-        localCart = JSON.parse(storedCart);
-      } catch (e) {
-        console.error("Failed to parse cart data from localStorage", e);
-        localStorage.removeItem('cartItems');
-      }
-    }
-    if (!isAuthenticated) {
-      setCartItems(localCart);
-      return;
-    }
-    try {
-      const token = getToken();
-      if (!token) {
-        setCartItems(localCart);
-        console.error('User authenticated but token missing/expired.');
-        return;
-      }
-      const response = await axios.get(`${__API_URL__}/cart`, {
-        headers: {
-          'Authorization': `Bearer ${token}`
-        }
-      });
-      const dbCart = response.data;
-      if (localCart.length > 0) {
-
-        if (dbCart.length === 0 || dbCart.length < localCart.length) {
-
-          await saveCart(localCart);
-
-          setCartItems(localCart);
-
-        } else {
-          setCartItems(dbCart);
-          localStorage.removeItem('cartItems');
-        }
-
-      } else {
-        setCartItems(dbCart);
-      }
-    } catch (err) {
-      console.error("Failed to load cart from DB:", err.response ? err.response.data : err.message);
-      setCartItems(localCart);
-    }
-  }, [isAuthenticated, getToken, saveCart]);
-
-  useEffect(() => {
-    loadCart();
-  }, [loadCart]);
-
+  /**
+   * Handles user logout, clearing state and redirecting to the home page.
+   */
   const handleLogout = () => {
     logout();
     setCartItems([]);
@@ -176,181 +98,8 @@ const App = () => {
     showNotification('להתראות', 'success');
   };
 
-  const handleAddToCart = useCallback(async (product, variant) => {
-    if (!product || !variant) {
-      showNotification('שגיאה: לא נבחרה וריאציה למוצר', 'error');
-      return;
-    }
-
-    setCartItems(prevItems => {
-      const isItemInCart = prevItems.find(
-        (item) => item.product._id === product._id && item.variant?._id === variant._id
-      );
-
-      let newCart;
-      if (isItemInCart) {
-        newCart = prevItems.map((item) =>
-          item.product._id === product._id && item.variant?._id === variant._id
-            ? { ...item, quantity: item.quantity + 1 }
-            : item
-        );
-      } else {
-        newCart = [...prevItems, { product, variant, quantity: 1 }];
-      }
-
-      saveCart(newCart);
-      return newCart;
-    });
-
-    showNotification(`${product.name} נוסף לעגלה`, 'success');
-  }, [saveCart, showNotification]);
-
-  const handleUpdateQuantity = useCallback(async (productId, variantId, action) => {
-    setCartItems(prevItems => {
-      const updatedCart = prevItems
-        .map((item) => {
-          if (item.product._id === productId && item.variant._id === variantId) {
-            const newQuantity = action === 'increase' ? item.quantity + 1 : item.quantity - 1;
-            return newQuantity > 0 ? { ...item, quantity: newQuantity } : null;
-          }
-          return item;
-        })
-        .filter(Boolean);
-
-      saveCart(updatedCart);
-      return updatedCart;
-    });
-    showNotification('עגלה עודכנה בהצלחה', 'success');
-  }, [saveCart, showNotification]);
-
-  const handleRemoveFromCart = useCallback(async (productId, variantId) => {
-    setCartItems(prevItems => {
-      const updatedCart = prevItems.filter(
-        (item) => !(item.product._id === productId && item.variant._id === variantId)
-      );
-      saveCart(updatedCart);
-      return updatedCart;
-    });
-    showNotification('מוצר הוסר מהעגלה', 'success');
-  }, [saveCart, showNotification]);
-
-  const handleDeleteProduct = useCallback(async (id) => {
-    if (window.confirm('Are you sure you want to delete this product?')) {
-      try {
-        const token = getToken();
-        await axios.delete(`${__API_URL__}/products/${id}`, {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        });
-
-        setProducts(prevProducts => prevProducts.filter(product => product._id !== id));
-        showNotification('מוצר נמחק בהצלחה', 'success');
-      } catch (err) {
-        const errorMessage = err.response ? err.response.data.message : err.message;
-        showNotification(errorMessage, 'error');
-      }
-    }
-  }, [getToken, showNotification]);
-
-
-  const handleCreateOrder = async (orderData, authToken) => {
-
-    const tokenToUse = authToken || getToken();
-
-    if (!tokenToUse) {
-      const errorMessage = "משתמש לא מזוהה. נדרש טוקן אורח או משתמש רשום.";
-      showNotification(`שגיאה: ${errorMessage}`, 'error');
-      return { success: false, message: errorMessage };
-    }
-
-    try {
-      const response = await axios.post(`${__API_URL__}/orders`, orderData, {
-        headers: {
-          Authorization: `Bearer ${tokenToUse}`,
-        },
-      });
-      const data = response.data;
-      setCartItems([]);
-      await saveCart([]);
-      return { success: true, orderId: data._id };
-
-    } catch (error) {
-      const errorMessage = error.response ? error.response.data.message : error.message;
-      showNotification(`שגיאה: ${errorMessage}`, 'error');
-      return { success: false, message: errorMessage };
-    }
-  };
-
-  const fetchNewOrders = useCallback(async () => {
-    if (!isAuthenticated || !isAdmin) return;
-
-    const token = getToken();
-    if (!token) {
-      console.error('No token available for admin notification API call.');
-      return;
-    }
-
-    try {
-      const config = {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      };
-      const { data } = await axios.get(`${__API_URL__}/orders/new`, config);
-      setNewOrders(data);
-    } catch (error) {
-      console.error('Error fetching new orders:', error.response ? error.response.data : error.message);
-    }
-  }, [isAuthenticated, isAdmin, getToken]);
-
-  const markOrderAsSeen = useCallback(async (orderId) => {
-    if (!isAuthenticated || !isAdmin) return;
-
-    const token = getToken();
-    if (!token) {
-      console.error('No token available for marking order as seen.');
-      return;
-    }
-
-    try {
-      const config = {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      };
-      await axios.patch(`${__API_URL__}/orders/${orderId}/seen`, {}, config);
-
-      setNewOrders(prevOrders => prevOrders.filter(order => order._id !== orderId));
-
-    } catch (error) {
-      console.error('Error marking order as seen:', error.response ? error.response.data : error.message);
-    }
-  }, [isAuthenticated, isAdmin, getToken]);
-
-  useEffect(() => {
-    if (isAdmin) {
-      fetchNewOrders();
-    }
-  }, [isAdmin, fetchNewOrders]);
-
-  const cartItemsCount = cartItems.reduce((total, item) => total + item.quantity, 0);
-
-  const totalPrice = cartItems.reduce((total, item) => {
-    const regularPrice = item.variant?.price ?? item.product?.price ?? 0;
-    const salePrice = item.variant?.salePrice;
-    const isOnSale = item.variant?.isOnSale;
-
-    const priceToUse =
-      isOnSale && salePrice && salePrice > 0
-        ? salePrice
-        : regularPrice;
-
-    return total + (priceToUse * item.quantity);
-  }, 0);
-
   if (loading) {
-    return <div className="text-center text-xl font-semibold">טוען מוצרים...</div>;
+    return <Loader subtext='אנא המתן' />;
   }
 
   if (error) {
@@ -394,11 +143,12 @@ const App = () => {
               <HomePage
                 products={products}
                 handleAddToCart={handleAddToCart}
-                handleDeleteProduct={handleDeleteProduct}
+                handleDeleteProduct={(id) => handleDeleteProduct(id, getToken, showNotification)}
                 showNotification={showNotification}
               />
             } />
             <Route path="/profile" element={<UserArea />} />
+            <Route path="/profile/edit" element={<ProfileEditPage showNotification={showNotification} />} />
             <Route path="/admin" element={<AdminDashboard showNotification={showNotification} />} />
             <Route path="/product-form/:id" element={<ProductFormPage showNotification={showNotification} />} />
             <Route path="/product-form" element={<ProductFormPage showNotification={showNotification} />} />

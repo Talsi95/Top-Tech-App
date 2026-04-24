@@ -1,5 +1,18 @@
 import { Link, useSearchParams } from 'react-router-dom';
 
+/**
+ * FiltersSidebar Component.
+ * Provides a UI for filtering products by subcategory and variant-specific attributes (e.g., color, storage).
+ * 
+ * @param {Object} props - Component props.
+ * @param {string} props.selectedCategoryName - The name of the currently selected main category.
+ * @param {string} props.selectedSubcategoryName - The name of the currently selected subcategory.
+ * @param {Object} props.relevantCategory - Metadata for the selected category, including available variant fields.
+ * @param {Object} props.activeFilters - Currently applied variant filters.
+ * @param {Object} props.availableFilters - Map of available filter values for each field.
+ * @param {Function} props.onFilterChange - Callback for when a filter selection changes.
+ * @param {Array} props.dynamicSubcategories - List of unique subcategories available for the current selection.
+ */
 const FiltersSidebar = ({
     selectedCategoryName,
     selectedSubcategoryName,

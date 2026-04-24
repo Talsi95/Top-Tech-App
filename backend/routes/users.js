@@ -3,7 +3,7 @@ const router = express.Router();
 const { body } = require('express-validator');
 const { protect, admin } = require('../middleware/authMiddleware');
 const asyncHandler = require('../middleware/asyncHandler');
-const { register, login, forgotPassword, resetPassword, profile, getAllUsers } = require('../controllers/userController');
+const { register, login, forgotPassword, resetPassword, profile, getAllUsers, updateProfile } = require('../controllers/userController');
 
 const registerValidationRules = [
     body('username')
@@ -15,6 +15,10 @@ const registerValidationRules = [
     body('password')
         .isLength({ min: 6 })
         .withMessage('הסיסמה חייבת להיות באורך 6 תווים לפחות'),
+    body('phone')
+        .optional({ checkFalsy: true })
+        .isLength({ min: 9, max: 15 })
+        .withMessage('מספר טלפון חייב להיות בין 9 ל-15 ספרות'),
 ];
 
 const loginValidationRules = [
@@ -31,6 +35,8 @@ router.post('/forgot-password', asyncHandler(forgotPassword));
 router.post('/reset-password', asyncHandler(resetPassword));
 
 router.get('/profile', protect, asyncHandler(profile));
+
+router.put('/profile', protect, asyncHandler(updateProfile));
 
 router.get('/', protect, admin, asyncHandler(getAllUsers));
 

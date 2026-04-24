@@ -2,6 +2,14 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { FaBell } from 'react-icons/fa';
 
+/**
+ * AdminNotifications Component.
+ * A dropdown menu for administrators to view and respond to new order notifications.
+ * 
+ * @param {Object} props - Component props.
+ * @param {Array} props.newOrders - List of new orders for display.
+ * @param {Function} props.onMarkOrderAsSeen - Callback to mark an order as acknowledged.
+ */
 const AdminNotifications = ({ newOrders = [], onMarkOrderAsSeen }) => {
     const [isDropdownOpen, setIsDropdownOpen] = useState(false);
     const navigate = useNavigate();

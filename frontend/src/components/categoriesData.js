@@ -1,3 +1,6 @@
+/**
+ * Static configuration for product categories and their relevant variant fields.
+ */
 export const categories = [
     {
         name: 'מכשירים ניידים',
@@ -21,6 +24,11 @@ export const categories = [
     }
 ];
 
+/**
+ * Transforms the categories array into an object mapping category names to their required variant fields.
+ * @param {Array} categoriesArray - The array of category objects.
+ * @returns {Object} A map for quick lookup of variant fields by category name.
+ */
 export const getAdminVariantFields = (categoriesArray) => {
     return categoriesArray.reduce((acc, current) => {
         acc[current.name] = current.variantFields;

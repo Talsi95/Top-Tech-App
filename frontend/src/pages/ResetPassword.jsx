@@ -2,6 +2,10 @@ import { useState, useEffect } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import axios from 'axios';
 
+/**
+ * ResetPassword Component.
+ * Provides a form for users to enter a new password after verifying a reset token.
+ */
 const ResetPassword = () => {
     const [searchParams] = useSearchParams();
     const navigate = useNavigate();
@@ -20,6 +24,10 @@ const ResetPassword = () => {
         }
     }, [searchParams]);
 
+    /**
+     * Handles the password reset form submission.
+     * @param {Event} e - The form submission event.
+     */
     const handleSubmit = async (e) => {
         e.preventDefault();
         setMessage('');

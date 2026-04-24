@@ -3,6 +3,10 @@ import { useAuth } from '../AuthContext';
 import Notification from './Notification';
 import axios from 'axios';
 
+/**
+ * UserList Component.
+ * An administrative view for listing all registered users in the system.
+ */
 const UserList = () => {
     const [users, setUsers] = useState([]);
     const [loading, setLoading] = useState(true);

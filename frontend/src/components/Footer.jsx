@@ -1,3 +1,7 @@
+/**
+ * Footer Component.
+ * The standard page footer containing copyright information and branding.
+ */
 const Footer = () => {
     return (
         <footer className="bg-gray-800 p-4 text-white text-center mt-auto">

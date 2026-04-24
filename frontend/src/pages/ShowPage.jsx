@@ -3,7 +3,15 @@ import { useParams } from 'react-router-dom';
 import axios from 'axios';
 import { FaCartPlus, FaPlus, FaSave, FaTrashAlt } from 'react-icons/fa';
 import { useAuth } from '../AuthContext';
+import Loader from '../components/Loader';
 
+/**
+ * ShowPage Component.
+ * Displays detailed information about a single product, including images, videos, specs, and variants.
+ * 
+ * @param {Object} props - Component props.
+ * @param {Function} props.onAddToCart - Function to add the selected product variant to the cart.
+ */
 const ShowPage = ({ onAddToCart }) => {
     const { id } = useParams();
     const { isAdmin, getToken } = useAuth();
@@ -26,6 +34,9 @@ const ShowPage = ({ onAddToCart }) => {
     const [isSaving, setIsSaving] = useState(false);
     const [isAddingDescription, setIsAddingDescription] = useState(false);
 
+    /**
+     * Fetches detailed product data based on the ID from the URL.
+     */
     useEffect(() => {
         const fetchProduct = async () => {
             try {
@@ -101,6 +112,10 @@ const ShowPage = ({ onAddToCart }) => {
 
     const isOutOfStock = selectedVariant?.stock === 0;
 
+    /**
+     * Saves new content (images, videos, specs, description) to the product.
+     * Restricted to admin users.
+     */
     const handleSaveNewContent = async () => {
         if (!isAdmin || isSaving) return;
 
@@ -186,7 +201,7 @@ const ShowPage = ({ onAddToCart }) => {
         setNewImages(updatedImages);
     };
 
-    if (loading) return <div className="text-center text-xl font-semibold mt-10">טוען מוצר...</div>;
+    if (loading) return <Loader text="טוען מוצר" />;
     if (error) return <div className="text-center text-red-500 text-xl font-semibold mt-10">{error}</div>;
 
     const showVariantError = product?.variants?.length > 1 && !selectedVariant;

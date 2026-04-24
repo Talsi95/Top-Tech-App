@@ -3,6 +3,13 @@ import { useParams, useLocation } from 'react-router-dom';
 import axios from 'axios';
 import { CheckCircle, MapPin, Receipt, Loader } from 'lucide-react';
 
+/**
+ * OrderConfirmationPage Component.
+ * Displays a success message and detailed receipt information after an order is placed.
+ * 
+ * @param {Object} props - Component props.
+ * @param {Function} props.showNotification - Function to display a global notification.
+ */
 const OrderConfirmationPage = ({ showNotification }) => {
     const { orderId } = useParams();
     const location = useLocation();
@@ -13,6 +20,10 @@ const OrderConfirmationPage = ({ showNotification }) => {
 
     const guestToken = location.state?.guestToken || localStorage.getItem('guestTokenForOrder');
 
+    /**
+     * Fetches details for a specific order by ID.
+     * @param {string} token - Authorization token (user or guest).
+     */
     const fetchOrder = async (token) => {
         if (!token) {
             setError('טוקן אימות חסר. לא ניתן לאחזר את ההזמנה.');

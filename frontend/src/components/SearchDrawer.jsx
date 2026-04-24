@@ -3,6 +3,14 @@ import { Link } from 'react-router-dom';
 import { FaTimes, FaSearch } from 'react-icons/fa';
 import axios from 'axios';
 
+/**
+ * SearchDrawer Component.
+ * A global search interface that displays product results as the user types.
+ * 
+ * @param {Object} props - Component props.
+ * @param {boolean} props.isOpen - Whether the search drawer is visible.
+ * @param {Function} props.onClose - Callback to close the search drawer.
+ */
 const SearchDrawer = ({ isOpen, onClose }) => {
     const [searchQuery, setSearchQuery] = useState('');
     const [searchResults, setSearchResults] = useState([]);
@@ -16,6 +24,10 @@ const SearchDrawer = ({ isOpen, onClose }) => {
         };
     };
 
+    /**
+     * Fetches product search results from the backend based on the query.
+     * @param {string} query - The search term.
+     */
     const fetchSearchResults = async (query) => {
         if (query.length > 2) {
             try {

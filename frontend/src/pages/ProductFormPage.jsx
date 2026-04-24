@@ -5,6 +5,13 @@ import { useAuth } from '../AuthContext';
 import Notification from '../components/Notification';
 import axios from 'axios';
 
+/**
+ * ProductFormPage Component.
+ * An administrative page for creating new products or editing existing ones.
+ * 
+ * @param {Object} props - Component props.
+ * @param {Function} props.showNotification - Function to display a global notification.
+ */
 const ProductFormPage = ({ showNotification }) => {
     const { id } = useParams();
     const navigate = useNavigate();
@@ -17,6 +24,9 @@ const ProductFormPage = ({ showNotification }) => {
     const [adminVariantFields, setAdminVariantFields] = useState({});
     const [isLoadingCategories, setIsLoadingCategories] = useState(true);
 
+    /**
+     * Fetches descriptive metadata for categories to populate form fields.
+     */
     useEffect(() => {
         const fetchCategoriesData = async () => {
             if (!isAdmin) return;

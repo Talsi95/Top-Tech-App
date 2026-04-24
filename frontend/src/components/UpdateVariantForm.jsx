@@ -3,6 +3,10 @@ import axios from 'axios';
 import { useAuth } from '../AuthContext';
 import { useParams } from 'react-router-dom';
 
+/**
+ * UpdateVariantForm Component.
+ * An administrative interface for quickly updating the stock levels of a product's variants.
+ */
 const UpdateVariantForm = () => {
     const { id: productId } = useParams();
     const { getToken } = useAuth();

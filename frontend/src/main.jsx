@@ -5,6 +5,10 @@ import './index.css'
 import App from './App.jsx'
 import { AuthProvider } from './AuthContext.jsx'
 
+/**
+ * Application Entry Point.
+ * Renders the React application, wraps it with authentication and routing providers.
+ */
 createRoot(document.getElementById('root')).render(
   <StrictMode>
     <AuthProvider>

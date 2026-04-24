@@ -2,6 +2,18 @@ import { FaTimes, FaRegTrashAlt } from 'react-icons/fa';
 import { useAuth } from '../AuthContext';
 import { useNavigate } from 'react-router-dom';
 
+/**
+ * CartDrawer Component.
+ * A sliding sidebar displaying the current shopping cart items, total price, and checkout CTA.
+ * 
+ * @param {Object} props - Component props.
+ * @param {boolean} props.isOpen - Whether the drawer is currently visible.
+ * @param {Function} props.onClose - Callback to close the drawer.
+ * @param {Array} props.cartItems - Current items in the cart.
+ * @param {Function} props.onRemoveFromCart - Callback to remove an item from the cart.
+ * @param {number} props.totalPrice - The total price of all items in the cart.
+ * @param {Function} props.onUpdateQuantity - Callback to change the quantity of a cart item.
+ */
 const CartDrawer = ({ isOpen, onClose, cartItems, onRemoveFromCart, totalPrice, onUpdateQuantity }) => {
     const drawerClasses = `fixed top-0 right-0 h-full w-80 bg-white shadow-lg transform transition-transform duration-300 ease-in-out z-50 ${isOpen ? 'translate-x-0' : 'translate-x-full'
         }`;
@@ -11,12 +23,24 @@ const CartDrawer = ({ isOpen, onClose, cartItems, onRemoveFromCart, totalPrice, 
     const handleCheckoutClick = () => {
         onClose();
 
-        if (isAuthenticated) {
+        // שליפת הטוקנים מה-Storage ליתר ביטחון
+        const token = localStorage.getItem('token'); // טוקן של משתמש רשום
+        const guestToken = localStorage.getItem('guestToken'); // טוקן של אורח
+
+        // חילוק לוגי ברור:
+        if (isAuthenticated || token) {
+            // מקרה 1: משתמש רשום מחובר
+            console.log("Navigating to checkout as Registered User");
+            navigate('/checkout');
+        } else if (guestToken) {
+            // מקרה 2: אורח שכבר עבר אימות OTP
+            console.log("Navigating to checkout as Authenticated Guest");
             navigate('/checkout');
         } else {
+            // מקרה 3: אף אחד מהם - שלח לאימות (אורח או התחברות)
+            console.log("No auth found, navigating to Guest Checkout Page");
             navigate('/guest-checkout');
         }
-
     };
 
     return (

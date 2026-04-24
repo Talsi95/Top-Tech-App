@@ -1,11 +1,19 @@
 import { useState } from 'react';
 import axios from 'axios';
 
+/**
+ * ForgotPassword Component.
+ * Allows users to request a password reset link by providing their email address.
+ */
 const ForgotPassword = () => {
     const [email, setEmail] = useState('');
     const [message, setMessage] = useState('');
     const [error, setError] = useState('');
 
+    /**
+     * Handles the password reset request submission.
+     * @param {Event} e - The form submission event.
+     */
     const handleSubmit = async (e) => {
         e.preventDefault();
         setMessage('');

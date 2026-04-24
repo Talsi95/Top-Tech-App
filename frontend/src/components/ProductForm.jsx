@@ -3,6 +3,18 @@ import { useAuth } from '../AuthContext';
 import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
 
+/**
+ * ProductForm Component.
+ * A comprehensive form for creating or updating products, including management of multiple variants.
+ * 
+ * @param {Object} props - Component props.
+ * @param {Function} props.showNotification - Function to display a global notification.
+ * @param {Object} props.existingProduct - Data of the product being edited (null for new products).
+ * @param {Function} props.onUpdateSuccess - Callback for successful product update.
+ * @param {Object} props.adminCategories - Map of main categories to their subcategories.
+ * @param {Object} props.adminVariantFields - Map of categories to their required variant fields.
+ * @param {boolean} props.isLoadingCategories - Whether category data is still being fetched.
+ */
 const ProductForm = ({ showNotification, existingProduct, onUpdateSuccess, adminCategories, adminVariantFields, isLoadingCategories }) => {
 
     const safeAdminCategories = adminCategories || {};
@@ -115,6 +127,10 @@ const ProductForm = ({ showNotification, existingProduct, onUpdateSuccess, admin
         setFormData({ ...formData, variants: newVariants });
     };
 
+    /**
+     * Validates the product form data, including required category-specific variant fields.
+     * @returns {boolean} True if the form is valid, false otherwise.
+     */
     const validateForm = () => {
         const errors = {};
         if (!formData.name.trim()) errors.name = 'שם מוצר נדרש';
