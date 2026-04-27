@@ -40,10 +40,10 @@ const CheckoutForm = ({ cartItems, showNotification, onOrderComplete, guestToken
         fullName: !isGuest ? user?.username : '',
         street: '',
         city: '',
-        zipCode: '',
         phone: user?.phone || '',
         email: user?.email || '',
-        paymentMethod: ''
+        paymentMethod: '',
+        shippingMethod: 'pickup-business'
     });
 
     const [isProcessing, setIsProcessing] = useState(false);
@@ -98,7 +98,20 @@ const CheckoutForm = ({ cartItems, showNotification, onOrderComplete, guestToken
         }, 0);
     };
 
-    const totalToDisplay = calculateTotal();
+    const getShippingCost = () => {
+        switch (formData.shippingMethod) {
+            case 'home-delivery':
+                return 29;
+            case 'pickup-point':
+                return 15;
+            default:
+                return 0;
+        }
+    };
+
+    const shippingCost = getShippingCost();
+    const subtotal = calculateTotal();
+    const totalToDisplay = subtotal + shippingCost;
 
     const handleChange = (e) => {
         const { name, value } = e.target;
@@ -157,10 +170,11 @@ const CheckoutForm = ({ cartItems, showNotification, onOrderComplete, guestToken
                 fullName: formData.fullName,
                 street: formData.street,
                 city: formData.city,
-                zipCode: formData.zipCode,
                 email: formData.email,
                 phone: formData.phone,
             },
+            shippingMethod: formData.shippingMethod,
+            shippingPrice: shippingCost,
             paymentMethod: formData.paymentMethod,
             totalPrice: totalPrice,
             paymentToken: paymentToken,
@@ -174,20 +188,12 @@ const CheckoutForm = ({ cartItems, showNotification, onOrderComplete, guestToken
             const isGuest = !!guestToken;
             const orderId = result.orderId;
 
-            if (isGuest) {
-                localStorage.removeItem('guestToken');
-                localStorage.removeItem('guestEmail');
-                localStorage.removeItem('guestPhone');
-            }
 
+            navigate(`/order-confirmation/${orderId}`, {
+                state: { guestToken: authToken }
+            });
             if (isGuest) {
-                navigate(`/order-confirmation/${orderId}`, {
-                    state: {
-                        guestToken: authToken
-                    }
-                });
-            } else {
-                navigate('/profile');
+                logout();
             }
 
         } else {
@@ -197,7 +203,7 @@ const CheckoutForm = ({ cartItems, showNotification, onOrderComplete, guestToken
         setIsProcessing(false);
     };
 
-    const isFormIncomplete = !formData.fullName || !formData.street || !formData.city || !formData.zipCode || !formData.phone || !formData.email || !formData.paymentMethod;
+    const isFormIncomplete = !formData.fullName || !formData.street || !formData.city || !formData.phone || !formData.email || !formData.paymentMethod || !formData.shippingMethod;
 
     const isDisabled = isFormIncomplete || isProcessing || (formData.paymentMethod === 'credit-card' && !stripe);
 
@@ -219,8 +225,21 @@ const CheckoutForm = ({ cartItems, showNotification, onOrderComplete, guestToken
                     <input className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight" type="text" name="city" value={formData.city} onChange={handleChange} required />
                 </div>
                 <div className="mb-6">
-                    <label className="block text-gray-700 text-sm font-bold mb-2">מיקוד</label>
-                    <input className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight" type="tel" name="zipCode" value={formData.zipCode} onChange={handleChange} required />
+                    <label className="block text-gray-700 text-sm font-bold mb-2">אפשרויות משלוח</label>
+                    <div className="space-y-2 border p-3 rounded-md bg-gray-50">
+                        <label className="flex items-center space-x-3 space-x-reverse cursor-pointer">
+                            <input type="radio" name="shippingMethod" value="pickup-business" checked={formData.shippingMethod === 'pickup-business'} onChange={handleChange} className="form-radio h-4 w-4 text-green-600" />
+                            <span className="text-gray-700 mr-2">איסוף מבית העסק - חינם</span>
+                        </label>
+                        <label className="flex items-center space-x-3 space-x-reverse cursor-pointer">
+                            <input type="radio" name="shippingMethod" value="home-delivery" checked={formData.shippingMethod === 'home-delivery'} onChange={handleChange} className="form-radio h-4 w-4 text-green-600" />
+                            <span className="text-gray-700 mr-2">משלוח עד בית הלקוח - ₪29</span>
+                        </label>
+                        <label className="flex items-center space-x-3 space-x-reverse cursor-pointer">
+                            <input type="radio" name="shippingMethod" value="pickup-point" checked={formData.shippingMethod === 'pickup-point'} onChange={handleChange} className="form-radio h-4 w-4 text-green-600" />
+                            <span className="text-gray-700 mr-2">משלוח לנק׳ איסוף - ₪15</span>
+                        </label>
+                    </div>
                 </div>
                 <div className="mb-6">
                     <label className="block text-gray-700 text-sm font-bold mb-2">מספר טלפון</label>
@@ -252,9 +271,19 @@ const CheckoutForm = ({ cartItems, showNotification, onOrderComplete, guestToken
                     <div className="text-red-500 text-sm mb-4 text-center">{paymentError}</div>
                 )}
 
-                <div className="flex justify-between items-center bg-gray-100 p-4 rounded-md mb-6">
-                    <h3 className="text-xl font-bold text-gray-800">סה״כ: </h3>
-                    <p className="text-xl font-bold text-green-600">₪{totalToDisplay.toFixed(2)}</p>
+                <div className="bg-gray-100 p-4 rounded-md mb-6">
+                    <div className="flex justify-between items-center mb-2">
+                        <span className="text-gray-600">סיכום ביניים:</span>
+                        <span className="font-semibold">₪{subtotal.toFixed(2)}</span>
+                    </div>
+                    <div className="flex justify-between items-center mb-2 border-b pb-2">
+                        <span className="text-gray-600">דמי משלוח:</span>
+                        <span className="font-semibold">₪{shippingCost.toFixed(2)}</span>
+                    </div>
+                    <div className="flex justify-between items-center pt-2">
+                        <h3 className="text-xl font-bold text-gray-800">סה״כ: </h3>
+                        <p className="text-xl font-bold text-green-600">₪{totalToDisplay.toFixed(2)}</p>
+                    </div>
                 </div>
                 <div className="flex items-center justify-center">
                     <button type="submit" disabled={isDisabled}

@@ -1,7 +1,5 @@
 const Order = require('../models/order');
 const Product = require('../models/product');
-const Otp = require('../models/otp');
-const GuestUser = require('../models/guestUser');
 const { sendOrderConfirmationEmail } = require('../services/emailService');
 const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
 
@@ -42,6 +40,8 @@ const createOrder = async (req, res) => {
         paymentMethod,
         totalPrice,
         paymentToken,
+        shippingMethod,
+        shippingPrice,
         otpCode,
         phone
     } = req.body;
@@ -158,6 +158,8 @@ const createOrder = async (req, res) => {
                 email: finalEmail,
                 phone: finalPhone
             },
+            shippingMethod,
+            shippingPrice,
             paymentMethod,
             totalPrice,
             isPaid: isPaid,
@@ -342,10 +344,70 @@ const markOrderAsSeen = async (req, res) => {
     }
 };
 
+/**
+ * Cancels an order if it hasn't been delivered yet.
+ * Rollbacks stock levels for the cancelled items.
+ * @param {Object} req - Express request object.
+ * @param {Object} res - Express response object.
+ */
+const cancelOrder = async (req, res) => {
+    const order = await Order.findById(req.params.id);
+
+    if (order) {
+        // Check if the order belongs to the user
+        const isOwner = req.user._id && order.user && order.user.toString() === req.user._id.toString();
+
+        if (!isOwner) {
+            return res.status(403).json({ message: 'אין הרשאה לבטל הזמנה זו.' });
+        }
+
+        if (order.isDelivered) {
+            return res.status(400).json({ message: 'לא ניתן לבטל הזמנה שכבר נשלחה.' });
+        }
+
+        if (order.isCancelled) {
+            return res.status(400).json({ message: 'ההזמנה כבר בוטלה.' });
+        }
+
+        order.isCancelled = true;
+        order.cancelledAt = Date.now();
+
+        const cancelledOrder = await order.save();
+
+        // Rollback stock levels
+        await rollbackStock(order.orderItems);
+
+        res.json({ message: 'ההזמנה בוטלה בהצלחה', order: cancelledOrder });
+    } else {
+        res.status(404).json({ message: 'הזמנה לא נמצאה' });
+    }
+};
+
+/**
+ * Updates an order status to delivered (admin only).
+ * @param {Object} req - Express request object.
+ * @param {Object} res - Express response object.
+ */
+const updateOrderToDelivered = async (req, res) => {
+    const order = await Order.findById(req.params.id);
+
+    if (order) {
+        order.isDelivered = true;
+        order.deliveredAt = Date.now();
+
+        const updatedOrder = await order.save();
+        res.json(updatedOrder);
+    } else {
+        res.status(404).json({ message: 'הזמנה לא נמצאה' });
+    }
+};
+
 module.exports = {
     createOrder,
     getAllOrders,
     getNewOrders,
     guestOrder,
-    markOrderAsSeen
+    markOrderAsSeen,
+    cancelOrder,
+    updateOrderToDelivered
 };

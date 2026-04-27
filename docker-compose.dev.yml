@@ -26,6 +26,9 @@ services:
       - ./backend/.env
     environment:
       - NODE_ENV=development
+    dns:
+      - 8.8.8.8
+      - 8.8.4.4
 
   nginx:
     image: nginx:1.21-alpine

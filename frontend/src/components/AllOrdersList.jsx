@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { useAuth } from '../AuthContext.jsx';
 import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
+import Loader from '../components/Loader.jsx';
 
 /**
  * AllOrdersList Component.
@@ -42,13 +43,26 @@ const AllOrdersList = ({ showNotification }) => {
         }
     }, [getToken, navigate, showNotification]);
 
+    const handleDeliverOrder = async (orderId) => {
+        try {
+            const token = getToken();
+            await axios.patch(`${__API_URL__}/orders/${orderId}/deliver`, {}, {
+                headers: {
+                    Authorization: `Bearer ${token}`
+                }
+            });
+            showNotification('ההזמנה סומנה כנשלחה', 'success');
+            fetchAllOrders();
+        } catch (err) {
+            showNotification(err.response?.data?.message || 'שגיאה בעדכון ההזמנה', 'error');
+        }
+    };
+
     useEffect(() => {
         fetchAllOrders();
     }, [fetchAllOrders]);
 
-    if (loading) {
-        return <div className="text-center mt-10">טוען הזמנות...</div>;
-    }
+    if (loading) return <Loader text="טוען הזמנות" />;
 
     if (error) {
         return <div className="text-center mt-10 text-red-600">שגיאה: {error}</div>;
@@ -78,9 +92,24 @@ const AllOrdersList = ({ showNotification }) => {
                 <p><strong>תאריך:</strong> {new Date(order.createdAt).toLocaleDateString()}</p>
                 {customerInfo}
                 <p><strong>טלפון:</strong> {order.shippingAddress.phone}</p>
-                <p><strong>כתובת למשלוח:</strong> {order.shippingAddress.street}, {order.shippingAddress.city}, {order.shippingAddress.zipCode}</p>
+                <p><strong>כתובת:</strong> {order.shippingAddress.street}, {order.shippingAddress.city}</p>
+                <p><strong>שיטת משלוח:</strong> {
+                    order.shippingMethod === 'home-delivery' ? 'משלוח עד הבית' :
+                        order.shippingMethod === 'pickup-point' ? 'משלוח לנקודת איסוף' :
+                            order.shippingMethod === 'pickup-business' ? 'איסוף מבית העסק' :
+                                'לא נבחר'
+                }</p>
+                <p><strong>דמי משלוח:</strong> ₪{order.shippingPrice !== undefined ? order.shippingPrice.toFixed(2) : '0.00'}</p>
                 <p><strong>סה״כ לתשלום:</strong> ₪{order.totalPrice.toFixed(2)}</p>
                 <p><strong>סטטוס:</strong> <span className={`font-semibold ${order.isDelivered ? 'text-green-600' : 'text-orange-500'}`}>{order.isDelivered ? 'נשלח' : 'ממתין לטיפול'}</span></p>
+                {!order.isDelivered && !order.isCancelled && (
+                    <button
+                        onClick={() => handleDeliverOrder(order._id)}
+                        className="mt-2 px-4 py-1 bg-green-600 text-white rounded hover:bg-green-700 transition-colors text-sm font-semibold"
+                    >
+                        סמן כנשלח
+                    </button>
+                )}
 
                 <h4 className="font-semibold mt-4 mb-2 border-t pt-2">פריטים:</h4>
                 <ul className="pl-4 mt-2 space-y-4">

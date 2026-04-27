@@ -42,10 +42,20 @@ const orderSchema = new Schema({
     shippingAddress: {
         street: { type: String, required: true },
         city: { type: String, required: true },
-        zipCode: { type: String, required: true },
+        zipCode: { type: String, required: false },
         email: { type: String, required: false },
         phone: { type: String, required: true },
         fullName: { type: String, required: true }
+    },
+    shippingMethod: {
+        type: String,
+        required: true,
+        default: 'pickup-business'
+    },
+    shippingPrice: {
+        type: Number,
+        required: true,
+        default: 0
     },
     paymentMethod: {
         type: String,
@@ -74,6 +84,14 @@ const orderSchema = new Schema({
         type: Boolean,
         required: true,
         default: false
+    },
+    isCancelled: {
+        type: Boolean,
+        required: true,
+        default: false
+    },
+    cancelledAt: {
+        type: Date
     },
     isUnseen: {
         type: Boolean,

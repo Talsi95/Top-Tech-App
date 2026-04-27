@@ -145,6 +145,7 @@ const profile = async (req, res) => {
             return res.json({
                 username: 'אורח',
                 email: guestEmail,
+                phone: req.user.phone,
                 isGuest: true,
                 orders: orders
             });

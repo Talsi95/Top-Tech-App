@@ -76,7 +76,7 @@ const generateOrderPdf = async (orderDetails) => {
     const shippingAddress = orderDetails.shippingAddress || {};
 
 
-    doc.fontSize(24).text(rtlText('טופ טק - חשבונית הזמנה'), { align: 'center' });
+    doc.fontSize(24).text(rtlText('הירקות שלי - חשבונית הזמנה'), { align: 'center' });
     doc.moveDown(1.5);
 
     doc.fontSize(12);
@@ -85,7 +85,15 @@ const generateOrderPdf = async (orderDetails) => {
     doc.text(rtlText(`מספר הזמנה: ${orderDetails._id}`), { align: 'right' });
 
     const addressLine = `${shippingAddress.city || 'לא ידוע'}, ${shippingAddress.street || 'לא ידוע'}`;
-    doc.text(rtlText(`כתובת למשלוח: ${addressLine}`), { align: 'right' });
+    doc.text(rtlText(`כתובת: ${addressLine}`), { align: 'right' });
+
+    const shippingMethods = {
+        'pickup-business': 'איסוף מבית העסק',
+        'home-delivery': 'משלוח עד הבית',
+        'pickup-point': 'משלוח לנקודת איסוף'
+    };
+    const methodText = shippingMethods[orderDetails.shippingMethod] || orderDetails.shippingMethod || 'לא ידוע';
+    doc.text(rtlText(`שיטת משלוח: ${methodText} (₪${orderDetails.shippingPrice || 0})`), { align: 'right' });
     doc.moveDown(2);
 
 
@@ -138,7 +146,8 @@ const generateOrderPdf = async (orderDetails) => {
     doc.moveTo(startX, position).lineTo(endX, position).stroke();
 
     doc.moveDown(1);
-    doc.fontSize(12).text(rtlText(`סה"כ (ללא מע"מ): ₪${subtotal}`), { align: 'right' });
+    doc.fontSize(12).text(rtlText(`דמי משלוח: ₪${(orderDetails.shippingPrice || 0).toFixed(2)}`), { align: 'right' });
+    doc.text(rtlText(`סה"כ (ללא מע"מ): ₪${subtotal}`), { align: 'right' });
     doc.text(rtlText(`מע"מ (17%): ₪${totalTax}`), { align: 'right' });
 
     doc.moveDown(0.5);

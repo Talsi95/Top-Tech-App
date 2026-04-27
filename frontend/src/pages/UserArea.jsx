@@ -3,6 +3,7 @@ import { useAuth } from '../AuthContext.jsx';
 import { useNavigate } from 'react-router-dom';
 import { Package, User, LogOut, Settings } from 'lucide-react';
 import axios from 'axios';
+import Loader from '../components/Loader.jsx';
 
 /**
  * UserArea Component.
@@ -42,6 +43,30 @@ const UserArea = () => {
         }
     }, [getToken, navigate]);
 
+    /**
+     * Handles the cancellation of an order.
+     * Calls the backend API and refreshes the order list.
+     * @param {string} orderId - The ID of the order to cancel.
+     */
+    const handleCancelOrder = async (orderId) => {
+        if (!window.confirm('האם אתה בטוח שברצונך לבטל את ההזמנה?')) {
+            return;
+        }
+
+        try {
+            const token = getToken();
+            await axios.patch(`${__API_URL__}/orders/${orderId}/cancel`, {}, {
+                headers: {
+                    Authorization: `Bearer ${token}`
+                }
+            });
+            alert('ההזמנה בוטלה בהצלחה');
+            fetchUserDataAndOrders();
+        } catch (err) {
+            alert(err.response?.data?.message || 'שגיאה בביטול ההזמנה');
+        }
+    };
+
     useEffect(() => {
         if (isAuthenticated) {
             fetchUserDataAndOrders();
@@ -50,9 +75,7 @@ const UserArea = () => {
         }
     }, [isAuthenticated, navigate, fetchUserDataAndOrders]);
 
-    if (loading) {
-        return <div className="text-center mt-10">טוען...</div>;
-    }
+    if (loading) return <Loader text="טוען נתונים" />;
 
     if (error) {
         return <div className="text-center mt-10 text-red-600">שגיאה: {error}</div>;
@@ -85,7 +108,7 @@ const UserArea = () => {
 
             <div className="bg-white p-6 rounded-lg shadow-md mb-6">
                 <h3 className="text-xl font-bold mb-4">פרטים</h3>
-                <p><strong>סטטוס:</strong> {userData?.isGuest ? 'אורח' : userData?.username}</p>
+                <p><strong>שם מלא:</strong> {userData?.isGuest ? 'אורח' : userData?.username}</p>
                 <p><strong>טלפון:</strong> {userData?.phone || 'לא הוזן'}</p>
                 <p><strong>מייל למעקב:</strong> {userData?.email}</p>
             </div>
@@ -101,7 +124,25 @@ const UserArea = () => {
                                 <p><strong>מספר הזמנה:</strong> {order._id}</p>
                                 <p><strong>תאריך:</strong> {new Date(order.createdAt).toLocaleDateString()}</p>
                                 <p><strong>סה״כ:</strong> ₪{order.totalPrice.toFixed(2)}</p>
-                                <p><strong>סטטוס:</strong> {order.isDelivered ? 'נשלח' : 'ממתין לטיפול'}</p>
+                                <p><strong>שיטת משלוח:</strong> {
+                                    order.shippingMethod === 'home-delivery' ? 'משלוח עד הבית' :
+                                        order.shippingMethod === 'pickup-point' ? 'משלוח לנקודת איסוף' :
+                                            order.shippingMethod === 'pickup-business' ? 'איסוף מבית העסק' :
+                                                'לא נבחר'
+                                }</p>
+                                <p><strong>סטטוס:</strong> {order.isCancelled ? 'בוטל' : (order.isDelivered ? 'נשלח' : 'ממתין לטיפול')}</p>
+
+                                {!order.isCancelled && !order.isDelivered && (
+                                    <button
+                                        onClick={() => handleCancelOrder(order._id)}
+                                        className="mt-2 px-4 py-1 bg-red-600 text-white rounded hover:bg-red-700 transition-colors text-sm font-semibold"
+                                    >
+                                        ביטול הזמנה
+                                    </button>
+                                )}
+                                {order.isDelivered && !order.isCancelled && (
+                                    <p className="mt-2 text-sm text-red-600 font-semibold italic">לא ניתן לבטל (ההזמנה כבר נשלחה)</p>
+                                )}
 
                                 <ul className="pl-4 mt-2 space-y-4">
                                     {order.orderItems.map((item, index) => {

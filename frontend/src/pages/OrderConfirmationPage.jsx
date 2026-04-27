@@ -1,7 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { useParams, useLocation } from 'react-router-dom';
+import { useParams, useLocation, useNavigate } from 'react-router-dom';
 import axios from 'axios';
-import { CheckCircle, MapPin, Receipt, Loader } from 'lucide-react';
+import { CheckCircle, MapPin, Receipt, Package } from 'lucide-react';
+import { useAuth } from '../AuthContext.jsx';
+import Loader from '../components/Loader.jsx';
 
 /**
  * OrderConfirmationPage Component.
@@ -13,12 +15,14 @@ import { CheckCircle, MapPin, Receipt, Loader } from 'lucide-react';
 const OrderConfirmationPage = ({ showNotification }) => {
     const { orderId } = useParams();
     const location = useLocation();
+    const { getToken, isGuest } = useAuth();
+    const navigate = useNavigate();
 
     const [order, setOrder] = useState(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
 
-    const guestToken = location.state?.guestToken || localStorage.getItem('guestTokenForOrder');
+    const authToken = getToken() || location.state?.guestToken || localStorage.getItem('guestTokenForOrder');
 
     /**
      * Fetches details for a specific order by ID.
@@ -50,15 +54,13 @@ const OrderConfirmationPage = ({ showNotification }) => {
 
     useEffect(() => {
         if (orderId) {
-            fetchOrder(guestToken);
+            fetchOrder(authToken);
         }
         return () => localStorage.removeItem('guestTokenForOrder');
-    }, [orderId]);
+    }, [orderId, authToken]);
 
 
-    if (loading) {
-        return <div className="text-center p-12 mt-10"><Loader className="animate-spin inline mr-2" /> טוען פרטי הזמנה...</div>;
-    }
+    if (loading) return <Loader text="טוען פרטי הזמנה" />;
 
     if (error) {
         return <div className="text-center p-12 mt-10 text-red-600">שגיאה: {error}</div>;
@@ -89,11 +91,20 @@ const OrderConfirmationPage = ({ showNotification }) => {
 
                 <div className="bg-white p-4 border rounded-lg shadow-inner">
                     <h3 className="text-lg font-bold flex items-center mb-3">
-                        <MapPin className="ml-2 text-blue-500" size={20} /> כתובת למשלוח
+                        <MapPin className="ml-2 text-blue-500" size={20} /> כתובת ופרטי משלוח
                     </h3>
                     <p className="text-gray-700">רחוב: {order.shippingAddress.street}</p>
-                    <p className="text-gray-700">עיר: {order.shippingAddress.city}, מיקוד: {order.shippingAddress.zipCode}</p>
+                    <p className="text-gray-700">עיר: {order.shippingAddress.city}</p>
                     <p className="text-gray-700">טלפון: {order.shippingAddress.phone}</p>
+                    <div className="mt-3 pt-3 border-t">
+                        <p className="text-gray-700"><strong>שיטת משלוח:</strong> {
+                            order.shippingMethod === 'home-delivery' ? 'משלוח עד הבית' :
+                                order.shippingMethod === 'pickup-point' ? 'משלוח לנקודת איסוף' :
+                                    order.shippingMethod === 'pickup-business' ? 'איסוף מבית העסק' :
+                                        'לא נבחר'
+                        }</p>
+                        <p className="text-gray-700"><strong>דמי משלוח:</strong> ₪{order.shippingPrice?.toFixed(2) || '0.00'}</p>
+                    </div>
                 </div>
 
                 <h3 className="text-xl font-bold border-b pb-2 mt-6 mb-4 flex items-center">
@@ -107,13 +118,22 @@ const OrderConfirmationPage = ({ showNotification }) => {
                 ))}
             </div>
 
-            <div className="mt-8 text-center">
+            <div className="mt-8 flex flex-col sm:flex-row justify-center gap-4">
                 <button
                     onClick={() => showNotification('פונקציית שליחה במייל טרם מומשה.', 'info')}
-                    className="bg-blue-500 text-white py-2 px-4 rounded-lg hover:bg-blue-600 transition-colors"
+                    className="bg-blue-500 text-white py-2 px-6 rounded-lg hover:bg-blue-600 transition-colors font-semibold"
                 >
                     שלח את פרטי ההזמנה במייל
                 </button>
+
+                {!isGuest && (
+                    <button
+                        onClick={() => navigate('/profile')}
+                        className="bg-green-600 text-white py-2 px-6 rounded-lg hover:bg-green-700 transition-colors font-semibold flex items-center justify-center"
+                    >
+                        <Package className="ml-2" size={20} /> לצפייה בכל ההזמנות שלי
+                    </button>
+                )}
             </div>
         </div>
     );

@@ -17,11 +17,26 @@ const RegisterPage = ({ showNotification }) => {
     const [password, setPassword] = useState('');
 
     /**
+     * Validates Israeli phone numbers.
+     * @param {string} phone - The phone number to validate.
+     * @returns {boolean} True if valid, false otherwise.
+     */
+    const isValidPhone = (phone) => {
+        const phoneRegex = /^0(5\d|2|3|4|8|9)-?\d{7}$/;
+        return phoneRegex.test(phone);
+    };
+
+    /**
      * Handles the registration form submission.
      * @param {Event} e - The form submission event.
      */
     const handleRegister = async (e) => {
         e.preventDefault();
+
+        if (phone && !isValidPhone(phone)) {
+            showNotification('אנא הזן מספר טלפון תקין (למשל 0501234567)', 'error');
+            return;
+        }
 
         try {
             const response = await axios.post(`${__API_URL__}/auth/register`, {
@@ -58,8 +73,8 @@ const RegisterPage = ({ showNotification }) => {
                 <form className="mt-8 space-y-6" onSubmit={handleRegister}>
                     <div className="rounded-md shadow-sm -space-y-px">
                         <div>
-                            <label htmlFor="username" className="sr-only">
-                                שם משתמש
+                            <label htmlFor="username" className="block text-sm font-semibold text-gray-700 mb-1">
+                                שם מלא:
                             </label>
                             <input
                                 id="username"
@@ -68,14 +83,13 @@ const RegisterPage = ({ showNotification }) => {
                                 autoComplete="username"
                                 required
                                 className="relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-t-md focus:outline-none focus:ring-green-500 focus:border-green-500 focus:z-10 sm:text-sm"
-                                placeholder="שם משתמש"
                                 value={username}
                                 onChange={(e) => setUsername(e.target.value)}
                             />
                         </div>
                         <div>
-                            <label htmlFor="email" className="sr-only">
-                                כתובת אימייל
+                            <label htmlFor="email" className="block text-sm font-semibold text-gray-700 mb-1">
+                                כתובת אימייל:
                             </label>
                             <input
                                 id="email"
@@ -84,28 +98,26 @@ const RegisterPage = ({ showNotification }) => {
                                 autoComplete="email"
                                 required
                                 className="relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 focus:outline-none focus:ring-green-500 focus:border-green-500 focus:z-10 sm:text-sm"
-                                placeholder="כתובת אימייל"
                                 value={email}
                                 onChange={(e) => setEmail(e.target.value)}
                             />
                         </div>
                         <div>
-                            <label htmlFor="phone" className="sr-only">
-                                מספר טלפון
+                            <label htmlFor="phone" className="block text-sm font-semibold text-gray-700 mb-1">
+                                מספר טלפון:
                             </label>
                             <input
                                 id="phone"
                                 name="phone"
-                                type="tel"
+                                type="text"
                                 className="relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 focus:outline-none focus:ring-green-500 focus:border-green-500 focus:z-10 sm:text-sm"
-                                placeholder="מספר טלפון (אופציונלי)"
                                 value={phone}
                                 onChange={(e) => setPhone(e.target.value)}
                             />
                         </div>
                         <div>
-                            <label htmlFor="password" className="sr-only">
-                                סיסמה
+                            <label htmlFor="password" className="block text-sm font-semibold text-gray-700 mb-1">
+                                סיסמה:
                             </label>
                             <input
                                 id="password"
@@ -114,7 +126,6 @@ const RegisterPage = ({ showNotification }) => {
                                 autoComplete="new-password"
                                 required
                                 className="relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-b-md focus:outline-none focus:ring-green-500 focus:border-green-500 focus:z-10 sm:text-sm"
-                                placeholder="סיסמה"
                                 value={password}
                                 onChange={(e) => setPassword(e.target.value)}
                             />

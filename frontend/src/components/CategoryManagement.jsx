@@ -2,6 +2,7 @@
 import { useState, useEffect } from 'react';
 import axios from 'axios';
 import { useAuth } from '../AuthContext';
+import Loader from '../components/Loader.jsx';
 
 // שדות וריאנט חוקיים לפי המודל שלך
 const AVAILABLE_VARIANT_FIELDS = ['color', 'storage', 'size'];
@@ -146,9 +147,7 @@ const CategoryManagement = ({ showNotification }) => {
     };
 
 
-    if (isLoading) {
-        return <div className="text-center p-8 text-xl text-gray-600">טוען קטגוריות...</div>;
-    }
+    if (isLoading) return <Loader text="טוען קטגוריות" />;
 
     return (
         <div className="container mx-auto p-4">

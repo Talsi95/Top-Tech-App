@@ -13,19 +13,21 @@ const getCart = async (req, res) => {
             return res.json([]);
         }
 
-        const formattedCart = user.cart.map(item => {
-            const productData = item.product;
-            const priceToUse = productData.isOnSale ? productData.salePrice : productData.price;
+        const formattedCart = user.cart
+            .filter(item => item.product) // Filter out items where the product no longer exists
+            .map(item => {
+                const productData = item.product;
+                const priceToUse = productData.isOnSale ? productData.salePrice : productData.price;
 
-            return {
-                _id: item._id,
-                product: {
-                    ...productData.toObject(),
-                    price: priceToUse
-                },
-                quantity: item.quantity
-            };
-        });
+                return {
+                    _id: item._id,
+                    product: {
+                        ...productData.toObject(),
+                        price: priceToUse
+                    },
+                    quantity: item.quantity
+                };
+            });
 
         res.json(formattedCart);
     } catch (error) {
@@ -41,10 +43,12 @@ const getCart = async (req, res) => {
 const updateCart = async (req, res) => {
     const { cartItems } = req.body;
 
-    const updatedCart = cartItems.map(item => ({
-        product: item.product,
-        quantity: item.quantity
-    }));
+    const updatedCart = cartItems
+        .filter(item => item.product && (typeof item.product === 'string' || item.product._id))
+        .map(item => ({
+            product: typeof item.product === 'string' ? item.product : item.product._id,
+            quantity: item.quantity
+        }));
 
     const updatedUser = await User.findByIdAndUpdate(
         req.user.id,

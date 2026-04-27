@@ -103,41 +103,6 @@ const LoginPage = ({ showNotification }) => {
         }
     };
 
-    // const handleRequestOTP = async (e) => {
-    //     e.preventDefault();
-    //     if (phone.length < 9) {
-    //         showNotification('אנא הזן מספר טלפון תקין.', 'error');
-    //         return;
-    //     }
-    //     setIsLoading(true);
-    //     try {
-    //         await axios.post(`${__API_URL__}/guest/request-verify-otp`, { phone });
-    //         setIsOtpSent(true);
-    //         showNotification('קוד אימות נשלח לוואטסאפ שלך', 'success');
-    //     } catch (error) {
-    //         handleError(error);
-    //     } finally {
-    //         setIsLoading(false);
-    //     }
-    // };
-
-    // const handleVerifyOTP = async (e) => {
-    //     e.preventDefault();
-    //     setIsLoading(true);
-    //     try {
-    //         const response = await axios.post(`${__API_URL__}/guest/verify-otp`, { phone, otp });
-    //         const { guestToken, email } = response.data;
-    //         localStorage.setItem('guestToken', guestToken);
-    //         login(guestToken);
-    //         showNotification('התחברת בהצלחה כאורח', 'success');
-    //         navigate('/');
-    //     } catch (error) {
-    //         handleError(error);
-    //     } finally {
-    //         setIsLoading(false);
-    //     }
-    // };
-
     const handleError = (error) => {
         if (error.response) {
             const { errorCode } = error.response.data;
@@ -173,19 +138,25 @@ const LoginPage = ({ showNotification }) => {
                 {loginMethod === 'password' ? (
                     <form className="mt-8 space-y-6" onSubmit={handlePasswordSubmit}>
                         <div className="rounded-md shadow-sm -space-y-px">
+                            <label htmlFor="email" className="block text-sm font-semibold text-gray-700 mb-1">
+                                כתובת אימייל:
+                            </label>
                             <input
+                                id="email"
                                 type="email"
                                 required
                                 className="relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-t-md focus:outline-none focus:ring-green-500 focus:border-green-500 z-10 sm:text-sm"
-                                placeholder="כתובת אימייל"
                                 value={email}
                                 onChange={(e) => setEmail(e.target.value)}
                             />
+                            <label htmlFor="password" className="block text-sm font-semibold text-gray-700 mb-1">
+                                סיסמה:
+                            </label>
                             <input
+                                id="password"
                                 type="password"
                                 required
                                 className="relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-b-md focus:outline-none focus:ring-green-500 focus:border-green-500 z-10 sm:text-sm"
-                                placeholder="סיסמה"
                                 value={password}
                                 onChange={(e) => setPassword(e.target.value)}
                             />
@@ -205,12 +176,15 @@ const LoginPage = ({ showNotification }) => {
                 ) : (
                     <form className="mt-8 space-y-6" onSubmit={isOtpSent ? handleVerifyOTP : handleRequestOTP}>
                         <div id="recaptcha-container" className="rounded-md shadow-sm">
+                            <label htmlFor="phone" className="block text-sm font-semibold text-gray-700 mb-1">
+                                מספר טלפון:
+                            </label>
                             <input
+                                id='phone'
                                 type="tel"
                                 required
                                 disabled={isOtpSent}
                                 className={`relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 ${isOtpSent ? 'rounded-t-md bg-gray-50' : 'rounded-md'} focus:outline-none focus:ring-green-500 focus:border-green-500 sm:text-sm`}
-                                placeholder="מספר טלפון (לדוגמה: 0501234567)"
                                 value={phone}
                                 onChange={(e) => setPhone(e.target.value)}
                             />
@@ -218,8 +192,8 @@ const LoginPage = ({ showNotification }) => {
                                 <input
                                     type="text"
                                     required
+                                    placeholder='הזן את קוד האימות'
                                     className="relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-b-md focus:outline-none focus:ring-green-500 focus:border-green-500 sm:text-sm"
-                                    placeholder="הזן את קוד האימות"
                                     value={otp}
                                     onChange={(e) => setOtp(e.target.value)}
                                 />

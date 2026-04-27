@@ -169,6 +169,7 @@ const handleVerifyOTP = async (req, res) => {
         const guestPayload = {
             isGuest: true,
             email: guestEmail,
+            phone: cleanPhone
         };
 
         const guestToken = jwt.sign(

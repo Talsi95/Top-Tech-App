@@ -92,20 +92,20 @@ const CartDrawer = ({ isOpen, onClose, cartItems, onRemoveFromCart, totalPrice, 
                                 </div>
                                 <div className="flex items-center">
                                     <button
-                                        onClick={() => onUpdateQuantity(item.product._id, item.variant?._id, 'decrease')}
+                                        onClick={() => item.product?._id && onUpdateQuantity(item.product._id, item.variant?._id, 'decrease')}
                                         className="bg-gray-200 text-gray-700 px-2 py-1 rounded-l hover:bg-gray-300"
                                     >
                                         -
                                     </button>
                                     <span className="bg-gray-100 text-gray-700 px-3 py-1 text-sm">{item.quantity}</span>
                                     <button
-                                        onClick={() => onUpdateQuantity(item.product._id, item.variant?._id, 'increase')}
+                                        onClick={() => item.product?._id && onUpdateQuantity(item.product._id, item.variant?._id, 'increase')}
                                         className="bg-gray-200 text-gray-700 px-2 py-1 rounded-r hover:bg-gray-300"
                                     >
                                         +
                                     </button>
                                 </div>
-                                <button onClick={() => onRemoveFromCart(item.product._id, item.variant?._id)} className="text-red-500 hover:text-red-700">
+                                <button onClick={() => item.product?._id && onRemoveFromCart(item.product._id, item.variant?._id)} className="text-red-500 hover:text-red-700">
                                     <FaRegTrashAlt />
                                 </button>
                             </div>

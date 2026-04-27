@@ -64,7 +64,7 @@ const useCart = (isAuthenticated, getToken, showNotification) => {
     let localCart = [];
     if (storedCart) {
       try {
-        localCart = JSON.parse(storedCart);
+        localCart = JSON.parse(storedCart).filter(item => item.product);
       } catch (e) {
         console.error("Failed to parse cart data from localStorage", e);
         localStorage.removeItem('cartItems');
@@ -85,7 +85,7 @@ const useCart = (isAuthenticated, getToken, showNotification) => {
       const response = await axios.get(`${__API_URL__}/cart`, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
-      const dbCart = response.data;
+      const dbCart = response.data.filter(item => item.product); // Ensure no null products from DB
 
       if (localCart.length > 0) {
         if (dbCart.length === 0 || dbCart.length < localCart.length) {
@@ -122,13 +122,13 @@ const useCart = (isAuthenticated, getToken, showNotification) => {
 
     setCartItems(prevItems => {
       const isItemInCart = prevItems.find(
-        (item) => item.product._id === product._id && item.variant?._id === variant._id
+        (item) => item.product && item.product._id === product._id && item.variant?._id === variant._id
       );
 
       let newCart;
       if (isItemInCart) {
         newCart = prevItems.map((item) =>
-          item.product._id === product._id && item.variant?._id === variant._id
+          item.product && item.product._id === product._id && item.variant?._id === variant._id
             ? { ...item, quantity: item.quantity + 1 }
             : item
         );
@@ -153,7 +153,7 @@ const useCart = (isAuthenticated, getToken, showNotification) => {
     setCartItems(prevItems => {
       const updatedCart = prevItems
         .map((item) => {
-          if (item.product._id === productId && item.variant._id === variantId) {
+          if (item.product && item.product._id === productId && item.variant?._id === variantId) {
             const newQuantity = action === 'increase' ? item.quantity + 1 : item.quantity - 1;
             return newQuantity > 0 ? { ...item, quantity: newQuantity } : null;
           }
@@ -175,7 +175,7 @@ const useCart = (isAuthenticated, getToken, showNotification) => {
   const handleRemoveFromCart = useCallback(async (productId, variantId) => {
     setCartItems(prevItems => {
       const updatedCart = prevItems.filter(
-        (item) => !(item.product._id === productId && item.variant._id === variantId)
+        (item) => !(item.product && item.product._id === productId && item.variant?._id === variantId)
       );
       saveCart(updatedCart);
       return updatedCart;
@@ -217,6 +217,7 @@ const useCart = (isAuthenticated, getToken, showNotification) => {
    * Calculates the total price of all items in the cart, considering sales.
    */
   const totalPrice = cartItems.reduce((total, item) => {
+    if (!item.product) return total;
     const regularPrice = item.variant?.price ?? item.product?.price ?? 0;
     const salePrice = item.variant?.salePrice;
     const isOnSale = item.variant?.isOnSale;

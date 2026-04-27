@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useAuth } from '../AuthContext';
 import Notification from './Notification';
 import axios from 'axios';
+import Loader from './Loader.jsx';
 
 /**
  * UserList Component.
@@ -50,9 +51,7 @@ const UserList = () => {
         fetchUsers();
     }, [isAdmin, getToken]);
 
-    if (loading) {
-        return <div className="text-center">טוען נתונים...</div>;
-    }
+    if (loading) return <Loader text="טוען נתונים" />;
 
     if (error) {
         return <div className="text-center text-red-500">{error}</div>;

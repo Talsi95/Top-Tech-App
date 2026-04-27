@@ -4,6 +4,7 @@ import ProductForm from '../components/ProductForm';
 import { useAuth } from '../AuthContext';
 import Notification from '../components/Notification';
 import axios from 'axios';
+import Loader from '../components/Loader.jsx';
 
 /**
  * ProductFormPage Component.
@@ -101,9 +102,7 @@ const ProductFormPage = ({ showNotification }) => {
 
     const isDataLoading = loading || isLoadingCategories;
 
-    if (isDataLoading) {
-        return <div className="text-center">טוען נתונים...</div>;
-    }
+    if (isDataLoading) return <Loader text="טוען נתונים" />;
 
     if (error) {
         return <div className="text-center text-red-500">{error}</div>;
