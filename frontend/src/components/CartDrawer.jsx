@@ -23,21 +23,16 @@ const CartDrawer = ({ isOpen, onClose, cartItems, onRemoveFromCart, totalPrice, 
     const handleCheckoutClick = () => {
         onClose();
 
-        // שליפת הטוקנים מה-Storage ליתר ביטחון
-        const token = localStorage.getItem('token'); // טוקן של משתמש רשום
-        const guestToken = localStorage.getItem('guestToken'); // טוקן של אורח
+        const token = localStorage.getItem('token');
+        const guestToken = localStorage.getItem('guestToken');
 
-        // חילוק לוגי ברור:
         if (isAuthenticated || token) {
-            // מקרה 1: משתמש רשום מחובר
             console.log("Navigating to checkout as Registered User");
             navigate('/checkout');
         } else if (guestToken) {
-            // מקרה 2: אורח שכבר עבר אימות OTP
             console.log("Navigating to checkout as Authenticated Guest");
             navigate('/checkout');
         } else {
-            // מקרה 3: אף אחד מהם - שלח לאימות (אורח או התחברות)
             console.log("No auth found, navigating to Guest Checkout Page");
             navigate('/guest-checkout');
         }

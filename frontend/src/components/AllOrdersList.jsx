@@ -15,6 +15,7 @@ const AllOrdersList = ({ showNotification }) => {
     const { getToken } = useAuth();
     const navigate = useNavigate();
     const [orders, setOrders] = useState([]);
+    const [searchTerm, setSearchTerm] = useState('');
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
 
@@ -61,6 +62,19 @@ const AllOrdersList = ({ showNotification }) => {
     useEffect(() => {
         fetchAllOrders();
     }, [fetchAllOrders]);
+
+    const filteredOrders = orders.filter(order => {
+        const customerName = order.isGuestOrder
+            ? (order.shippingAddress?.fullName || 'אורח')
+            : (order.user?.username || 'משתמש לא ידוע');
+
+        const phone = order.shippingAddress?.phone || '';
+        const orderId = order._id || '';
+
+        return customerName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+            phone.includes(searchTerm) ||
+            orderId.toLowerCase().includes(searchTerm.toLowerCase());
+    });
 
     if (loading) return <Loader text="טוען הזמנות" />;
 
@@ -153,11 +167,23 @@ const AllOrdersList = ({ showNotification }) => {
     return (
         <div className="bg-white p-6 rounded-lg shadow-md mt-6">
             <h3 className="text-2xl font-bold mb-4">כל ההזמנות באתר ({orders.length})</h3>
-            {orders.length === 0 ? (
-                <p className="text-center text-gray-500">לא נמצאו הזמנות</p>
+
+            <div className="mb-6">
+                <input
+                    type="text"
+                    placeholder="חפש לפי שם לקוח, טלפון או מספר הזמנה..."
+                    className="w-full p-3 border border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-green-500 focus:border-transparent outline-none text-right"
+                    dir="rtl"
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                />
+            </div>
+
+            {filteredOrders.length === 0 ? (
+                <p className="text-center text-gray-500">לא נמצאו הזמנות התואמות לחיפוש</p>
             ) : (
                 <ul className="space-y-6">
-                    {orders.map((order) => <OrderDetails key={order._id} order={order} />)}
+                    {filteredOrders.map((order) => <OrderDetails key={order._id} order={order} />)}
                 </ul>
             )}
         </div>

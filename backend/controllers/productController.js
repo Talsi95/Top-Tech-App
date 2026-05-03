@@ -211,9 +211,14 @@ const updateProductVariant = async (req, res) => {
     const { productId, variantId } = req.params;
     const updateFields = req.body;
 
+    const setFields = {};
+    for (const key in updateFields) {
+        setFields[`variants.$.${key}`] = updateFields[key];
+    }
+
     const product = await Product.findOneAndUpdate(
         { _id: productId, 'variants._id': variantId },
-        { $set: { 'variants.$': updateFields } },
+        { $set: setFields },
         { new: true, runValidators: true }
     );
 

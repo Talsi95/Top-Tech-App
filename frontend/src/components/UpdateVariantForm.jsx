@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import axios from 'axios';
 import { useAuth } from '../AuthContext';
 import { useParams } from 'react-router-dom';
+import Loader from './Loader';
 
 /**
  * UpdateVariantForm Component.
@@ -70,7 +71,7 @@ const UpdateVariantForm = () => {
         }
     };
 
-    if (loading) return <div>Loading...</div>;
+    if (loading) return <Loader />;
     if (error) return <div className="text-red-500">{error}</div>;
     if (!product) return <div>Product not found.</div>;
 

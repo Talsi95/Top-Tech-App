@@ -21,7 +21,9 @@ import GuestCheckoutPage from './pages/GuestCheckoutPage';
 import OrderConfirmationPage from './pages/OrderConfirmationPage';
 import UpdateVariantForm from './components/UpdateVariantForm';
 import Loader from './components/Loader';
+import RepairLab from './pages/RepairLab';
 import { useAuth } from './AuthContext';
+import ScrollToTop from './components/ScrollToTop';
 
 // Hooks
 import useProducts from './hooks/useProducts';
@@ -108,6 +110,7 @@ const App = () => {
 
   return (
     <div className="bg-gray-100 min-h-screen flex flex-col">
+      <ScrollToTop />
       <Navbar
         onLogout={handleLogout}
         onShowLogin={() => navigate('/login')}
@@ -160,6 +163,7 @@ const App = () => {
             <Route path="/reset-password" element={<ResetPassword />} />
             <Route path="/admin/update-variant/:id" element={<UpdateVariantForm />} />
             <Route path="/products" element={<ProductsPage />} />
+            <Route path="/repair-lab" element={<RepairLab />} />
             <Route
               path="/product/:id"
               element={<ShowPage onAddToCart={handleAddToCart} />}

@@ -26,7 +26,8 @@ const productSchema = new Schema({
     }],
     videos: [{
         title: { type: String },
-        url: { type: String }
+        url: { type: String },
+        description: { type: String, required: false, default: '' }
     }],
     technicalSpecs: [{
         key: { type: String },

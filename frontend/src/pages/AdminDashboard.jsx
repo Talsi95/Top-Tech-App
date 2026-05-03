@@ -5,6 +5,8 @@ import ProductFormPage from '../pages/ProductFormPage';
 import UserList from '../components/UserList';
 import AllOrdersList from '../components/AllOrdersList';
 import CategoryManagement from '../components/CategoryManagement';
+import RepairManagement from '../components/RepairManagement';
+import RepairTypeManagement from '../components/RepairTypeManagement';
 
 /**
  * AdminDashboard Component.
@@ -39,6 +41,10 @@ const AdminDashboard = ({ showNotification }) => {
                 return <AllOrdersList showNotification={showNotification} />;
             case 'categories':
                 return <CategoryManagement showNotification={showNotification} />;
+            case 'repairs':
+                return <RepairManagement showNotification={showNotification} />;
+            case 'repairTypes':
+                return <RepairTypeManagement showNotification={showNotification} />;
             default:
                 return null;
         }
@@ -72,6 +78,8 @@ const AdminDashboard = ({ showNotification }) => {
                     <TabButton tabName="users" label="משתמשים" />
                     <TabButton tabName="orders" label="כל ההזמנות" />
                     <TabButton tabName="categories" label="ניהול קטגוריות" />
+                    <TabButton tabName="repairs" label="תיקונים" />
+                    <TabButton tabName="repairTypes" label="סוגי תיקונים" />
                 </div>
 
                 <div className="max-w-4xl mx-auto">

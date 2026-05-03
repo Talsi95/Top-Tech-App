@@ -60,12 +60,6 @@ const ProductList = ({ onAddToCart, onUpdateProduct, onDeleteProduct, products }
                                             >
                                                 בחר תצורה
                                             </button>
-                                            {/* <button
-                                                onClick={() => onAddToCart(product, defaultVariant)}
-                                                className="bg-green-500 hover:bg-green-600 text-white font-bold py-2 px-4 rounded-md transition duration-300"
-                                            >
-                                                הוסף לסל
-                                            </button> */}
                                         </div>
                                     ) : (
                                         <div className="flex items-center justify-between">

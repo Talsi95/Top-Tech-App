@@ -55,6 +55,9 @@ const Navbar = ({
                         <NavLink to="/" className="text-gray-200 hover:text-white transition-colors duration-300">
                             דף הבית
                         </NavLink>
+                        <NavLink to="/repair-lab" className="text-gray-200 hover:text-white transition-colors duration-300">
+                            מעבדת תיקונים
+                        </NavLink>
                         {isAuthenticated && (
                             <span className="text-sm text-gray-400">
                                 {isGuest ? (
@@ -86,9 +89,11 @@ const Navbar = ({
                         )}
                         <button onClick={onToggleDrawer} className="relative text-gray-200 hover:text-white focus:outline-none">
                             <FaShoppingCart className="h-6 w-6" />
-                            <span className="absolute -top-2 -right-2 bg-red-500 text-white text-xs rounded-full h-4 w-4 flex items-center justify-center">
-                                {cartItemsCount}
-                            </span>
+                            {cartItemsCount > 0 && (
+                                <span className="absolute -top-2 -right-2 bg-red-500 text-white text-xs rounded-full h-4 w-4 flex items-center justify-center">
+                                    {cartItemsCount}
+                                </span>
+                            )}
                         </button>
                         {isAuthenticated ? (
                             <button onClick={onLogout} className="bg-red-500 text-white px-4 py-2 rounded-md hover:bg-red-600 transition-colors duration-300">
@@ -122,9 +127,11 @@ const Navbar = ({
                     {/* Cart Button */}
                     <button onClick={onToggleDrawer} className="relative text-gray-200 hover:text-white focus:outline-none">
                         <FaShoppingCart className="h-6 w-6" />
-                        <span className="absolute -top-2 -right-2 bg-red-500 text-white text-xs rounded-full h-4 w-4 flex items-center justify-center">
-                            {cartItemsCount}
-                        </span>
+                        {cartItemsCount > 0 && (
+                            <span className="absolute -top-2 -right-2 bg-red-500 text-white text-xs rounded-full h-4 w-4 flex items-center justify-center">
+                                {cartItemsCount}
+                            </span>
+                        )}
                     </button>
                     {/* Hamburger Button */}
                     <button onClick={toggleMobileMenu} className="text-gray-200 hover:text-white focus:outline-none focus:text-white">
@@ -137,6 +144,7 @@ const Navbar = ({
             <div className={`md:hidden ${isMobileMenuOpen ? 'block' : 'hidden'} bg-gray-700 border-t border-gray-600`}>
                 <div className="px-2 pt-2 pb-3 space-y-1 text-right">
                     <NavLink to="/" onClick={toggleMobileMenu} className="block px-3 py-2 rounded-md text-base font-medium text-gray-300 hover:bg-white/5">דף הבית</NavLink>
+                    <NavLink to="/repair-lab" onClick={toggleMobileMenu} className="block px-3 py-2 rounded-md text-base font-medium text-gray-300 hover:bg-white/5">מעבדת תיקונים</NavLink>
                     {isAdmin && (
                         <NavLink to="/admin" onClick={toggleMobileMenu} className="block px-3 py-2 rounded-md text-base font-medium text-gray-300 hover:bg-white/5">איזור מנהל</NavLink>
                     )}
