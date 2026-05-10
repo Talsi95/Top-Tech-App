@@ -34,7 +34,7 @@ const VideoItem = ({ video, index, isAdmin, onEdit, onDelete }) => {
 
     const videoId = video.url.split('v=')[1]?.split('&')[0];
     // Base URL without autoplay by default
-    let embedUrl = videoId ? `https://www.youtube.com/embed/${videoId}?mute=1&rel=0` : video.url;
+    let embedUrl = videoId ? `https://www.youtube.com/embed/${videoId}?mute=1&rel=0&controls=0&disablekb=1&iv_load_policy=3&modestbranding=1` : video.url;
 
     // Append autoplay=1 ONLY when visible for YouTube
     if (isVisible && videoId) {
@@ -51,27 +51,27 @@ const VideoItem = ({ video, index, isAdmin, onEdit, onDelete }) => {
                             title={video.title}
                             frameBorder="0"
                             allow="accelerometer; autoplay; encrypted-media; gyroscope; picture-in-picture"
-                            allowFullScreen
-                            className="absolute top-0 left-0 w-full h-full"
+                            className="absolute top-0 left-0 w-full h-full pointer-events-none"
                         ></iframe>
                     ) : (
                         <video
                             src={video.url}
                             autoPlay
                             muted
-                            controls
-                            className="absolute top-0 left-0 w-full h-full object-cover"
+                            loop
+                            playsInline
+                            className="absolute top-0 left-0 w-full h-full object-cover pointer-events-none"
                         />
                     )
                 )}
                 {!isVisible && (
                     <div className="absolute inset-0 flex items-center justify-center bg-gray-900 text-gray-500">
-                        <div className="animate-pulse">טוען סרטון...</div>
+                        <div className="animate-pulse">טוען...</div>
                     </div>
                 )}
             </div>
             <div className="p-6 flex justify-between items-center bg-gray-50">
-                <span className="text-2xl text-gray-700 truncate mr-2 font-normal">{video.title}</span>
+                <span className="text-2xl font-bold bg-gradient-to-r from-blue-600 to-teal-400 bg-clip-text text-transparent">{video.title}</span>
                 {isAdmin && (
                     <div className="flex gap-2">
                         <button onClick={() => onEdit(index)} className="text-blue-500 hover:text-blue-700 bg-blue-50 hover:bg-blue-100 px-3 py-1.5 rounded-lg text-sm font-semibold transition-colors">עריכה</button>
@@ -103,11 +103,11 @@ const ShowPage = ({ onAddToCart }) => {
     const { isAdmin, getToken } = useAuth();
     const [product, setProduct] = useState(null);
     const [selectedVariant, setSelectedVariant] = useState(null);
-    const [selectedColor, setSelectedColor] = useState(null);
-    const [selectedStorage, setSelectedStorage] = useState(null);
+    const [selectedAttributes, setSelectedAttributes] = useState({});
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
-    const [hasStorage, setHasStorage] = useState(false);
+    const [variantFields, setVariantFields] = useState([]);
+    const [currentImageIndex, setCurrentImageIndex] = useState(0);
 
     const [newImages, setNewImages] = useState([{ url: '', description: '' }]);
     const [newVideos, setNewVideos] = useState([{ url: '', title: '', description: '' }]);
@@ -150,20 +150,27 @@ const ShowPage = ({ onAddToCart }) => {
                 setNewLongDescription(data.longDescription || '');
 
                 if (data.variants && data.variants.length > 0) {
-                    const productHasStorage = data.variants.some(v => v.storage && v.storage.trim() !== '');
-                    setHasStorage(productHasStorage);
+                    const standardFields = ['price', 'stock', 'imageUrl', 'imageUrls', 'isOnSale', 'salePrice', '_id', 'id', 'attributes', '__v'];
+                    const hiddenFields = ['מותג', 'brand']; // Fields that shouldn't be shown in the selection UI
+                    const fields = new Set();
+                    data.variants.forEach(v => {
+                        Object.keys(v).forEach(key => {
+                            if (!standardFields.includes(key) && !hiddenFields.includes(key) && v[key] !== undefined && v[key] !== null && String(v[key]).trim() !== '') {
+                                fields.add(key);
+                            }
+                        });
+                    });
+                    const sortedFields = Array.from(fields);
+                    setVariantFields(sortedFields);
 
-                    setSelectedColor(data.variants[0].color);
-
-                    if (productHasStorage) {
-                        setSelectedStorage(data.variants[0].storage);
-                    } else {
-                        setSelectedStorage(null);
-                    }
-                } else {
-                    setSelectedVariant(data.variants?.[0] || null);
+                    const initialAttrs = {};
+                    sortedFields.forEach(f => {
+                        initialAttrs[f] = data.variants[0][f];
+                    });
+                    setSelectedAttributes(initialAttrs);
                 }
             } catch (err) {
+                console.error("Fetch product error:", err);
                 setError("Failed to load product details.");
             } finally {
                 setLoading(false);
@@ -173,45 +180,81 @@ const ShowPage = ({ onAddToCart }) => {
     }, [id]);
 
     useEffect(() => {
-        if (!product) return;
+        if (!product || !product.variants) return;
 
-        let newVariant = null;
-
-        if (hasStorage) {
-            if (selectedColor && selectedStorage) {
-                newVariant = product.variants.find(
-                    v => v.color === selectedColor && v.storage === selectedStorage
-                );
-            }
-        } else {
-            if (selectedColor) {
-                newVariant = product.variants.find(
-                    v => v.color === selectedColor
-                );
-            } else if (product.variants.length === 1) {
-                newVariant = product.variants[0];
-            }
-        }
+        const newVariant = product.variants.find(v => {
+            return variantFields.every(field => String(v[field]) === String(selectedAttributes[field]));
+        });
 
         setSelectedVariant(newVariant || null);
-    }, [selectedColor, selectedStorage, product, hasStorage]);
+        setCurrentImageIndex(0);
+    }, [selectedAttributes, product, variantFields]);
 
+    const getUniqueValuesForField = (field) => {
+        if (!product?.variants) return [];
+        return [...new Set(product.variants.map(v => v[field]).filter(val => val))];
+    };
 
-
-    const uniqueColors = product?.variants ? [...new Set(product.variants.map(v => v.color).filter(c => c))] : [];
-    const uniqueStorage = hasStorage && product?.variants
-        ? [...new Set(product.variants.map(v => v.storage).filter(s => s && s.trim() !== ''))]
-        : [];
-
-    const isCombinationValid = useCallback((color, storage) => {
+    const isOptionAvailable = (field, value) => {
         if (!product?.variants) return false;
+        return product.variants.some(v => {
+            const matchesOtherFields = variantFields.every(f => {
+                if (f === field) return String(v[f]) === String(value);
+                return String(v[f]) === String(selectedAttributes[f]);
+            });
+            return matchesOtherFields;
+        });
+    };
 
-        if (hasStorage) {
-            return product.variants.some(v => v.color === color && v.storage === storage);
-        } else {
-            return product.variants.some(v => v.color === color);
+    const handleAttributeClick = (field, value) => {
+        const newAttributes = { ...selectedAttributes, [field]: value };
+
+        const exactMatch = product.variants.find(v =>
+            variantFields.every(f => String(v[f] || '').trim() === String(newAttributes[f] || '').trim())
+        );
+
+        if (exactMatch) {
+            setSelectedAttributes(newAttributes);
+            return;
         }
-    }, [product, hasStorage]);
+
+        const matches = product.variants
+            .map(v => {
+                let score = 0;
+                if (String(v[field] || '').trim() === String(value).trim()) {
+                    score += 1000;
+                    variantFields.forEach(f => {
+                        if (f !== field && String(v[f] || '').trim() === String(selectedAttributes[f] || '').trim()) {
+                            score += 1;
+                        }
+                    });
+                }
+                return { variant: v, score };
+            })
+            .filter(item => item.score >= 1000)
+            .sort((a, b) => b.score - a.score);
+
+        if (matches.length > 0) {
+            const bestMatch = matches[0].variant;
+            const updatedAttrs = {};
+            variantFields.forEach(f => {
+                updatedAttrs[f] = bestMatch[f];
+            });
+            setSelectedAttributes(updatedAttrs);
+        }
+    };
+
+    const nextImage = () => {
+        const images = selectedVariant?.imageUrls || [selectedVariant?.imageUrl];
+        if (images.length <= 1) return;
+        setCurrentImageIndex((prev) => (prev + 1) % images.length);
+    };
+
+    const prevImage = () => {
+        const images = selectedVariant?.imageUrls || [selectedVariant?.imageUrl];
+        if (images.length <= 1) return;
+        setCurrentImageIndex((prev) => (prev - 1 + images.length) % images.length);
+    };
 
     const isOutOfStock = selectedVariant?.stock === 0;
 
@@ -225,15 +268,39 @@ const ShowPage = ({ onAddToCart }) => {
         const token = getToken();
         setIsSaving(true);
 
-        const filteredNewImages = newImages.filter(img => img.url.trim() !== '');
+        const filteredNewImages = newImages
+            .filter(img => img.url.trim() !== '')
+            .map(img => ({
+                url: img.url.trim(),
+                description: img.description?.trim() || ''
+            }));
+
+        const filteredNewVideos = newVideos
+            .filter(vid => vid.url.trim() !== '')
+            .map(vid => ({
+                url: vid.url.trim(),
+                title: vid.title?.trim() || '',
+                description: vid.description?.trim() || ''
+            }));
+
+        const filteredNewSpecs = newSpecs
+            .filter(spec => spec.key.trim() !== '')
+            .map(spec => ({
+                key: spec.key.trim(),
+                value: spec.value?.trim() || ''
+            }));
 
         const updatedProduct = {
             ...product,
             additionalImages: [...(product.additionalImages || []), ...filteredNewImages],
-            videos: [...(product.videos || []), ...newVideos],
-            technicalSpecs: [...(product.technicalSpecs || []), ...newSpecs],
-            longDescription: newLongDescription
+            videos: [...(product.videos || []), ...filteredNewVideos],
+            technicalSpecs: [...(product.technicalSpecs || []), ...filteredNewSpecs]
         };
+
+        // Only update longDescription if we are explicitly adding it or if it's not empty
+        if (isAddingDescription || (newLongDescription && newLongDescription.trim() !== '')) {
+            updatedProduct.longDescription = newLongDescription.trim();
+        }
 
         try {
             await axios.put(`${__API_URL__}/products/${id}`, updatedProduct, {
@@ -379,8 +446,49 @@ const ShowPage = ({ onAddToCart }) => {
 
             <div className="bg-white p-6 md:p-10 rounded-3xl shadow-2xl flex flex-col md:flex-row gap-10 border border-gray-100">
                 {/* Product Image Section */}
-                <div className="md:w-1/2 flex justify-center items-center bg-gray-50 rounded-2xl p-8 border border-gray-100">
-                    <img src={selectedVariant?.imageUrl} alt={product?.name} className="max-h-[500px] object-contain drop-shadow-xl hover:scale-105 transition-transform duration-500" />
+                <div className="md:w-1/2 flex flex-col justify-center items-center  rounded-2xl p-4 md:p-8  relative group">
+                    {selectedVariant && (
+                        <>
+                            <div className="relative w-full flex justify-center items-center">
+                                <img
+                                    src={(selectedVariant.imageUrls && selectedVariant.imageUrls[currentImageIndex]) || selectedVariant.imageUrl}
+                                    alt={product?.name}
+                                    className="max-h-[500px] object-contain  hover:scale-105 transition-transform duration-500"
+                                />
+
+                                {/* Arrows */}
+                                {(selectedVariant.imageUrls?.length > 1) && (
+                                    <>
+                                        <button
+                                            onClick={prevImage}
+                                            className="absolute left-0 top-1/2 -translate-y-1/2 bg-white/80 hover:bg-white p-3 rounded-full shadow-lg text-gray-800 transition-all opacity-0 group-hover:opacity-100"
+                                        >
+                                            <span className="text-2xl">❯</span>
+                                        </button>
+                                        <button
+                                            onClick={nextImage}
+                                            className="absolute right-0 top-1/2 -translate-y-1/2 bg-white/80 hover:bg-white p-3 rounded-full shadow-lg text-gray-800 transition-all opacity-0 group-hover:opacity-100"
+                                        >
+                                            <span className="text-2xl">❮</span>
+                                        </button>
+                                    </>
+                                )}
+                            </div>
+
+                            {/* Dots/Thumbnails indicator */}
+                            {(selectedVariant.imageUrls?.length > 1) && (
+                                <div className="flex flex-row-reverse gap-2 mt-6">
+                                    {selectedVariant.imageUrls.map((_, idx) => (
+                                        <div
+                                            key={idx}
+                                            onClick={() => setCurrentImageIndex(idx)}
+                                            className={`w-2.5 h-2.5 rounded-full cursor-pointer transition-all ${currentImageIndex === idx ? 'bg-sky-500 w-6' : 'bg-gray-300'}`}
+                                        />
+                                    ))}
+                                </div>
+                            )}
+                        </>
+                    )}
                 </div>
 
                 {/* Product Details, Variants, and Add to Cart Section */}
@@ -410,55 +518,37 @@ const ShowPage = ({ onAddToCart }) => {
                         )}
 
                         <div className="mb-8 space-y-6">
-                            {uniqueColors.length > 0 && (
-                                <div>
-                                    <span className="text-gray-800 font-bold block mb-3 text-lg">בחר צבע:</span>
-                                    <div className="flex flex-wrap gap-3">
-                                        {uniqueColors.map(color => (
-                                            <button
-                                                key={color}
-                                                onClick={() => {
-                                                    setSelectedColor(color);
-                                                    const firstAvailableStorage = product.variants.find(v => v.color === color)?.storage;
-                                                    if (firstAvailableStorage) {
-                                                        setSelectedStorage(firstAvailableStorage);
-                                                    }
-                                                }}
-                                                className={`px-5 py-2.5 rounded-xl border-2 font-medium transition-all duration-200 ${selectedColor === color
-                                                    ? 'bg-sky-50 border-sky-500 text-sky-700 shadow-sm'
-                                                    : 'bg-white border-gray-200 text-gray-700 hover:border-sky-300 hover:bg-gray-50'}`}
-                                            >
-                                                {color}
-                                            </button>
-                                        ))}
-                                    </div>
-                                </div>
-                            )}
+                            {variantFields.map(field => {
+                                const values = getUniqueValuesForField(field);
+                                if (values.length === 0) return null;
 
-                            {hasStorage && uniqueStorage.length > 0 && (
-                                <div>
-                                    <span className="text-gray-800 font-bold block mb-3 text-lg">בחר נפח אחסון:</span>
-                                    <div className="flex flex-wrap gap-3">
-                                        {uniqueStorage.map(storage => {
-                                            const isAvailable = isCombinationValid(selectedColor, storage);
-                                            return (
-                                                <button
-                                                    key={storage}
-                                                    onClick={() => setSelectedStorage(storage)}
-                                                    disabled={!isAvailable}
-                                                    className={`px-5 py-2.5 rounded-xl border-2 font-medium transition-all duration-200 
-                                                        ${selectedStorage === storage && isAvailable
-                                                            ? 'bg-sky-50 border-sky-500 text-sky-700 shadow-sm'
-                                                            : 'bg-white border-gray-200 text-gray-700 hover:border-sky-300 hover:bg-gray-50'} 
-                                                        ${!isAvailable ? 'opacity-40 cursor-not-allowed bg-gray-100 border-gray-100' : ''}`}
-                                                >
-                                                    {storage}
-                                                </button>
-                                            );
-                                        })}
+                                return (
+                                    <div key={field}>
+                                        <span className="text-gray-800 font-bold block mb-3 text-lg capitalize">
+                                            בחר {field === 'color' ? 'צבע' : field === 'storage' ? 'נפח' : field === 'size' ? 'גודל' : field}:
+                                        </span>
+                                        <div className="flex flex-wrap gap-3">
+                                            {values.map(val => {
+                                                const isAvailable = isOptionAvailable(field, val);
+                                                const isSelected = selectedAttributes[field] === val;
+                                                return (
+                                                    <button
+                                                        key={val}
+                                                        onClick={() => handleAttributeClick(field, val)}
+                                                        className={`px-5 py-2.5 rounded-xl border-2 font-medium transition-all duration-200 
+                                                            ${isSelected
+                                                                ? 'bg-sky-50 border-sky-500 text-sky-700 shadow-sm'
+                                                                : 'bg-white border-gray-200 text-gray-700 hover:border-sky-300 hover:bg-gray-50'} 
+                                                            ${!isAvailable ? 'opacity-60 grayscale-[0.5]' : ''}`}
+                                                    >
+                                                        {val}
+                                                    </button>
+                                                );
+                                            })}
+                                        </div>
                                     </div>
-                                </div>
-                            )}
+                                );
+                            })}
                         </div>
 
                         <div className="pt-2">
@@ -511,9 +601,10 @@ const ShowPage = ({ onAddToCart }) => {
                         {isAdmin && (
                             <button
                                 onClick={() => setIsAddingDescription(!isAddingDescription)}
-                                className={`transition-colors duration-300 ${isAddingDescription ? 'text-green-500' : 'text-gray-500 hover:text-green-500'}`}
+                                className={`flex items-center gap-2 transition-all duration-300 px-4 py-2 rounded-full ${isAddingDescription ? 'bg-green-50 text-green-500' : 'bg-gray-50 text-gray-500 hover:text-green-500 hover:bg-green-50'}`}
                             >
-                                <FaPlus className={isAddingDescription ? 'rotate-45' : ''} />
+                                <FaPlus className={`transition-transform duration-300 ${isAddingDescription ? 'rotate-45' : ''}`} />
+                                <span className="text-sm font-bold">הוספת תיאור מורחב</span>
                             </button>
                         )}
                     </h3>
@@ -534,299 +625,339 @@ const ShowPage = ({ onAddToCart }) => {
                             </button>
                         </div>
                     )}
-                    {!isAddingDescription && (
+                    {!isAddingDescription && product.longDescription && product.longDescription.trim() !== '' && (
                         <p className="text-lg font-extrabold text-gray-800 leading-relaxed whitespace-pre-line text-center">
-                            {product.longDescription || 'אין תיאור מורחב זמין.'}
+                            {product.longDescription}
                         </p>
                     )}
                 </div>
 
-                {/* Demo Videos */}
-                <h3 className="text-3xl font-extrabold mb-6 flex justify-between items-center text-gray-800 border-b pb-4">
-                    סרטוני הדגמה
-                    {isAdmin && (
-                        <button
-                            onClick={() => setIsAddingVideos(!isAddingVideos)}
-                            className={`transition-colors duration-300 p-2 rounded-full ${isAddingVideos ? 'bg-green-50 text-green-500' : 'bg-gray-50 text-gray-400 hover:text-green-500'}`}
-                        >
-                            <FaPlus className={`w-5 h-5 transition-transform ${isAddingVideos ? 'rotate-45' : ''}`} />
-                        </button>
-                    )}
-                </h3>
-                {isAddingVideos && isAdmin && (
-                    <div className="mb-10 p-6 bg-white rounded-3xl border-2 border-dashed border-sky-100 animate-in slide-in-from-top duration-300">
-                        <div className="space-y-4 mb-6">
-                            {newVideos.map((vid, index) => (
-                                <div key={index} className="space-y-3 p-4 bg-gray-50 rounded-xl border border-gray-100">
-                                    <input
-                                        type="text"
-                                        placeholder="כתובת URL לסרטון (YouTube)"
-                                        value={vid.url || ''}
-                                        onChange={(e) => {
-                                            const updated = [...newVideos];
-                                            updated[index] = { ...updated[index], url: e.target.value };
-                                            setNewVideos(updated);
-                                        }}
-                                        className="w-full px-4 py-3 border-2 border-sky-100 focus:border-sky-500 rounded-xl outline-none transition-colors"
-                                    />
-                                    <input
-                                        type="text"
-                                        placeholder="כותרת הסרטון"
-                                        value={vid.title || ''}
-                                        onChange={(e) => {
-                                            const updated = [...newVideos];
-                                            updated[index] = { ...updated[index], title: e.target.value };
-                                            setNewVideos(updated);
-                                        }}
-                                        className="w-full px-4 py-3 border-2 border-sky-100 focus:border-sky-500 rounded-xl outline-none transition-colors"
-                                    />
-                                    <textarea
-                                        placeholder="תיאור הסרטון (אופציונלי)"
-                                        value={vid.description || ''}
-                                        onChange={(e) => {
-                                            const updated = [...newVideos];
-                                            updated[index] = { ...updated[index], description: e.target.value };
-                                            setNewVideos(updated);
-                                        }}
-                                        className="w-full px-4 py-3 border-2 border-sky-100 focus:border-sky-500 rounded-xl outline-none transition-colors resize-none h-24"
-                                    />
-                                </div>
-                            ))}
-                        </div>
-                        <div className="flex flex-wrap gap-4">
-                            <button
-                                onClick={() => setNewVideos([...newVideos, { url: '', title: '', description: '' }])}
-                                className="bg-sky-50 text-sky-600 px-6 py-3 rounded-xl font-bold hover:bg-sky-100 transition-colors"
-                            >
-                                + הוסף סרטון נוסף
-                            </button>
-                            <button
-                                onClick={handleSaveNewContent}
-                                disabled={isSaving}
-                                className={`bg-green-500 text-white px-8 py-3 rounded-xl font-bold shadow-lg hover:bg-green-600 transition-all ${isSaving ? 'opacity-50' : ''}`}
-                            >
-                                {isSaving ? 'שומר...' : 'שמור סרטונים'}
-                            </button>
-                        </div>
-                    </div>
-                )}
-                <div className="grid grid-cols-1 gap-12 mt-6">
-                    {product?.videos?.map((video, index) => (
-                        <VideoItem
-                            key={index}
-                            video={video}
-                            index={index}
-                            isAdmin={isAdmin}
-                            onEdit={handleEditVideo}
-                            onDelete={handleDeleteVideo}
-                        />
-                    ))}
-                </div>
-            </div>
-
-            {/* Additional Images Gallery */}
-            <div className="mt-16 bg-white p-8 rounded-3xl shadow-xl border border-gray-100">
-                <h3 className="text-3xl font-extrabold mb-6 flex justify-between items-center text-gray-800 border-b pb-4">
-                    גלריית תמונות
-                    {isAdmin && (
-                        <button
-                            onClick={() => setIsAddingImages(!isAddingImages)}
-                            className={`transition-colors duration-300 p-2 rounded-full ${isAddingImages ? 'bg-green-50 text-green-500' : 'bg-gray-50 text-gray-400 hover:text-green-500'}`}
-                        >
-                            <FaPlus className={`w-5 h-5 transition-transform ${isAddingImages ? 'rotate-45' : ''}`} />
-                        </button>
-                    )}
-                </h3>
-                {isAddingImages && isAdmin && (
-                    <div className="mb-10 p-6 bg-white rounded-3xl border-2 border-dashed border-sky-100 animate-in slide-in-from-top duration-300">
-                        <div className="space-y-4 mb-6">
-                            {newImages.map((img, index) => (
-                                <div key={index} className="space-y-3 p-4 bg-gray-50 rounded-xl border border-gray-100">
-                                    <input
-                                        type="text"
-                                        placeholder="כתובת URL לתמונה"
-                                        value={img.url}
-                                        onChange={(e) => handleNewImageChange(index, 'url', e.target.value)}
-                                        className="w-full px-4 py-3 border-2 border-sky-100 focus:border-sky-500 rounded-xl outline-none transition-all"
-                                    />
-                                    <input
-                                        type="text"
-                                        placeholder="תיאור קצר לתמונה (אופציונלי)"
-                                        value={img.description}
-                                        onChange={(e) => handleNewImageChange(index, 'description', e.target.value)}
-                                        className="w-full px-4 py-3 border-2 border-sky-100 focus:border-sky-500 rounded-xl outline-none transition-all"
-                                    />
-                                </div>
-                            ))}
-                        </div>
-                        <div className="flex flex-wrap gap-4">
-                            <button
-                                onClick={handleAddImageField}
-                                className="bg-sky-50 text-sky-600 px-6 py-3 rounded-xl font-bold hover:bg-sky-100 transition-colors"
-                            >
-                                + הוסף תמונה נוספת
-                            </button>
-                            <button
-                                onClick={handleSaveNewContent}
-                                disabled={isSaving}
-                                className={`bg-green-500 text-white px-8 py-3 rounded-xl font-bold shadow-lg hover:bg-green-600 transition-all ${isSaving ? 'opacity-50' : ''}`}
-                            >
-                                {isSaving ? 'שומר...' : 'שמור תמונות'}
-                            </button>
-                        </div>
-                    </div>
-                )}
-                {product?.additionalImages?.length > 0 && (
-                    <div className="grid grid-cols-1 gap-16 mt-6">
-                        {product.additionalImages.map((imgItem, index) => {
-                            const imageUrl = imgItem.url;
-                            const imageDescription = imgItem.description;
-
-                            return (
-                                <div key={index} className="flex flex-col bg-white rounded-2xl shadow-md border border-gray-100 overflow-hidden group hover:shadow-xl transition-shadow duration-300">
-                                    <div className="relative w-full bg-gray-50 flex justify-center items-center overflow-hidden rounded-t-2xl">
-                                        <img
-                                            src={imageUrl}
-                                            alt={imageDescription || `${product.name} ${index + 1}`}
-                                            className="w-full max-h-[700px] object-contain group-hover:scale-[1.02] transition-transform duration-500"
-                                            onError={(e) => { e.target.onerror = null; e.target.src = 'https://placehold.co/800x600/eeeeee/282828?text=תמונה+חסרה'; }}
-                                        />
-                                        {isAdmin && (
-                                            <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex justify-center items-center gap-4">
-                                                <button
-                                                    onClick={() => handleEditImage(index)}
-                                                    className="px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white font-bold rounded-lg shadow-lg transform -translate-y-2 group-hover:translate-y-0 transition-all duration-300"
-                                                >
-                                                    עריכה
-                                                </button>
-                                                <button
-                                                    onClick={() => handleDeleteImage(index)}
-                                                    className="px-4 py-2 bg-red-500 hover:bg-red-600 text-white font-bold rounded-lg shadow-lg transform translate-y-2 group-hover:translate-y-0 transition-all duration-300"
-                                                >
-                                                    מחיקה
-                                                </button>
-                                            </div>
-                                        )}
-                                    </div>
-                                    {imageDescription && imageDescription.trim() !== '' && (
-                                        <div className="p-6 bg-white text-center">
-                                            <h4 className="text-2xl text-gray-700 font-normal">
-                                                {imageDescription}
-                                            </h4>
-                                        </div>
-                                    )}
-                                </div>
-                            );
-                        })}
-                    </div>
-                )}
-                {isAddingSpecs && (
-                    <div className="mt-4 space-y-4 animate-in slide-in-from-top duration-300">
-                        <div className="space-y-2">
-                            {newSpecs.map((spec, index) => (
-                                <div key={index} className="flex flex-col sm:flex-row gap-3 p-4 bg-gray-50 rounded-xl">
-                                    <input
-                                        type="text"
-                                        placeholder="מפתח (לדוגמה: מעבד)"
-                                        value={spec.key}
-                                        onChange={(e) => handleSpecChange(index, 'key', e.target.value)}
-                                        className="w-full px-4 py-2 border-2 border-gray-100 focus:border-sky-500 rounded-xl outline-none transition-all"
-                                    />
-                                    <input
-                                        type="text"
-                                        placeholder="ערך (לדוגמה: A17 Bionic)"
-                                        value={spec.value}
-                                        onChange={(e) => handleSpecChange(index, 'value', e.target.value)}
-                                        className="w-full px-4 py-2 border-2 border-gray-100 focus:border-sky-500 rounded-xl outline-none transition-all"
-                                    />
-                                </div>
-                            ))}
-                        </div>
-                        <div className="flex flex-wrap gap-4">
-                            <button
-                                onClick={handleAddSpecField}
-                                className="bg-sky-50 text-sky-600 px-6 py-3 rounded-xl font-bold hover:bg-sky-100 transition-colors"
-                            >
-                                + הוסף שדה נוסף
-                            </button>
-                            <button
-                                onClick={handleSaveNewContent}
-                                disabled={isSaving}
-                                className={`bg-green-500 text-white px-8 py-3 rounded-xl font-bold shadow-lg hover:bg-green-600 transition-all ${isSaving ? 'opacity-50' : ''}`}
-                            >
-                                {isSaving ? 'שומר...' : 'שמור מפרט'}
-                            </button>
-                        </div>
-                    </div>
-                )}
-            </div>
-
-            {/* Modal עריכת מדיה (תמונה/סרטון) */}
-            {editingMedia && (
-                <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex justify-center items-center p-4 overflow-y-auto">
-                    <div className="bg-white w-full max-w-2xl rounded-3xl shadow-2xl overflow-hidden animate-in fade-in zoom-in duration-200" dir="rtl">
-                        <div className="bg-sky-500 p-6 flex justify-between items-center text-white">
-                            <h3 className="text-2xl font-bold">עריכת {editingMedia.type === 'image' ? 'תמונה' : 'סרטון'}</h3>
-                            <button onClick={() => setEditingMedia(null)} className="hover:rotate-90 transition-transform duration-200">
-                                <FaPlus className="w-6 h-6 rotate-45" />
-                            </button>
-                        </div>
-
-                        <div className="p-8 space-y-6">
-                            <div className="space-y-2">
-                                <label className="block text-sm font-bold text-gray-700 mr-1">כתובת URL</label>
-                                <input
-                                    type="text"
-                                    value={editingMedia.data.url}
-                                    onChange={(e) => setEditingMedia({ ...editingMedia, data: { ...editingMedia.data, url: e.target.value } })}
-                                    className="w-full px-5 py-3 border-2 border-gray-100 focus:border-sky-500 rounded-2xl outline-none transition-all"
-                                    placeholder="הכנס כתובת URL..."
-                                />
-                            </div>
-
-                            {editingMedia.type === 'video' && (
-                                <div className="space-y-2">
-                                    <label className="block text-sm font-bold text-gray-700 mr-1">כותרת הסרטון</label>
-                                    <input
-                                        type="text"
-                                        value={editingMedia.data.title}
-                                        onChange={(e) => setEditingMedia({ ...editingMedia, data: { ...editingMedia.data, title: e.target.value } })}
-                                        className="w-full px-5 py-3 border-2 border-gray-100 focus:border-sky-500 rounded-2xl outline-none transition-all"
-                                        placeholder="כותרת הסרטון..."
-                                    />
+                {/* Full Review Section (Videos & Images) */}
+                {(product?.videos?.length > 0 || product?.additionalImages?.length > 0 || isAdmin) && (
+                    <div className="mt-16 bg-white p-8 rounded-3xl shadow-xl border border-gray-100">
+                        <div className="flex justify-between items-center mb-8 border-b pb-4">
+                            <h3 className="text-3xl font-extrabold text-gray-800">סקירה מלאה</h3>
+                            {isAdmin && (
+                                <div className="flex gap-3">
+                                    <button
+                                        onClick={() => setIsAddingVideos(!isAddingVideos)}
+                                        className={`flex items-center gap-2 transition-all duration-300 px-4 py-2 rounded-full ${isAddingVideos ? 'bg-green-50 text-green-500' : 'bg-gray-50 text-gray-400 hover:text-green-500 hover:bg-green-50'}`}
+                                    >
+                                        <FaPlus className={`w-5 h-5 transition-transform duration-300 ${isAddingVideos ? 'rotate-45' : ''}`} />
+                                        <span className="text-sm font-bold">הוספת סרטון</span>
+                                    </button>
+                                    <button
+                                        onClick={() => setIsAddingImages(!isAddingImages)}
+                                        className={`flex items-center gap-2 transition-all duration-300 px-4 py-2 rounded-full ${isAddingImages ? 'bg-green-50 text-green-500' : 'bg-gray-50 text-gray-400 hover:text-green-500 hover:bg-green-50'}`}
+                                    >
+                                        <FaPlus className={`w-5 h-5 transition-transform duration-300 ${isAddingImages ? 'rotate-45' : ''}`} />
+                                        <span className="text-sm font-bold">הוספת תמונה</span>
+                                    </button>
                                 </div>
                             )}
+                        </div>
 
-                            <div className="space-y-2">
-                                <label className="block text-sm font-bold text-gray-700 mr-1">תיאור (אופציונלי)</label>
-                                <textarea
-                                    value={editingMedia.data.description}
-                                    onChange={(e) => setEditingMedia({ ...editingMedia, data: { ...editingMedia.data, description: e.target.value } })}
-                                    className="w-full px-5 py-3 border-2 border-gray-100 focus:border-sky-500 rounded-2xl outline-none transition-all resize-none h-32"
-                                    placeholder="תיאור קצר..."
-                                />
+                        {/* Adding Videos Form */}
+                        {isAddingVideos && isAdmin && (
+                            <div className="mb-10 p-6 bg-white rounded-3xl border-2 border-dashed border-sky-100 animate-in slide-in-from-top duration-300">
+                                <div className="space-y-4 mb-6">
+                                    {newVideos.map((vid, index) => (
+                                        <div key={index} className="space-y-3 p-4 bg-gray-50 rounded-xl border border-gray-100">
+                                            <input
+                                                type="text"
+                                                placeholder="כתובת URL לסרטון (YouTube)"
+                                                value={vid.url || ''}
+                                                onChange={(e) => {
+                                                    const updated = [...newVideos];
+                                                    updated[index] = { ...updated[index], url: e.target.value };
+                                                    setNewVideos(updated);
+                                                }}
+                                                className="w-full px-4 py-3 border-2 border-sky-100 focus:border-sky-500 rounded-xl outline-none transition-colors"
+                                            />
+                                            <input
+                                                type="text"
+                                                placeholder="כותרת הסרטון"
+                                                value={vid.title || ''}
+                                                onChange={(e) => {
+                                                    const updated = [...newVideos];
+                                                    updated[index] = { ...updated[index], title: e.target.value };
+                                                    setNewVideos(updated);
+                                                }}
+                                                className="w-full px-4 py-3 border-2 border-sky-100 focus:border-sky-500 rounded-xl outline-none transition-colors"
+                                            />
+                                            <textarea
+                                                placeholder="תיאור הסרטון (אופציונלי)"
+                                                value={vid.description || ''}
+                                                onChange={(e) => {
+                                                    const updated = [...newVideos];
+                                                    updated[index] = { ...updated[index], description: e.target.value };
+                                                    setNewVideos(updated);
+                                                }}
+                                                className="w-full px-4 py-3 border-2 border-sky-100 focus:border-sky-500 rounded-xl outline-none transition-colors resize-none h-24"
+                                            />
+                                        </div>
+                                    ))}
+                                </div>
+                                <div className="flex flex-wrap gap-4">
+                                    <button
+                                        onClick={() => setNewVideos([...newVideos, { url: '', title: '', description: '' }])}
+                                        className="bg-sky-50 text-sky-600 px-6 py-3 rounded-xl font-bold hover:bg-sky-100 transition-colors"
+                                    >
+                                        + הוסף סרטון נוסף
+                                    </button>
+                                    <button
+                                        onClick={handleSaveNewContent}
+                                        disabled={isSaving}
+                                        className={`bg-green-500 text-white px-8 py-3 rounded-xl font-bold shadow-lg hover:bg-green-600 transition-all ${isSaving ? 'opacity-50' : ''}`}
+                                    >
+                                        {isSaving ? 'שומר...' : 'שמור סרטונים'}
+                                    </button>
+                                </div>
+                            </div>
+                        )}
+
+                        {/* Adding Images Form */}
+                        {isAddingImages && isAdmin && (
+                            <div className="mb-10 p-6 bg-white rounded-3xl border-2 border-dashed border-sky-100 animate-in slide-in-from-top duration-300">
+                                <div className="space-y-4 mb-6">
+                                    {newImages.map((img, index) => (
+                                        <div key={index} className="space-y-3 p-4 bg-gray-50 rounded-xl border border-gray-100">
+                                            <input
+                                                type="text"
+                                                placeholder="כתובת URL לתמונה"
+                                                value={img.url}
+                                                onChange={(e) => handleNewImageChange(index, 'url', e.target.value)}
+                                                className="w-full px-4 py-3 border-2 border-sky-100 focus:border-sky-500 rounded-xl outline-none transition-all"
+                                            />
+                                            <input
+                                                type="text"
+                                                placeholder="תיאור קצר לתמונה (אופציונלי)"
+                                                value={img.description}
+                                                onChange={(e) => handleNewImageChange(index, 'description', e.target.value)}
+                                                className="w-full px-4 py-3 border-2 border-sky-100 focus:border-sky-500 rounded-xl outline-none transition-all"
+                                            />
+                                        </div>
+                                    ))}
+                                </div>
+                                <div className="flex flex-wrap gap-4">
+                                    <button
+                                        onClick={handleAddImageField}
+                                        className="bg-sky-50 text-sky-600 px-6 py-3 rounded-xl font-bold hover:bg-sky-100 transition-colors"
+                                    >
+                                        + הוסף תמונה נוספת
+                                    </button>
+                                    <button
+                                        onClick={handleSaveNewContent}
+                                        disabled={isSaving}
+                                        className={`bg-green-500 text-white px-8 py-3 rounded-xl font-bold shadow-lg hover:bg-green-600 transition-all ${isSaving ? 'opacity-50' : ''}`}
+                                    >
+                                        {isSaving ? 'שומר...' : 'שמור תמונות'}
+                                    </button>
+                                </div>
+                            </div>
+                        )}
+
+                        {/* Videos List */}
+                        {product?.videos?.length > 0 && (
+                            <div className={`grid grid-cols-1 gap-12 ${product?.additionalImages?.length > 0 ? 'mb-16 border-b border-gray-100 pb-16' : ''}`}>
+                                {product.videos.map((video, index) => (
+                                    <VideoItem
+                                        key={index}
+                                        video={video}
+                                        index={index}
+                                        isAdmin={isAdmin}
+                                        onEdit={handleEditVideo}
+                                        onDelete={handleDeleteVideo}
+                                    />
+                                ))}
+                            </div>
+                        )}
+
+                        {/* Images Gallery */}
+                        {product?.additionalImages?.length > 0 && (
+                            <div className="grid grid-cols-1 gap-16">
+                                {product.additionalImages.map((imgItem, index) => {
+                                    const imageUrl = imgItem.url;
+                                    const imageDescription = imgItem.description;
+
+                                    return (
+                                        <div key={index} className="flex flex-col bg-white rounded-2xl shadow-md border border-gray-100 overflow-hidden group hover:shadow-xl transition-shadow duration-300">
+                                            <div className="relative w-full bg-gray-50 flex justify-center items-center overflow-hidden rounded-t-2xl">
+                                                <img
+                                                    src={imageUrl}
+                                                    alt={imageDescription || `${product.name} ${index + 1}`}
+                                                    className="w-full max-h-[700px] object-contain group-hover:scale-[1.02] transition-transform duration-500"
+                                                    onError={(e) => { e.target.onerror = null; e.target.src = 'https://placehold.co/800x600/eeeeee/282828?text=תמונה+חסרה'; }}
+                                                />
+                                                {isAdmin && (
+                                                    <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex justify-center items-center gap-4">
+                                                        <button
+                                                            onClick={() => handleEditImage(index)}
+                                                            className="px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white font-bold rounded-lg shadow-lg transform -translate-y-2 group-hover:translate-y-0 transition-all duration-300"
+                                                        >
+                                                            עריכה
+                                                        </button>
+                                                        <button
+                                                            onClick={() => handleDeleteImage(index)}
+                                                            className="px-4 py-2 bg-red-500 hover:bg-red-600 text-white font-bold rounded-lg shadow-lg transform translate-y-2 group-hover:translate-y-0 transition-all duration-300"
+                                                        >
+                                                            מחיקה
+                                                        </button>
+                                                    </div>
+                                                )}
+                                            </div>
+                                            {imageDescription && imageDescription.trim() !== '' && (
+                                                <div className="p-6 bg-white text-center">
+                                                    <h4 className="text-2xl text-gray-700 font-normal">
+                                                        {imageDescription}
+                                                    </h4>
+                                                </div>
+                                            )}
+                                        </div>
+                                    );
+                                })}
+                            </div>
+                        )}
+                    </div>
+                )}
+
+
+                {/* Technical Specifications Section */}
+                {((product?.technicalSpecs?.length > 0) || isAdmin) && (
+                    <div className="mt-16 bg-white p-8 rounded-3xl shadow-xl border border-gray-100">
+                        <div className="flex justify-between items-center mb-8 border-b pb-4">
+                            <h3 className="text-3xl font-extrabold text-gray-800">מפרט טכני</h3>
+                            {isAdmin && (
+                                <button
+                                    onClick={() => setIsAddingSpecs(!isAddingSpecs)}
+                                    className={`flex items-center gap-2 transition-all duration-300 px-4 py-2 rounded-full ${isAddingSpecs ? 'bg-green-50 text-green-500' : 'bg-gray-50 text-gray-400 hover:text-green-500 hover:bg-green-50'}`}
+                                >
+                                    <FaPlus className={`w-5 h-5 transition-transform duration-300 ${isAddingSpecs ? 'rotate-45' : ''}`} />
+                                    <span className="text-sm font-bold">הוספת מפרט</span>
+                                </button>
+                            )}
+                        </div>
+
+                        {product?.technicalSpecs?.length > 0 && (
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                {product.technicalSpecs.map((spec, index) => (
+                                    <div key={index} className="flex items-center gap-3 p-4 bg-gray-50 rounded-2xl border border-gray-100 hover:shadow-md transition-shadow">
+                                        <span className="font-extrabold text-gray-900 text-lg">{spec.key}</span>
+                                        <span className="text-gray-700 text-lg">{spec.value}</span>
+                                    </div>
+                                ))}
+                            </div>
+                        )}
+
+                        {isAddingSpecs && isAdmin && (
+                            <div className="mt-8 p-6 bg-white rounded-3xl border-2 border-dashed border-sky-100 animate-in slide-in-from-top duration-300">
+                                <div className="space-y-4 mb-6">
+                                    {newSpecs.map((spec, index) => (
+                                        <div key={index} className="flex flex-col sm:flex-row gap-3 p-4 bg-gray-50 rounded-xl border border-gray-100">
+                                            <input
+                                                type="text"
+                                                placeholder="מפתח (לדוגמה: מצלמה)"
+                                                value={spec.key}
+                                                onChange={(e) => handleSpecChange(index, 'key', e.target.value)}
+                                                className="w-full px-4 py-2 border-2 border-gray-100 focus:border-sky-500 rounded-xl outline-none transition-all"
+                                            />
+                                            <input
+                                                type="text"
+                                                placeholder="ערך (לדוגמה: 48 מגה פיקסל)"
+                                                value={spec.value}
+                                                onChange={(e) => handleSpecChange(index, 'value', e.target.value)}
+                                                className="w-full px-4 py-2 border-2 border-gray-100 focus:border-sky-500 rounded-xl outline-none transition-all"
+                                            />
+                                        </div>
+                                    ))}
+                                </div>
+                                <div className="flex flex-wrap gap-4">
+                                    <button
+                                        onClick={handleAddSpecField}
+                                        className="bg-sky-50 text-sky-600 px-6 py-3 rounded-xl font-bold hover:bg-sky-100 transition-colors"
+                                    >
+                                        + הוסף שדה נוסף
+                                    </button>
+                                    <button
+                                        onClick={handleSaveNewContent}
+                                        disabled={isSaving}
+                                        className={`bg-green-500 text-white px-8 py-3 rounded-xl font-bold shadow-lg hover:bg-green-600 transition-all ${isSaving ? 'opacity-50' : ''}`}
+                                    >
+                                        {isSaving ? 'שומר...' : 'שמור מפרט'}
+                                    </button>
+                                </div>
+                            </div>
+                        )}
+                    </div>
+                )}
+
+
+                {editingMedia && (
+                    <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex justify-center items-center p-4 overflow-y-auto">
+                        <div className="bg-white w-full max-w-2xl rounded-3xl shadow-2xl overflow-hidden animate-in fade-in zoom-in duration-200" dir="rtl">
+                            <div className="bg-sky-500 p-6 flex justify-between items-center text-white">
+                                <h3 className="text-2xl font-bold">עריכת {editingMedia.type === 'image' ? 'תמונה' : 'סרטון'}</h3>
+                                <button onClick={() => setEditingMedia(null)} className="hover:rotate-90 transition-transform duration-200">
+                                    <FaPlus className="w-6 h-6 rotate-45" />
+                                </button>
                             </div>
 
-                            <div className="flex gap-4 pt-4">
-                                <button
-                                    onClick={handleSaveEditMedia}
-                                    disabled={isSaving}
-                                    className={`flex-1 bg-green-500 text-white py-4 rounded-2xl font-bold text-lg shadow-lg hover:bg-green-600 transition-all ${isSaving ? 'opacity-50 cursor-not-allowed' : ''}`}
-                                >
-                                    {isSaving ? 'שומר שינויים...' : 'שמור שינויים'}
-                                </button>
-                                <button
-                                    onClick={() => setEditingMedia(null)}
-                                    className="flex-1 bg-gray-100 text-gray-600 py-4 rounded-2xl font-bold text-lg hover:bg-gray-200 transition-all"
-                                >
-                                    ביטול
-                                </button>
+                            <div className="p-8 space-y-6">
+                                <div className="space-y-2">
+                                    <label className="block text-sm font-bold text-gray-700 mr-1">כתובת URL</label>
+                                    <input
+                                        type="text"
+                                        value={editingMedia.data.url}
+                                        onChange={(e) => setEditingMedia({ ...editingMedia, data: { ...editingMedia.data, url: e.target.value } })}
+                                        className="w-full px-5 py-3 border-2 border-gray-100 focus:border-sky-500 rounded-2xl outline-none transition-all"
+                                        placeholder="הכנס כתובת URL..."
+                                    />
+                                </div>
+
+                                {editingMedia.type === 'video' && (
+                                    <div className="space-y-2">
+                                        <label className="block text-sm font-bold text-gray-700 mr-1">כותרת הסרטון</label>
+                                        <input
+                                            type="text"
+                                            value={editingMedia.data.title}
+                                            onChange={(e) => setEditingMedia({ ...editingMedia, data: { ...editingMedia.data, title: e.target.value } })}
+                                            className="w-full px-5 py-3 border-2 border-gray-100 focus:border-sky-500 rounded-2xl outline-none transition-all"
+                                            placeholder="כותרת הסרטון..."
+                                        />
+                                    </div>
+                                )}
+
+                                <div className="space-y-2">
+                                    <label className="block text-sm font-bold text-gray-700 mr-1">תיאור (אופציונלי)</label>
+                                    <textarea
+                                        value={editingMedia.data.description}
+                                        onChange={(e) => setEditingMedia({ ...editingMedia, data: { ...editingMedia.data, description: e.target.value } })}
+                                        className="w-full px-5 py-3 border-2 border-gray-100 focus:border-sky-500 rounded-2xl outline-none transition-all resize-none h-32"
+                                        placeholder="תיאור קצר..."
+                                    />
+                                </div>
+
+                                <div className="flex gap-4 pt-4">
+                                    <button
+                                        onClick={handleSaveEditMedia}
+                                        disabled={isSaving}
+                                        className={`flex-1 bg-green-500 text-white py-4 rounded-2xl font-bold text-lg shadow-lg hover:bg-green-600 transition-all ${isSaving ? 'opacity-50 cursor-not-allowed' : ''}`}
+                                    >
+                                        {isSaving ? 'שומר שינויים...' : 'שמור שינויים'}
+                                    </button>
+                                    <button
+                                        onClick={() => setEditingMedia(null)}
+                                        className="flex-1 bg-gray-100 text-gray-600 py-4 rounded-2xl font-bold text-lg hover:bg-gray-200 transition-all"
+                                    >
+                                        ביטול
+                                    </button>
+                                </div>
                             </div>
                         </div>
                     </div>
-                </div>
-            )}
-        </div >
+                )}
+            </div>
+        </div>
     );
 };
 

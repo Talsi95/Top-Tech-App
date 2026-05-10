@@ -157,12 +157,21 @@ const UserArea = () => {
                                             displayedVariant = item.product.variants.find(v => v._id?.toString() === variantId);
                                         }
 
-                                        const imageUrl = displayedVariant?.imageUrl
-                                            || item.product?.variants?.[0]?.imageUrl
-                                            || 'https://via.placeholder.com/150';
+                                        const imageUrl = (displayedVariant?.imageUrls && displayedVariant.imageUrls.length > 0)
+                                            ? displayedVariant.imageUrls[0]
+                                            : (displayedVariant?.imageUrl
+                                                || (item.product?.variants?.[0]?.imageUrls && item.product.variants[0].imageUrls.length > 0
+                                                    ? item.product.variants[0].imageUrls[0]
+                                                    : item.product?.variants?.[0]?.imageUrl)
+                                                || 'https://via.placeholder.com/150');
 
                                         let variantText = '';
-                                        if (displayedVariant) {
+                                        if (item.attributes && Object.entries(item.attributes).length > 0) {
+                                            variantText = Object.entries(item.attributes)
+                                                .map(([key, value]) => `${key === 'color' ? 'צבע' : key === 'storage' ? 'נפח' : key}: ${value}`)
+                                                .join(', ');
+                                        } else if (displayedVariant) {
+                                            // Fallback for older orders without stored attributes
                                             const color = displayedVariant.color;
                                             const storage = displayedVariant.storage;
 

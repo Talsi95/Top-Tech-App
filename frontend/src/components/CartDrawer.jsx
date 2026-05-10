@@ -52,7 +52,12 @@ const CartDrawer = ({ isOpen, onClose, cartItems, onRemoveFromCart, totalPrice, 
                     <p className="text-gray-500 text-center">העגלה שלך ריקה</p>
                 ) : (
                     cartItems.map(item => {
-                        const itemImageUrl = item.variant?.imageUrl ?? item.product?.imageUrl;
+                        const itemImageUrl = (item.variant?.imageUrls && item.variant.imageUrls.length > 0)
+                            ? item.variant.imageUrls[0]
+                            : (item.variant?.imageUrl || 
+                               (item.product?.variants?.[0]?.imageUrls && item.product.variants[0].imageUrls.length > 0 
+                                ? item.product.variants[0].imageUrls[0] 
+                                : item.product?.imageUrl));
                         const itemKey = item.product?._id + (item.variant?._id || '');
                         const isItemOnSale = item.variant?.isOnSale;
                         const regularPrice = item.variant?.price;

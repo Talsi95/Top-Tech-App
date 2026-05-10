@@ -1,5 +1,6 @@
 import { useAuth } from '../AuthContext';
 import { useNavigate, Link } from 'react-router-dom';
+import ProductCard from './ProductCard';
 
 /**
  * ProductList Component.
@@ -22,84 +23,37 @@ const ProductList = ({ onAddToCart, onUpdateProduct, onDeleteProduct, products }
     return (
         <div className="container mx-auto p-4">
             <h2 className="text-3xl font-bold text-center text-gray-800 mb-8">כל המוצרים שלנו</h2>
-            {products.length === 0 ? (
-                <p className="text-center text-gray-500">אין מוצרים עדיין, נא להוסיף!</p>
-            ) : (
-                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-2 lg:grid-cols-2 xl:grid-cols-3 gap-6">
-                    {products.map((product) => {
-                        if (!product.variants || product.variants.length === 0) {
-                            return null;
-                        }
-
-                        const defaultVariant = product.variants[0];
-
-                        return (
-                            <div key={product._id} className="bg-white p-6 rounded-lg shadow-md flex flex-col justify-between">
-                                <Link to={`/product/${product._id}`}>
-                                    <div className="mb-4">
-                                        <img
-                                            src={defaultVariant.imageUrl}
-                                            alt={product.name}
-                                            className="w-full h-48 object-contain rounded-md mb-2 bg-white-100"
-                                        />
-                                        <h3 className="text-xl font-semibold mb-2">{product.name}</h3>
-                                        <p className="text-gray-600 text-sm mb-2">{product.description}</p>
-                                    </div>
-                                </Link>
-                                <div className="mt-auto">
-                                    {defaultVariant.isOnSale ? (
-                                        <div className="flex items-end justify-between">
-                                            <div>
-                                                <span className="text-gray-400 line-through text-sm ml-2">₪{defaultVariant.price.toFixed(2)}</span>
-                                                <br />
-                                                <span className="text-red-600 font-bold text-2xl">₪{defaultVariant.salePrice.toFixed(2)}</span>
-                                            </div>
-                                            <button
-                                                onClick={() => navigate(`/product/${product._id}`)}
-                                                className="mt-4 bg-sky-500 text-white px-4 py-2 rounded-md hover:bg-sky-600 transition-colors"
-                                            >
-                                                בחר תצורה
-                                            </button>
-                                        </div>
-                                    ) : (
-                                        <div className="flex items-center justify-between">
-                                            <span className="text-gray-800 font-bold text-xl">₪{defaultVariant.price.toFixed(2)}</span>
-                                            <button
-                                                onClick={() => navigate(`/product/${product._id}`)}
-                                                className="mt-4 bg-sky-500 text-white px-4 py-2 rounded-md hover:bg-sky-600 transition-colors"
-                                            >
-                                                בחר תצורה
-                                            </button>
-                                        </div>
-                                    )}
-                                    {isAdmin && (
-                                        <div className="flex space-x-2 mt-2">
-                                            <button
-                                                onClick={() => navigate(`/product-form/${product._id}`)}
-                                                className="bg-blue-500 hover:bg-blue-600 text-white font-bold py-1 px-3 rounded text-xs"
-                                            >
-                                                עריכה
-                                            </button>
-                                            <button
-                                                onClick={() => onDeleteProduct(product._id)}
-                                                className="bg-red-500 hover:bg-red-600 text-white font-bold py-1 px-3 rounded text-xs"
-                                            >
-                                                מחיקה
-                                            </button>
-                                            <button
-                                                onClick={() => navigate(`/admin/update-variant/${product._id}`)}
-                                                className="bg-sky-500 hover:bg-sky-600 text-white font-bold py-1 px-3 rounded text-xs"
-                                            >
-                                                עדכון מלאי
-                                            </button>
-                                        </div>
-                                    )}
-                                </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-2 lg:grid-cols-2 xl:grid-cols-3 gap-6">
+                {products.map((product) => (
+                    <div key={product._id} className="flex flex-col h-full bg-white rounded-lg shadow-md overflow-hidden hover:shadow-xl transition-shadow duration-300">
+                        <div className="flex-grow">
+                            <ProductCard product={product} />
+                        </div>
+                        {isAdmin && (
+                            <div className="p-4 border-t flex flex-wrap gap-2 justify-center bg-gray-50">
+                                <button
+                                    onClick={() => navigate(`/product-form/${product._id}`)}
+                                    className="bg-blue-500 hover:bg-blue-600 text-white font-bold py-1.5 px-3 rounded text-xs transition-colors flex-1"
+                                >
+                                    עריכה
+                                </button>
+                                <button
+                                    onClick={() => onDeleteProduct(product._id)}
+                                    className="bg-red-500 hover:bg-red-600 text-white font-bold py-1.5 px-3 rounded text-xs transition-colors flex-1"
+                                >
+                                    מחיקה
+                                </button>
+                                <button
+                                    onClick={() => navigate(`/admin/update-variant/${product._id}`)}
+                                    className="bg-sky-500 hover:bg-sky-600 text-white font-bold py-1.5 px-3 rounded text-xs transition-colors w-full"
+                                >
+                                    עדכון מלאי
+                                </button>
                             </div>
-                        );
-                    })}
-                </div>
-            )}
+                        )}
+                    </div>
+                ))}
+            </div>
         </div>
     );
 };

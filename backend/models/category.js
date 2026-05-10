@@ -9,7 +9,6 @@ const categorySchema = new Schema({
     },
     variantFields: [{
         type: String,
-        enum: ['color', 'storage', 'size'],
         required: true
     }],
     subcategories: [{

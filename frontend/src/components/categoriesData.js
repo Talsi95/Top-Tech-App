@@ -21,6 +21,10 @@ export const categories = [
     {
         name: 'אוזניות',
         variantFields: ['color']
+    },
+    {
+        name: 'מטענים',
+        variantFields: ['color']
     }
 ];
 

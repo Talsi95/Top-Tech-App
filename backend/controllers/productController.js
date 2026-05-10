@@ -7,7 +7,11 @@ const Category = require('../models/category');
  * @param {Object} res - Express response object.
  */
 const getProducts = async (req, res) => {
-    const { category, subcategory, ...queryFilters } = req.query;
+    const { category, subcategory, minPrice, maxPrice, page = 1, limit = 20, ...queryFilters } = req.query;
+
+    const pageNum = parseInt(page);
+    const limitNum = parseInt(limit);
+    const skip = (pageNum - 1) * limitNum;
 
     let combinedConditions = [];
 
@@ -18,22 +22,43 @@ const getProducts = async (req, res) => {
         combinedConditions.push({ subcategory: subcategory });
     }
 
-    const variantFields = ['color', 'storage', 'size'];
+    if (minPrice || maxPrice) {
+        const priceQuery = {};
+        if (minPrice) priceQuery.$gte = parseFloat(minPrice);
+        if (maxPrice) priceQuery.$lte = parseFloat(maxPrice);
+
+        combinedConditions.push({
+            variants: {
+                $elemMatch: {
+                    $or: [
+                        { 
+                            salePrice: { $exists: true, $ne: null }, 
+                            salePrice: priceQuery 
+                        },
+                        { 
+                            $or: [{ salePrice: { $exists: false } }, { salePrice: null }], 
+                            price: priceQuery 
+                        }
+                    ]
+                }
+            }
+        });
+    }
 
     for (const key in queryFilters) {
         if (key.startsWith('filter_')) {
             const field = key.replace('filter_', '');
             const value = queryFilters[key];
 
-            if (variantFields.includes(field)) {
-                combinedConditions.push({
-                    variants: {
-                        $elemMatch: {
-                            [field]: value
-                        }
+            const filterValue = Array.isArray(value) ? { $in: value } : value;
+
+            combinedConditions.push({
+                variants: {
+                    $elemMatch: {
+                        [field]: filterValue
                     }
-                });
-            }
+                }
+            });
         }
     }
 
@@ -43,11 +68,20 @@ const getProducts = async (req, res) => {
     }
 
     try {
-        const products = await Product.find(dbQuery).exec();
+        const totalProducts = await Product.countDocuments(dbQuery);
+        const products = await Product.find(dbQuery)
+            .sort({ createdAt: -1 })
+            .skip(skip)
+            .limit(limitNum)
+            .exec();
 
         const availableFilters = getAvailableFilters(products);
 
-        res.json({ products, availableFilters });
+        res.json({ 
+            products, 
+            availableFilters,
+            hasMore: totalProducts > skip + products.length
+        });
     } catch (error) {
         console.error("Error fetching products:", error);
         res.status(500).json({ message: "Failed to fetch products" });
@@ -61,17 +95,19 @@ const getProducts = async (req, res) => {
  */
 const getAvailableFilters = (products) => {
     const filters = {};
-    const relevantFields = ['color', 'storage', 'size'];
-
     products.forEach(product => {
         product.variants.forEach(variant => {
-            relevantFields.forEach(field => {
-                const value = variant[field];
-                if (value) {
-                    if (!filters[field]) {
-                        filters[field] = new Set();
+            // Get all keys except the standard ones
+            const standardFields = ['price', 'stock', 'imageUrl', 'isOnSale', 'salePrice', '_id', 'id'];
+            Object.keys(variant.toObject ? variant.toObject() : variant).forEach(field => {
+                if (!standardFields.includes(field)) {
+                    const value = variant[field];
+                    if (value) {
+                        if (!filters[field]) {
+                            filters[field] = new Set();
+                        }
+                        filters[field].add(value);
                     }
-                    filters[field].add(value);
                 }
             });
         });

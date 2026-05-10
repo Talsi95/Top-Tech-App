@@ -31,7 +31,7 @@ const CARD_ELEMENT_OPTIONS = {
  */
 const CheckoutForm = ({ cartItems, showNotification, onOrderComplete, guestToken }) => {
     const navigate = useNavigate();
-    const { user, isGuest, getToken } = useAuth();
+    const { user, isGuest, getToken, logout } = useAuth();
 
     const stripe = useStripe();
     const elements = useElements();

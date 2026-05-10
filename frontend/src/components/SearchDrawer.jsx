@@ -88,7 +88,13 @@ const SearchDrawer = ({ isOpen, onClose }) => {
                         searchResults.map(product => (
                             <div key={product._id} className="flex items-center space-x-4 mb-4 pb-4 border-b border-gray-700">
                                 <Link to={`/product/${product._id}`} onClick={onClose}>
-                                    <img src={product.variants[0]?.imageUrl} alt={product.name} className="h-16 w-16 object-cover rounded-md" />
+                                    <img 
+                                        src={(product.variants[0]?.imageUrls && product.variants[0].imageUrls.length > 0) 
+                                            ? product.variants[0].imageUrls[0] 
+                                            : product.variants[0]?.imageUrl} 
+                                        alt={product.name} 
+                                        className="h-16 w-16 object-cover rounded-md" 
+                                    />
                                 </Link>
                                 <div className="flex-1">
                                     <Link to={`/product/${product._id}`} onClick={onClose} className="font-semibold text-lg text-white hover:underline">

@@ -46,8 +46,12 @@ const Navbar = ({
                 {/* Section 2: Desktop Links */}
                 <div className="hidden md:flex flex-row-reverse items-center space-x-reverse space-x-8">
                     {/* Desktop Search Button */}
-                    <button onClick={onToggleSearchDrawer} className="text-gray-200 hover:text-white focus:outline-none">
-                        <FaSearch className="h-6 w-6" />
+                    <button
+                        onClick={onToggleSearchDrawer}
+                        className="flex items-center gap-3 bg-gray-700/40 hover:bg-gray-700/60 px-4 py-1.5 rounded-full text-gray-300 hover:text-white transition-all border border-gray-600/30 group"
+                    >
+                        <span className="text-sm hidden lg:inline font-medium">חיפוש מוצרים...</span>
+                        <FaSearch className="h-4 w-4 group-hover:scale-110 transition-transform" />
                     </button>
 
                     {/* Desktop NavLinks */}
@@ -121,8 +125,11 @@ const Navbar = ({
                         />
                     )}
                     {/* Mobile Search Button */}
-                    <button onClick={onToggleSearchDrawer} className="text-gray-200 hover:text-white focus:outline-none">
-                        <FaSearch className="h-6 w-6" />
+                    <button
+                        onClick={onToggleSearchDrawer}
+                        className="bg-gray-700/50 p-2 rounded-full text-gray-200 hover:text-white transition-colors"
+                    >
+                        <FaSearch className="h-5 w-5" />
                     </button>
                     {/* Cart Button */}
                     <button onClick={onToggleDrawer} className="relative text-gray-200 hover:text-white focus:outline-none">
@@ -145,6 +152,7 @@ const Navbar = ({
                 <div className="px-2 pt-2 pb-3 space-y-1 text-right">
                     <NavLink to="/" onClick={toggleMobileMenu} className="block px-3 py-2 rounded-md text-base font-medium text-gray-300 hover:bg-white/5">דף הבית</NavLink>
                     <NavLink to="/repair-lab" onClick={toggleMobileMenu} className="block px-3 py-2 rounded-md text-base font-medium text-gray-300 hover:bg-white/5">מעבדת תיקונים</NavLink>
+                    <NavLink to="/products?category=אביזרים נלווים" onClick={toggleMobileMenu} className="block px-3 py-2 rounded-md text-base font-medium text-gray-300 hover:bg-white/5">אביזרים נלווים</NavLink>
                     {isAdmin && (
                         <NavLink to="/admin" onClick={toggleMobileMenu} className="block px-3 py-2 rounded-md text-base font-medium text-gray-300 hover:bg-white/5">איזור מנהל</NavLink>
                     )}

@@ -40,6 +40,7 @@ const ProductForm = ({ showNotification, existingProduct, onUpdateSuccess, admin
                     salePrice: v.salePrice || '',
                     stock: v.stock || '',
                     isOnSale: v.isOnSale || (v.salePrice && v.salePrice > 0),
+                    imageUrls: v.imageUrls && v.imageUrls.length > 0 ? v.imageUrls : [v.imageUrl || ''],
                 }))
             };
         }
@@ -50,12 +51,10 @@ const ProductForm = ({ showNotification, existingProduct, onUpdateSuccess, admin
             category: { main: initialMainCategory, sub: initialSubCategory },
             variants: [
                 {
-                    color: '',
-                    storage: '',
                     price: '',
                     salePrice: '',
                     isOnSale: false,
-                    imageUrl: '',
+                    imageUrls: [''],
                     stock: ''
                 }
             ]
@@ -76,6 +75,7 @@ const ProductForm = ({ showNotification, existingProduct, onUpdateSuccess, admin
                     salePrice: v.salePrice || '',
                     stock: v.stock || '',
                     isOnSale: v.isOnSale || (v.salePrice && v.salePrice > 0),
+                    imageUrls: v.imageUrls && v.imageUrls.length > 0 ? v.imageUrls : [v.imageUrl || ''],
                 }))
             }));
         }
@@ -110,12 +110,10 @@ const ProductForm = ({ showNotification, existingProduct, onUpdateSuccess, admin
         setFormData({
             ...formData,
             variants: [...formData.variants, {
-                color: '',
-                storage: '',
                 price: '',
                 salePrice: '',
                 isOnSale: false,
-                imageUrl: '',
+                imageUrls: [''],
                 stock: ''
             }]
         });
@@ -146,19 +144,17 @@ const ProductForm = ({ showNotification, existingProduct, onUpdateSuccess, admin
             const parsedSalePrice = parseFloat(v.salePrice);
             const parsedStock = parseInt(v.stock, 10);
 
-            if (productRequiredFields.includes('color') && !v.color.trim()) {
-                vErrors.color = 'צבע נדרש';
-            }
-            if (productRequiredFields.includes('storage') && !v.storage.trim()) {
-                vErrors.storage = 'נפח נדרש';
-            }
-            if (productRequiredFields.includes('size') && !v.size?.trim()) {
-                vErrors.size = 'גודל נדרש';
-            }
+            productRequiredFields.forEach(field => {
+                if (!v[field] || (typeof v[field] === 'string' && !v[field].trim())) {
+                    vErrors[field] = `${field === 'color' ? 'צבע' : field === 'storage' ? 'נפח' : field === 'size' ? 'גודל' : field} נדרש`;
+                }
+            });
 
             if (isNaN(parsedPrice) || parsedPrice <= 0) vErrors.price = 'מחיר חייב להיות מספר חיובי';
             if (isNaN(parsedStock) || parsedStock < 0) vErrors.stock = 'מלאי חייב להיות מספר חיובי או אפס';
-            if (!v.imageUrl.trim()) vErrors.imageUrl = 'קישור תמונה נדרש';
+            
+            const filteredImages = v.imageUrls.filter(url => url.trim() !== '');
+            if (filteredImages.length === 0) vErrors.imageUrls = 'לפחות תמונה אחת נדרשת';
             if (v.isOnSale && (isNaN(parsedSalePrice) || parsedSalePrice <= 0 || parsedSalePrice >= parsedPrice)) {
                 vErrors.salePrice = 'מחיר מבצע חייב להיות מספר חיובי וקטן מהמחיר המקורי';
             }
@@ -280,27 +276,24 @@ const ProductForm = ({ showNotification, existingProduct, onUpdateSuccess, admin
                             </button>
                         )}
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            {formData.category.main && safeAdminVariantFields[formData.category.main]?.includes('color') && (
-                                <div>
-                                    <label className="block text-gray-700">צבע</label>
-                                    <input className="w-full mt-1 p-2 border rounded-md" type="text" name="color" value={variant.color} onChange={(e) => handleVariantChange(index, e)} required />
-                                    {validationErrors.variants && validationErrors.variants[index]?.color && <p className="text-red-500 text-xs italic mt-1">{validationErrors.variants[index].color}</p>}
+                            {formData.category.main && (safeAdminVariantFields[formData.category.main] || []).map(field => (
+                                <div key={field}>
+                                    <label className="block text-gray-700 capitalize">
+                                        {field === 'color' ? 'צבע' : field === 'storage' ? 'נפח' : field === 'size' ? 'גודל' : field}
+                                    </label>
+                                    <input
+                                        className="w-full mt-1 p-2 border rounded-md"
+                                        type="text"
+                                        name={field}
+                                        value={variant[field] || ''}
+                                        onChange={(e) => handleVariantChange(index, e)}
+                                        required
+                                    />
+                                    {validationErrors.variants && validationErrors.variants[index]?.[field] && (
+                                        <p className="text-red-500 text-xs italic mt-1">{validationErrors.variants[index][field]}</p>
+                                    )}
                                 </div>
-                            )}
-                            {formData.category.main && safeAdminVariantFields[formData.category.main]?.includes('storage') && (
-                                <div>
-                                    <label className="block text-gray-700">נפח</label>
-                                    <input className="w-full mt-1 p-2 border rounded-md" type="text" name="storage" value={variant.storage} onChange={(e) => handleVariantChange(index, e)} />
-                                    {validationErrors.variants && validationErrors.variants[index]?.storage && <p className="text-red-500 text-xs italic mt-1">{validationErrors.variants[index].storage}</p>}
-                                </div>
-                            )}
-                            {formData.category.main && safeAdminVariantFields[formData.category.main]?.includes('size') && (
-                                <div>
-                                    <label className="block text-gray-700">גודל (אינץ')</label>
-                                    <input className="w-full mt-1 p-2 border rounded-md" type="text" name="size" value={variant.size} onChange={(e) => handleVariantChange(index, e)} />
-                                    {validationErrors.variants && validationErrors.variants[index]?.size && <p className="text-red-500 text-xs italic mt-1">{validationErrors.variants[index].size}</p>}
-                                </div>
-                            )}
+                            ))}
                             <div>
                                 <label className="block text-gray-700">מחיר (₪)</label>
                                 <input className="w-full mt-1 p-2 border rounded-md" type="number" name="price" value={variant.price} onChange={(e) => handleVariantChange(index, e)} required />
@@ -312,9 +305,54 @@ const ProductForm = ({ showNotification, existingProduct, onUpdateSuccess, admin
                                 {validationErrors.variants && validationErrors.variants[index]?.stock && <p className="text-red-500 text-xs italic mt-1">{validationErrors.variants[index].stock}</p>}
                             </div>
                             <div className="col-span-1 md:col-span-2">
-                                <label className="block text-gray-700">קישור לתמונה</label>
-                                <input className="w-full mt-1 p-2 border rounded-md" type="text" name="imageUrl" value={variant.imageUrl} onChange={(e) => handleVariantChange(index, e)} required />
-                                {validationErrors.variants && validationErrors.variants[index]?.imageUrl && <p className="text-red-500 text-xs italic mt-1">{validationErrors.variants[index].imageUrl}</p>}
+                                <label className="block text-gray-700 font-bold mb-2">קישורים לתמונות</label>
+                                {variant.imageUrls.map((url, imgIndex) => (
+                                    <div key={imgIndex} className="flex gap-2 mb-2">
+                                        <input
+                                            className="flex-grow p-2 border rounded-md"
+                                            type="text"
+                                            placeholder={`קישור לתמונה ${imgIndex + 1}`}
+                                            value={url}
+                                            onChange={(e) => {
+                                                const updated = [...formData.variants];
+                                                const updatedUrls = [...updated[index].imageUrls];
+                                                updatedUrls[imgIndex] = e.target.value;
+                                                updated[index].imageUrls = updatedUrls;
+                                                setFormData({ ...formData, variants: updated });
+                                            }}
+                                            required
+                                        />
+                                        {variant.imageUrls.length > 1 && (
+                                            <button
+                                                type="button"
+                                                onClick={() => {
+                                                    const updated = [...formData.variants];
+                                                    const updatedUrls = [...updated[index].imageUrls];
+                                                    updatedUrls.splice(imgIndex, 1);
+                                                    updated[index].imageUrls = updatedUrls;
+                                                    setFormData({ ...formData, variants: updated });
+                                                }}
+                                                className="text-red-500 font-bold px-2"
+                                            >
+                                                ✕
+                                            </button>
+                                        )}
+                                    </div>
+                                ))}
+                                <button
+                                    type="button"
+                                    onClick={() => {
+                                        const updated = [...formData.variants];
+                                        updated[index].imageUrls = [...updated[index].imageUrls, ''];
+                                        setFormData({ ...formData, variants: updated });
+                                    }}
+                                    className="text-sky-600 text-sm font-bold hover:text-sky-700"
+                                >
+                                    + הוסף עוד תמונה
+                                </button>
+                                {validationErrors.variants && validationErrors.variants[index]?.imageUrls && (
+                                    <p className="text-red-500 text-xs italic mt-1">{validationErrors.variants[index].imageUrls}</p>
+                                )}
                             </div>
                             <div className="col-span-1 md:col-span-2">
                                 <label className="block text-gray-700">מחיר מבצע (₪)</label>

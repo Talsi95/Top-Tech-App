@@ -12,6 +12,11 @@ const orderItemSchema = new Schema({
         required: false,
         ref: 'Product'
     },
+    attributes: {
+        type: Map,
+        of: String,
+        required: false
+    },
     quantity: {
         type: Number,
         required: true

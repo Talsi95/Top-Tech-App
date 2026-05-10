@@ -1,6 +1,21 @@
 const mongoose = require('mongoose');
 const Schema = mongoose.Schema;
 
+const variantSchema = new Schema({
+    price: { type: Number, required: true },
+    stock: { type: Number, required: false, default: 0 },
+    imageUrls: [{ type: String, required: true }],
+    isOnSale: {
+        type: Boolean,
+        default: false
+    },
+    salePrice: {
+        type: Number,
+        required: false,
+        default: null
+    }
+}, { strict: false });
+
 const productSchema = new Schema({
     name: {
         type: String,
@@ -35,25 +50,7 @@ const productSchema = new Schema({
     }],
     category: { type: String, required: true },
     subcategory: { type: String, required: true },
-    variants: [
-        {
-            color: { type: String, required: false },
-            storage: { type: String, required: false },
-            size: { type: String, required: false },
-            price: { type: Number, required: true },
-            stock: { type: Number, required: false, default: 0 },
-            imageUrl: { type: String, required: true },
-            isOnSale: {
-                type: Boolean,
-                default: false
-            },
-            salePrice: {
-                type: Number,
-                required: false,
-                default: null
-            }
-        }
-    ]
+    variants: [variantSchema]
 }, {
     timestamps: true
 });

@@ -162,7 +162,7 @@ const App = () => {
             <Route path="/forgot-password" element={<ForgotPassword />} />
             <Route path="/reset-password" element={<ResetPassword />} />
             <Route path="/admin/update-variant/:id" element={<UpdateVariantForm />} />
-            <Route path="/products" element={<ProductsPage />} />
+            <Route path="/products" element={<ProductsPage getToken={getToken} showNotification={showNotification} />} />
             <Route path="/repair-lab" element={<RepairLab />} />
             <Route
               path="/product/:id"

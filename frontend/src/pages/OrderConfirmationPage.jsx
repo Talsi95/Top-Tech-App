@@ -110,12 +110,41 @@ const OrderConfirmationPage = ({ showNotification }) => {
                 <h3 className="text-xl font-bold border-b pb-2 mt-6 mb-4 flex items-center">
                     <Receipt className="ml-2 text-gray-700" size={20} /> פריטי ההזמנה
                 </h3>
-                {order.orderItems.map((item, index) => (
-                    <div key={index} className="flex justify-between border-b py-2 text-sm text-gray-700">
-                        <span>{item.quantity} x {item.product.name}</span>
-                        <span>₪{(item.quantity * item.price).toFixed(2)}</span>
-                    </div>
-                ))}
+                {order.orderItems.map((item, index) => {
+                    const attributes = item.attributes;
+                    const variantText = attributes && Object.entries(attributes).length > 0
+                        ? Object.entries(attributes).map(([key, value]) => `${key === 'color' ? 'צבע' : key === 'storage' ? 'נפח' : key}: ${value}`).join(', ')
+                        : '';
+
+                    return (
+                        <div key={index} className="border-b py-4 text-sm text-gray-700">
+                            <div className="flex items-center gap-4">
+                                 <img
+                                    src={(() => {
+                                        const variantId = item.variant?._id || item.variant;
+                                        const variantObj = item.product?.variants?.find(v => (v._id || v.id).toString() === variantId?.toString());
+                                        
+                                        if (variantObj) {
+                                            if (variantObj.imageUrls && variantObj.imageUrls.length > 0) return variantObj.imageUrls[0];
+                                            if (variantObj.imageUrl) return variantObj.imageUrl;
+                                        }
+                                        
+                                        return item.product?.imageUrl || 'https://placehold.co/100x100?text=Product';
+                                    })()}
+                                    alt={item.product?.name || 'מוצר'}
+                                    className="w-16 h-16 object-cover rounded-lg border"
+                                />
+                                <div className="flex-1 flex justify-between items-start">
+                                    <div className="flex flex-col">
+                                        <span className="font-semibold text-base">{item.quantity} x {item.product.name}</span>
+                                        {variantText && <span className="text-gray-500 mt-1">{variantText}</span>}
+                                    </div>
+                                    <span className="font-bold text-base">₪{(item.quantity * item.price).toFixed(2)}</span>
+                                </div>
+                            </div>
+                        </div>
+                    );
+                })}
             </div>
 
             <div className="mt-8 flex flex-col sm:flex-row justify-center gap-4">

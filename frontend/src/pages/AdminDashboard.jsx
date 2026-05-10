@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '../AuthContext';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import ProductFormPage from '../pages/ProductFormPage';
 import UserList from '../components/UserList';
 import AllOrdersList from '../components/AllOrdersList';
@@ -18,6 +18,7 @@ import RepairTypeManagement from '../components/RepairTypeManagement';
 const AdminDashboard = ({ showNotification }) => {
     const { isAuthenticated, isAdmin } = useAuth();
     const navigate = useNavigate();
+    const location = useLocation();
     const [activeTab, setActiveTab] = useState('addProduct');
 
     useEffect(() => {
@@ -26,6 +27,14 @@ const AdminDashboard = ({ showNotification }) => {
             navigate('/');
         }
     }, [isAuthenticated, isAdmin, navigate, showNotification]);
+
+    useEffect(() => {
+        if (location.state?.activeTab) {
+            setActiveTab(location.state.activeTab);
+            // Clear state after reading it to avoid re-triggering on unrelated refreshes
+            window.history.replaceState({}, document.title);
+        }
+    }, [location.state]);
 
     /**
      * Renders the component corresponding to the active tab.

@@ -109,11 +109,22 @@ const createOrder = async (req, res) => {
                 ? variant.salePrice
                 : variant.price;
 
+            // Extract variant attributes (excluding standard system fields)
+            const standardFields = ['price', 'stock', 'imageUrl', 'imageUrls', 'isOnSale', 'salePrice', '_id', 'id', 'attributes', '__v'];
+            const variantObj = variant.toObject ? variant.toObject() : variant;
+            const attributes = {};
+            Object.keys(variantObj).forEach(key => {
+                if (!standardFields.includes(key)) {
+                    attributes[key] = variantObj[key];
+                }
+            });
+
             variant.stock -= item.quantity;
 
             orderItemsWithPrice.push({
                 product: item.product,
                 variant: item.variant,
+                attributes: attributes,
                 quantity: item.quantity,
                 price: unitPrice
             });
@@ -200,43 +211,58 @@ const createOrder = async (req, res) => {
 
 /**
  * Fetches all orders from the database (admin only).
- * Populates user and product info and sanitizes the output.
+ * Supports pagination via query parameters.
  * @param {Object} req - Express request object.
  * @param {Object} res - Express response object.
  */
 const getAllOrders = async (req, res) => {
-    const orders = await Order.find({})
-        .populate('user', 'username email')
-        .populate({
-            path: 'orderItems.product',
-            model: 'Product',
-            select: 'name variants',
-        })
-        .sort({ createdAt: -1 });
+    try {
+        const page = parseInt(req.query.page) || 1;
+        const limit = parseInt(req.query.limit) || 20;
+        const skip = (page - 1) * limit;
 
-    const sanitizedOrders = orders.map(order => {
-        const sanitizedItems = order.orderItems.filter(item => item.product !== null);
+        const totalOrders = await Order.countDocuments({});
+        const orders = await Order.find({})
+            .populate('user', 'username email')
+            .populate({
+                path: 'orderItems.product',
+                model: 'Product',
+                select: 'name variants',
+            })
+            .sort({ createdAt: -1 })
+            .skip(skip)
+            .limit(limit);
 
-        let userInfo = {};
-        if (order.user) {
-            userInfo = { username: order.user.username, email: order.user.email, id: order.user._id };
-        } else if (order.isGuestOrder) {
-            userInfo = {
-                username: order.shippingAddress?.fullName || 'אורח',
-                email: order.shippingAddress?.phone || order.paymentResult?.email_address || 'לא ידוע',
-                id: 'Guest'
+        const sanitizedOrders = orders.map(order => {
+            const sanitizedItems = order.orderItems.filter(item => item.product !== null);
+
+            let userInfo = {};
+            if (order.user) {
+                userInfo = { username: order.user.username, email: order.user.email, id: order.user._id };
+            } else if (order.isGuestOrder) {
+                userInfo = {
+                    username: order.shippingAddress?.fullName || 'אורח',
+                    email: order.shippingAddress?.phone || order.paymentResult?.email_address || 'לא ידוע',
+                    id: 'Guest'
+                };
+            } else {
+                userInfo = { username: 'לא ידוע', email: 'לא ידוע', id: 'N/A' };
+            }
+            return {
+                ...order.toObject(),
+                orderItems: sanitizedItems,
+                userInfo: userInfo
             };
-        } else {
-            userInfo = { username: 'לא ידוע', email: 'לא ידוע', id: 'N/A' };
-        }
-        return {
-            ...order.toObject(),
-            orderItems: sanitizedItems,
-            userInfo: userInfo
-        };
-    });
+        });
 
-    res.status(200).json(sanitizedOrders);
+        res.status(200).json({
+            orders: sanitizedOrders,
+            hasMore: totalOrders > skip + orders.length
+        });
+    } catch (err) {
+        console.error('Error fetching orders:', err);
+        res.status(500).json({ message: 'שגיאה באחזור הזמנות' });
+    }
 };
 
 /**
@@ -250,7 +276,7 @@ const guestOrder = async (req, res) => {
         const orderId = req.params.orderId;
 
         const order = await Order.findById(orderId)
-            .populate('orderItems.product', 'name price imageUrl')
+            .populate('orderItems.product', 'name price imageUrl variants')
             .lean();
 
         if (!order) {
