@@ -79,8 +79,8 @@ const Navbar = ({
                         )}
 
                         {/* Cart */}
-                        <button 
-                            onClick={onToggleDrawer} 
+                        <button
+                            onClick={onToggleDrawer}
                             className="relative p-2.5 text-gray-400 hover:text-primary hover:bg-primary/5 rounded-xl transition-all group"
                         >
                             <FaShoppingCart size={22} className="group-hover:scale-110 transition-transform" />
@@ -98,8 +98,8 @@ const Navbar = ({
                                     <p className="text-[10px] text-gray-400 font-bold uppercase tracking-widest">מחובר כ</p>
                                     <p className="text-xs font-black text-gray-900">{isGuest ? "אורח" : user?.username}</p>
                                 </div>
-                                <button 
-                                    onClick={onLogout} 
+                                <button
+                                    onClick={onLogout}
                                     className="px-5 py-2.5 bg-gray-900 text-white text-xs font-black rounded-xl hover:bg-primary hover:shadow-lg hover:shadow-primary/30 transition-all active:scale-95"
                                 >
                                     התנתק
@@ -107,14 +107,14 @@ const Navbar = ({
                             </div>
                         ) : (
                             <div className="flex flex-row-reverse items-center gap-3">
-                                <button 
-                                    onClick={onShowLogin} 
+                                <button
+                                    onClick={onShowLogin}
                                     className="px-6 py-2.5 bg-primary text-white text-sm font-black rounded-xl hover:bg-primary-hover shadow-lg shadow-primary/20 transition-all active:scale-95"
                                 >
                                     התחברות
                                 </button>
-                                <button 
-                                    onClick={onShowRegister} 
+                                <button
+                                    onClick={onShowRegister}
                                     className="px-6 py-2.5 text-gray-600 text-sm font-bold hover:text-primary transition-all"
                                 >
                                     הרשמה
@@ -135,8 +135,8 @@ const Navbar = ({
                     </button>
 
                     {/* Cart */}
-                    <button 
-                        onClick={onToggleDrawer} 
+                    <button
+                        onClick={onToggleDrawer}
                         className="relative p-2 text-gray-400"
                     >
                         <FaShoppingCart size={24} />
@@ -148,8 +148,8 @@ const Navbar = ({
                     </button>
 
                     {/* Hamburger */}
-                    <button 
-                        onClick={toggleMobileMenu} 
+                    <button
+                        onClick={toggleMobileMenu}
                         className="w-10 h-10 flex items-center justify-center bg-gray-100 rounded-xl text-gray-900"
                     >
                         {isMobileMenuOpen ? <FaTimes size={20} /> : <FaBars size={20} />}

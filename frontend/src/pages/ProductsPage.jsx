@@ -4,6 +4,8 @@ import axios from 'axios';
 import ProductCard from '../components/ProductCard';
 import FiltersSidebar from '../components/FiltersSidebar';
 import Loader from '../components/Loader';
+import ConfirmationModal from '../components/ConfirmationModal';
+import { Edit, Package, Trash2 } from 'lucide-react';
 import { useAuth } from '../AuthContext';
 
 /**
@@ -14,6 +16,12 @@ const ProductsPage = ({ getToken, showNotification }) => {
     const [searchParams, setSearchParams] = useSearchParams();
     const [products, setProducts] = useState([]);
     const [loading, setLoading] = useState(true);
+    const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+    const [confirmConfig, setConfirmConfig] = useState({ isOpen: false, onConfirm: null, title: '', message: '' });
+
+    const openConfirm = (title, message, onConfirm) => {
+        setConfirmConfig({ isOpen: true, title, message, onConfirm: () => { onConfirm(); setConfirmConfig({ ...confirmConfig, isOpen: false }); } });
+    };
     const [loadingMore, setLoadingMore] = useState(false);
     const [error, setError] = useState(null);
     const [dynamicSubcategories, setDynamicSubcategories] = useState([]);
@@ -249,24 +257,33 @@ const ProductsPage = ({ getToken, showNotification }) => {
                                     <ProductCard product={product} filters={activeFilters} />
                                 </div>
                                 {isAdmin && (
-                                    <div className="p-4 border-t flex flex-wrap gap-2 justify-center bg-gray-50">
+                                    <div className="p-4 border-t bg-gray-50/50 space-y-2">
+                                        <div className="flex gap-2">
+                                            <button
+                                                onClick={() => navigate(`/product-form/${product._id}`)}
+                                                className="flex-1 py-2.5 bg-white text-gray-600 rounded-xl font-bold text-xs hover:bg-primary hover:text-white transition-all shadow-sm flex items-center justify-center gap-1.5"
+                                            >
+                                                <Edit size={14} />
+                                                <span>עריכה</span>
+                                            </button>
+                                            <button
+                                                onClick={() => navigate(`/admin/update-variant/${product._id}`)}
+                                                className="flex-1 py-2.5 bg-white text-gray-600 rounded-xl font-bold text-xs hover:bg-primary hover:text-white transition-all shadow-sm flex items-center justify-center gap-1.5"
+                                            >
+                                                <Package size={14} />
+                                                <span>מלאי</span>
+                                            </button>
+                                        </div>
                                         <button
-                                            onClick={() => navigate(`/product-form/${product._id}`)}
-                                            className="bg-blue-500 hover:bg-blue-600 text-white font-bold py-1.5 px-3 rounded text-xs transition-colors flex-1"
+                                            onClick={() => openConfirm(
+                                                'מחיקת מוצר',
+                                                `האם אתה בטוח שברצונך למחוק את המוצר "${product.name}"?`,
+                                                () => handleDeleteProduct(product._id)
+                                            )}
+                                            className="w-full py-2.5 bg-red-50 text-red-500 rounded-xl font-bold text-xs hover:bg-red-500 hover:text-white transition-all flex items-center justify-center gap-1.5"
                                         >
-                                            עריכה
-                                        </button>
-                                        <button
-                                            onClick={() => handleDeleteProduct(product._id)}
-                                            className="bg-red-500 hover:bg-red-600 text-white font-bold py-1.5 px-3 rounded text-xs transition-colors flex-1"
-                                        >
-                                            מחיקה
-                                        </button>
-                                        <button
-                                            onClick={() => navigate(`/admin/update-variant/${product._id}`)}
-                                            className="bg-sky-500 hover:bg-sky-600 text-white font-bold py-1.5 px-3 rounded text-xs transition-colors w-full"
-                                        >
-                                            עדכון מלאי
+                                            <Trash2 size={14} />
+                                            <span>מחיקת מוצר</span>
                                         </button>
                                     </div>
                                 )}
@@ -285,6 +302,13 @@ const ProductsPage = ({ getToken, showNotification }) => {
                     )}
                 </div>
             </div>
+            <ConfirmationModal
+                isOpen={confirmConfig.isOpen}
+                onClose={() => setConfirmConfig({ ...confirmConfig, isOpen: false })}
+                onConfirm={confirmConfig.onConfirm}
+                title={confirmConfig.title}
+                message={confirmConfig.message}
+            />
         </div>
     );
 };

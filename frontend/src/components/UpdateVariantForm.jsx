@@ -81,7 +81,7 @@ const UpdateVariantForm = () => {
             {product.variants.map(variant => (
                 <div key={variant._id} className="flex items-center justify-between p-4 mb-4 border rounded-md shadow-sm">
                     <div className="flex items-center">
-                        <img src={variant.imageUrl} alt={variant.color} className="w-16 h-16 object-cover rounded-md mr-4" />
+                        <img src={variant.imageUrls[0]} alt={variant.color} className="w-16 h-16 object-cover rounded-md mr-4" />
                         <div>
                             <p className="font-semibold">{variant.color} - {variant.storage}</p>
                             <p className="text-gray-600">מחיר: ₪{variant.price}</p>

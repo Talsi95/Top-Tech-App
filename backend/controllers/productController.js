@@ -7,7 +7,7 @@ const Category = require('../models/category');
  * @param {Object} res - Express response object.
  */
 const getProducts = async (req, res) => {
-    const { category, subcategory, minPrice, maxPrice, page = 1, limit = 20, ...queryFilters } = req.query;
+    const { category, subcategory, minPrice, maxPrice, lowStock, page = 1, limit = 20, ...queryFilters } = req.query;
 
     const pageNum = parseInt(page);
     const limitNum = parseInt(limit);
@@ -20,6 +20,15 @@ const getProducts = async (req, res) => {
     }
     if (subcategory) {
         combinedConditions.push({ subcategory: subcategory });
+    }
+    if (lowStock === 'true') {
+        combinedConditions.push({
+            variants: {
+                $elemMatch: {
+                    stock: { $lte: 5 }
+                }
+            }
+        });
     }
 
     if (minPrice || maxPrice) {

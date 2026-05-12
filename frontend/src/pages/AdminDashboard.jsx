@@ -8,6 +8,7 @@ import AllOrdersList from '../components/AllOrdersList';
 import CategoryManagement from '../components/CategoryManagement';
 import RepairManagement from '../components/RepairManagement';
 import RepairTypeManagement from '../components/RepairTypeManagement';
+import InventoryManagement from '../components/InventoryManagement';
 
 /**
  * AdminDashboard Component.
@@ -40,6 +41,7 @@ const AdminDashboard = ({ showNotification }) => {
             case 'categories': return <CategoryManagement showNotification={showNotification} />;
             case 'repairs': return <RepairManagement showNotification={showNotification} />;
             case 'repairTypes': return <RepairTypeManagement showNotification={showNotification} />;
+            case 'inventory': return <InventoryManagement showNotification={showNotification} />;
             default: return null;
         }
     };
@@ -51,6 +53,7 @@ const AdminDashboard = ({ showNotification }) => {
         { id: 'categories', label: 'קטגוריות', icon: Grid },
         { id: 'repairs', label: 'תיקונים', icon: Wrench },
         { id: 'repairTypes', label: 'שירותים', icon: FileText },
+        { id: 'inventory', label: 'מלאי', icon: Package },
     ];
 
     if (isAuthenticated && isAdmin) {
