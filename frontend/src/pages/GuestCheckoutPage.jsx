@@ -6,86 +6,91 @@ import { auth } from '../firebaseConfig';
 import { getAuth, RecaptchaVerifier, signInWithPhoneNumber } from "firebase/auth";
 import { useAuth } from '../AuthContext';
 
-const DetailsForm = ({ phone, setPhone, email, setEmail, shippingAddress, handleAddressChange, handleRequestOTP, loading, navigate }) => (
-    <form onSubmit={handleRequestOTP} className="space-y-4">
-        <h3 className="text-xl font-semibold text-gray-800 border-b pb-2 mb-4">1. פרטים למעקב הזמנה</h3>
+const DetailsForm = ({ phone, setPhone, email, setEmail, handleRequestOTP, loading, navigate }) => (
+    <form onSubmit={handleRequestOTP} className="space-y-6">
+        <h3 className="text-2xl font-bold text-gray-900 border-b border-gray-100 pb-4 mb-6">1. פרטים למעקב הזמנה</h3>
 
-        <div className="relative">
-            <Phone className="absolute top-3 right-3 text-gray-400" size={20} />
-            <input
-                type="tel"
-                placeholder="מספר טלפון"
-                value={phone}
-                onChange={(e) => setPhone(e.target.value)}
-                required
-                className="w-full p-3 pr-10 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500 text-right"
-                dir="rtl"
-            />
-        </div>
+        <div className="space-y-4">
+            <div className="relative group">
+                <Phone className="absolute top-3 right-4 text-gray-400 group-focus-within:text-primary transition-colors" size={20} />
+                <input
+                    type="tel"
+                    placeholder="מספר טלפון"
+                    value={phone}
+                    onChange={(e) => setPhone(e.target.value)}
+                    required
+                    className="w-full p-4 pr-12 bg-surface-container border-none rounded-xl focus:ring-2 focus:ring-primary transition-all text-right outline-none"
+                    dir="rtl"
+                />
+            </div>
 
-        <div className="relative">
-            <Mail className="absolute top-3 right-3 text-gray-400" size={20} />
-            <input
-                type="email"
-                placeholder="מייל"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                required
-                className="w-full p-3 pr-10 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500 text-right"
-            />
+            <div className="relative group">
+                <Mail className="absolute top-3 right-4 text-gray-400 group-focus-within:text-primary transition-colors" size={20} />
+                <input
+                    type="email"
+                    placeholder="מייל"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    required
+                    className="w-full p-4 pr-12 bg-surface-container border-none rounded-xl focus:ring-2 focus:ring-primary transition-all text-right outline-none"
+                />
+            </div>
         </div>
 
         <button
             type="submit"
             disabled={loading}
-            className={`w-full flex justify-center items-center py-3 rounded-lg text-white font-bold transition-colors ${loading ? 'bg-gray-400 cursor-not-allowed' : 'bg-blue-600 hover:bg-blue-700'
+            className={`w-full flex justify-center items-center py-4 rounded-xl text-white font-bold text-lg shadow-lg transform transition-all active:scale-95 ${loading ? 'bg-gray-400 cursor-not-allowed' : 'bg-primary hover:bg-primary-hover hover:shadow-primary/30'
                 }`}
         >
-            {loading ? 'שולח...' : <><Send className="ml-2" size={20} /> שלח קוד אימות ב-SMS</>}
+            {loading ? <span className="animate-pulse">שולח...</span> : <><Send className="ml-2" size={20} /> שלח קוד אימות ב-SMS</>}
         </button>
-        <div className="text-center text-sm text-gray-600 mt-2">
+
+        <div className="text-center pt-2">
             <button
                 type="button"
                 onClick={() => navigate('/login')}
-                className="text-blue-600 hover:underline flex items-center justify-center w-full"
+                className="text-primary font-semibold hover:text-primary-hover transition-colors flex items-center justify-center w-full group"
             >
-                <LogIn className="ml-1" size={16} /> או התחבר לחשבון קיים
+                <LogIn className="ml-2 group-hover:translate-x-1 transition-transform" size={18} /> או התחבר לחשבון קיים
             </button>
         </div>
     </form>
 );
 
 const OTPForm = ({ phone, otp, setOtp, handleVerifyOTP, loading, setStep, showNotification }) => (
-    <form onSubmit={handleVerifyOTP} className="space-y-4">
-        <h3 className="text-xl font-semibold text-gray-800 border-b pb-2 mb-4">2. אימות קוד חד-פעמי</h3>
+    <form onSubmit={handleVerifyOTP} className="space-y-6">
+        <h3 className="text-2xl font-bold text-gray-900 border-b border-gray-100 pb-4 mb-6">2. אימות קוד חד-פעמי</h3>
 
-        <p className="text-sm text-gray-600 text-right">
-            נא להזין את הקוד בן 6 הספרות שנשלח למספר <span className="font-semibold text-blue-600">{phone}</span>.
-        </p>
+        <div className="bg-blue-50 p-4 rounded-xl border border-blue-100 mb-6">
+            <p className="text-sm text-gray-700 text-right leading-relaxed">
+                נא להזין את הקוד בן 6 הספרות שנשלח למספר <span className="font-bold text-primary">{phone}</span>.
+            </p>
+        </div>
 
         <div className="relative">
-            <Lock className="absolute top-3 right-3 text-gray-400" size={20} />
+            <Lock className="absolute top-4 right-4 text-gray-400" size={22} />
             <input
                 type="text"
-                placeholder="הזן קוד אימות (OTP)"
+                placeholder="000000"
                 value={otp}
                 onChange={(e) => setOtp(e.target.value)}
                 maxLength={6}
                 required
-                className="w-full p-3 pr-10 border border-gray-300 rounded-lg text-center tracking-widest text-lg font-mono"
+                className="w-full p-4 pr-12 bg-surface-container border-none rounded-xl focus:ring-2 focus:ring-primary transition-all text-center tracking-[1rem] text-2xl font-bold outline-none"
             />
         </div>
 
         <button
             type="submit"
             disabled={loading}
-            className={`w-full flex justify-center items-center py-3 rounded-lg text-white font-bold transition-colors ${loading ? 'bg-gray-400 cursor-not-allowed' : 'bg-green-600 hover:bg-green-700'
+            className={`w-full flex justify-center items-center py-4 rounded-xl text-white font-bold text-lg shadow-lg transform transition-all active:scale-95 ${loading ? 'bg-gray-400 cursor-not-allowed' : 'bg-green-600 hover:bg-green-700 hover:shadow-green-500/30'
                 }`}
         >
-            {loading ? 'מאמת...' : <><Lock className="ml-2" size={20} /> אמת והמשך לקופה</>}
+            {loading ? <span className="animate-pulse">מאמת...</span> : <><Lock className="ml-2" size={20} /> אמת והמשך לקופה</>}
         </button>
 
-        <div className="text-center text-sm text-gray-600 mt-2">
+        <div className="text-center pt-2">
             <button
                 type="button"
                 onClick={() => {
@@ -93,7 +98,7 @@ const OTPForm = ({ phone, otp, setOtp, handleVerifyOTP, loading, setStep, showNo
                     setOtp('');
                     showNotification('אנא שלח קוד חדש.', 'info');
                 }}
-                className="text-red-500 hover:underline"
+                className="text-red-500 font-medium hover:text-red-600 transition-colors"
                 disabled={loading}
             >
                 שלח קוד חדש / שינוי מספר
@@ -104,14 +109,9 @@ const OTPForm = ({ phone, otp, setOtp, handleVerifyOTP, loading, setStep, showNo
 
 /**
  * GuestCheckoutPage Component.
- * Manages the guest checkout flow, including phone/email collection, OTP verification, and redirection to payment.
- * 
- * @param {Object} props - Component props.
- * @param {Function} props.showNotification - Function to display a global notification.
  */
 const GuestCheckoutPage = ({ showNotification }) => {
     const navigate = useNavigate();
-
     const { login } = useAuth();
 
     const [step, setStep] = useState('details');
@@ -121,60 +121,20 @@ const GuestCheckoutPage = ({ showNotification }) => {
     const [loading, setLoading] = useState(false);
     const [confirmationResult, setConfirmationResult] = useState(null);
 
-
-    /**
-     * Sends a request to the backend to generate and send an OTP to the user's phone.
-     * @param {Event} e - The form submission event.
-     */
-    // const handleRequestOTP = async (e) => {
-    //     e.preventDefault();
-
-    //     if (phone.length < 9) {
-    //         showNotification('אנא הזן מספר טלפון תקין.', 'error');
-    //         return;
-    //     }
-
-    //     setLoading(true);
-    //     showNotification('מבקש קוד אימות Twilio...', 'success');
-    //     try {
-    //         await axios.post(`${__API_URL__}/guest/request-verify-otp`, {
-    //             phone,
-    //             email,
-    //         });
-
-    //         showNotification(`קוד אימות נשלח לטלפון ${phone}.`, 'success');
-    //         setStep('otp');
-    //         setLoading(false);
-
-    //     } catch (error) {
-    //         const message = error.response?.data?.message || 'שליחת ה-SMS נכשלה. נסה שוב.';
-    //         showNotification(message, 'error');
-
-    //         console.error("OTP Request failed:", message);
-    //         setLoading(false);
-    //     }
-    // };
-
     const handleRequestOTP = async (e) => {
         e.preventDefault();
         setLoading(true);
 
-        // 1. מציאת האלמנט וניקוי התוכן שלו כדי למנוע את השגיאה
         const recaptchaContainer = document.getElementById('recaptcha-container');
         if (recaptchaContainer) {
             recaptchaContainer.innerHTML = '';
         }
 
         try {
-            // 2. יצירת ה-Verifier מחדש על אלמנט נקי
             const recaptchaVerifier = new RecaptchaVerifier(auth, 'recaptcha-container', {
-                'size': 'invisible',
-                'callback': (response) => {
-                    // reCAPTCHA solved
-                }
+                'size': 'invisible'
             });
 
-            // פורמט מספר הטלפון (חשוב!)
             let formattedPhone = phone.trim();
             if (formattedPhone.startsWith('0')) {
                 formattedPhone = '+972' + formattedPhone.substring(1);
@@ -195,42 +155,6 @@ const GuestCheckoutPage = ({ showNotification }) => {
             setLoading(false);
         }
     };
-
-    /**
-     * Verifies the OTP entered by the user. If successful, stores the guest token and redirects to checkout.
-     * @param {Event} e - The form submission event.
-     */
-    // const handleVerifyOTP = async (e) => {
-    //     e.preventDefault();
-
-    //     if (otp.length !== 6) {
-    //         showNotification('קוד האימות חייב להיות בן 6 ספרות.', 'error');
-    //         return;
-    //     }
-
-    //     setLoading(true);
-    //     showNotification('מאמת קוד...', 'success');
-    //     try {
-    //         const response = await axios.post(`${__API_URL__}/guest/verify-otp`, {
-    //             phone,
-    //             otp
-    //         });
-    //         const data = response.data;
-
-    //         localStorage.setItem('guestToken', data.guestToken);
-    //         localStorage.setItem('guestEmail', data.email);
-
-    //         showNotification('אימות הושלם בהצלחה! מנתב לקופה.', 'success');
-
-    //         navigate('/checkout');
-
-    //     } catch (error) {
-    //         const message = error.response?.data?.message || 'אימות נכשל. הקוד לא תקין או פג תוקף.';
-    //         showNotification(message, 'error');
-    //     } finally {
-    //         setLoading(false);
-    //     }
-    // };
 
     const handleVerifyOTP = async (e) => {
         e.preventDefault();
@@ -255,40 +179,65 @@ const GuestCheckoutPage = ({ showNotification }) => {
     };
 
     return (
-        <div className="min-h-screen bg-gray-100 flex items-center justify-center p-4" dir="rtl">
-            <div className="w-full max-w-lg bg-white p-6 sm:p-8 rounded-xl shadow-2xl border-t-4 border-blue-600">
-                <h1 className="text-3xl font-extrabold text-center mb-6 text-gray-900">
-                    פרטי התקשרות ומעקב הזמנה
-                </h1>
+        <div className="min-h-screen bg-surface flex items-center justify-center p-4 md:p-12 lg:p-24" dir="rtl">
+            <div className="w-full max-w-xl lg:max-w-[1440px] bg-white/70 backdrop-blur-xl rounded-[3rem] shadow-[0_40px_120px_rgba(0,0,0,0.15)] border border-white/60 overflow-hidden">
+                <div className="flex flex-col lg:flex-row">
+                    {/* Visual Section - Visible only on Desktop */}
+                    <div className="hidden lg:flex lg:w-1/2 bg-primary p-16 flex-col justify-center text-white space-y-8 relative overflow-hidden">
+                        <div className="absolute top-0 left-0 w-full h-full opacity-10 pointer-events-none">
+                            <svg className="w-full h-full" viewBox="0 0 100 100" preserveAspectRatio="none">
+                                <path d="M0 0 L100 100 M100 0 L0 100" stroke="currentColor" strokeWidth="0.5" />
+                            </svg>
+                        </div>
+                        <h2 className="text-5xl font-black leading-tight">שמחים שאתה כאן!</h2>
+                        <p className="text-xl opacity-90 leading-relaxed font-medium">
+                            אנחנו ב-Top Tech מחויבים לחוויית הקנייה הטובה ביותר. הזן את פרטיך ונוכל לעדכן אותך בכל שלב בדרך.
+                        </p>
+                        <div className="pt-8 flex items-center space-x-4 space-x-reverse">
+                            <div className="w-12 h-12 bg-white/20 rounded-full flex items-center justify-center backdrop-blur-md">
+                                <Lock size={24} />
+                            </div>
+                            <span className="text-lg font-bold">אימות מאובטח ומהיר</span>
+                        </div>
+                    </div>
 
-                <p className="text-center text-gray-600 mb-6 font-medium">
-                    נא להזין טלפון ומייל שבאמצעותם תוכל לעקוב אחר סטטוס ההזמנה שלך
-                </p>
+                    {/* Form Section */}
+                    <div className="w-full lg:w-1/2 p-8 md:p-16">
+                        <div className="text-center lg:text-right mb-12">
+                            <h1 className="text-4xl font-extrabold text-gray-900 mb-4 tracking-tight">
+                                פרטי התקשרות
+                            </h1>
+                            <p className="text-lg text-gray-600 font-medium">
+                                נא להזין טלפון ומייל למעקב אחר ההזמנה
+                            </p>
+                        </div>
 
-                <div className="bg-white p-4 rounded-lg">
-                    {step === 'details' ? (
-                        <DetailsForm
-                            phone={phone}
-                            setPhone={setPhone}
-                            email={email}
-                            setEmail={setEmail}
-                            handleRequestOTP={handleRequestOTP}
-                            loading={loading}
-                            navigate={navigate}
-                        />
-                    ) : (
-                        <OTPForm
-                            phone={phone}
-                            otp={otp}
-                            setOtp={setOtp}
-                            handleVerifyOTP={handleVerifyOTP}
-                            loading={loading}
-                            setStep={setStep}
-                            showNotification={showNotification}
-                        />
-                    )}
+                        <div className="relative">
+                            {step === 'details' ? (
+                                <DetailsForm
+                                    phone={phone}
+                                    setPhone={setPhone}
+                                    email={email}
+                                    setEmail={setEmail}
+                                    handleRequestOTP={handleRequestOTP}
+                                    loading={loading}
+                                    navigate={navigate}
+                                />
+                            ) : (
+                                <OTPForm
+                                    phone={phone}
+                                    otp={otp}
+                                    setOtp={setOtp}
+                                    handleVerifyOTP={handleVerifyOTP}
+                                    loading={loading}
+                                    setStep={setStep}
+                                    showNotification={showNotification}
+                                />
+                            )}
+                        </div>
+                        <div id="recaptcha-container"></div>
+                    </div>
                 </div>
-                <div id="recaptcha-container"></div>
             </div>
         </div>
     );

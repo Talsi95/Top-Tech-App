@@ -1,5 +1,28 @@
 @import "tailwindcss";
 
+@theme {
+    --color-primary: #0058be;
+    --color-primary-hover: #004395;
+    --color-surface: #f8f9fb;
+    --color-surface-container: #edeef0;
+    --font-montserrat: "Montserrat", sans-serif;
+    --font-inter: "Inter", sans-serif;
+    --radius-xl: 1rem;
+    --radius-2xl: 1.5rem;
+
+    --container-xl: 1440px;
+}
+
+body {
+    font-family: var(--font-inter);
+    background-color: var(--color-surface);
+    color: #191c1e;
+}
+
+h1, h2, h3, h4, h5, h6 {
+    font-family: var(--font-montserrat);
+}
+
 .search-drawer {
     max-height: 0;
     opacity: 0;

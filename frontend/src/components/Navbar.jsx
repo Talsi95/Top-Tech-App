@@ -1,22 +1,11 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { NavLink, Link } from 'react-router-dom';
-import { FaShoppingCart, FaTimes, FaBars, FaSearch } from 'react-icons/fa';
+import { FaShoppingCart, FaTimes, FaBars, FaSearch, FaUserCircle } from 'react-icons/fa';
 import { useAuth } from '../AuthContext';
 import AdminNotifications from './AdminNotifications';
 
 /**
  * Navbar Component.
- * The primary navigation header, responsive and features authentication links, cart access, and admin notifications.
- * 
- * @param {Object} props - Component props.
- * @param {Function} props.onLogout - Callback for user logout.
- * @param {Function} props.onShowLogin - Callback to open the login modal/view.
- * @param {Function} props.onShowRegister - Callback to open the registration modal/view.
- * @param {Function} props.onToggleDrawer - Callback to toggle the shopping cart drawer.
- * @param {number} props.cartItemsCount - Current number of unique items in the cart.
- * @param {Function} props.onToggleSearchDrawer - Callback to toggle the global search drawer.
- * @param {Array} props.adminNewOrders - List of new orders for admin notification badge.
- * @param {Function} props.onMarkOrdersAsSeen - Callback to mark new orders as seen by admin.
  */
 const Navbar = ({
     onLogout,
@@ -29,143 +18,164 @@ const Navbar = ({
     onMarkOrdersAsSeen
 }) => {
     const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+    const [isScrolled, setIsScrolled] = useState(false);
     const { user, isAuthenticated, isAdmin, isGuest } = useAuth();
+
+    useEffect(() => {
+        const handleScroll = () => {
+            setIsScrolled(window.scrollY > 20);
+        };
+        window.addEventListener('scroll', handleScroll);
+        return () => window.removeEventListener('scroll', handleScroll);
+    }, []);
 
     const toggleMobileMenu = () => {
         setIsMobileMenuOpen(!isMobileMenuOpen);
     };
 
+    const activeLinkClass = "text-primary font-bold relative after:absolute after:-bottom-1 after:right-0 after:w-full after:h-0.5 after:bg-primary after:rounded-full";
+    const navLinkClass = "text-gray-600 hover:text-primary font-medium transition-all duration-300";
+
     return (
-        <nav className="bg-gray-800 shadow-md sticky top-0 w-full z-50">
-            <div className="container mx-auto px-6 py-3 flex flex-row-reverse justify-between items-center">
-                {/* Section 1: Logo */}
-                <Link to="/" className="text-2xl font-bold text-gray-200 hover:text-white transition-colors duration-300">
-                    Top Tech
+        <nav className={`fixed top-0 w-full z-50 transition-all duration-500 ${isScrolled ? 'py-3 bg-white/80 backdrop-blur-xl shadow-lg border-b border-white/20' : 'py-5 bg-transparent'}`}>
+            <div className="max-w-[1440px] mx-auto px-6 flex flex-row-reverse justify-between items-center">
+                {/* Logo */}
+                <Link to="/" className="flex items-center gap-2 group">
+                    <div className="w-10 h-10 bg-primary rounded-xl flex items-center justify-center shadow-lg shadow-primary/30 group-hover:rotate-12 transition-transform duration-500">
+                        <span className="text-white font-black text-xl">T</span>
+                    </div>
+                    <span className="text-2xl font-black text-gray-900 tracking-tighter group-hover:text-primary transition-colors">Top Tech</span>
                 </Link>
 
-                {/* Section 2: Desktop Links */}
-                <div className="hidden md:flex flex-row-reverse items-center space-x-reverse space-x-8">
-                    {/* Desktop Search Button */}
-                    <button
-                        onClick={onToggleSearchDrawer}
-                        className="flex items-center gap-3 bg-gray-700/40 hover:bg-gray-700/60 px-4 py-1.5 rounded-full text-gray-300 hover:text-white transition-all border border-gray-600/30 group"
-                    >
-                        <span className="text-sm hidden lg:inline font-medium">חיפוש מוצרים...</span>
-                        <FaSearch className="h-4 w-4 group-hover:scale-110 transition-transform" />
-                    </button>
-
-                    {/* Desktop NavLinks */}
+                {/* Desktop Navigation */}
+                <div className="hidden md:flex flex-row-reverse items-center space-x-reverse space-x-10">
                     <div className="flex flex-row-reverse items-center space-x-reverse space-x-8">
-                        <NavLink to="/" className="text-gray-200 hover:text-white transition-colors duration-300">
-                            דף הבית
-                        </NavLink>
-                        <NavLink to="/repair-lab" className="text-gray-200 hover:text-white transition-colors duration-300">
-                            מעבדת תיקונים
-                        </NavLink>
+                        <NavLink to="/" className={({ isActive }) => isActive ? activeLinkClass : navLinkClass}>דף הבית</NavLink>
+                        <NavLink to="/repair-lab" className={({ isActive }) => isActive ? activeLinkClass : navLinkClass}>מעבדת תיקונים</NavLink>
                         {isAuthenticated && (
-                            <span className="text-sm text-gray-400">
-                                {isGuest ? (
-                                    "שלום, אורח"
-                                ) : (
-                                    `שלום, ${user?.username}`
-                                )}
-                            </span>
-                        )}
-                        {isAuthenticated && (
-                            <NavLink to="/profile" className="text-gray-200 hover:text-white transition-colors duration-300">
-                                איזור אישי
-                            </NavLink>
+                            <NavLink to="/profile" className={({ isActive }) => isActive ? activeLinkClass : navLinkClass}>איזור אישי</NavLink>
                         )}
                         {isAuthenticated && isAdmin && (
-                            <NavLink to="/admin" className="text-gray-200 hover:text-white transition-colors duration-300">
-                                איזור מנהל
-                            </NavLink>
+                            <NavLink to="/admin" className={({ isActive }) => isActive ? activeLinkClass : navLinkClass}>איזור מנהל</NavLink>
                         )}
                     </div>
 
-                    {/* Desktop Auth Buttons */}
-                    <div className="flex flex-row-reverse items-center space-x-reverse space-x-8">
+                    {/* Action Group */}
+                    <div className="flex flex-row-reverse items-center space-x-reverse space-x-6 border-r border-gray-200 pr-10">
+                        {/* Search */}
+                        <button
+                            onClick={onToggleSearchDrawer}
+                            className="p-2.5 text-gray-400 hover:text-primary hover:bg-primary/5 rounded-xl transition-all group"
+                        >
+                            <FaSearch size={20} className="group-hover:scale-110 transition-transform" />
+                        </button>
+
+                        {/* Notifications (Admin) */}
                         {isAdmin && (
                             <AdminNotifications
                                 newOrders={adminNewOrders}
                                 onMarkOrderAsSeen={onMarkOrdersAsSeen}
                             />
                         )}
-                        <button onClick={onToggleDrawer} className="relative text-gray-200 hover:text-white focus:outline-none">
-                            <FaShoppingCart className="h-6 w-6" />
+
+                        {/* Cart */}
+                        <button 
+                            onClick={onToggleDrawer} 
+                            className="relative p-2.5 text-gray-400 hover:text-primary hover:bg-primary/5 rounded-xl transition-all group"
+                        >
+                            <FaShoppingCart size={22} className="group-hover:scale-110 transition-transform" />
                             {cartItemsCount > 0 && (
-                                <span className="absolute -top-2 -right-2 bg-red-500 text-white text-xs rounded-full h-4 w-4 flex items-center justify-center">
+                                <span className="absolute top-1.5 right-1.5 bg-primary text-white text-[10px] font-black rounded-full h-5 w-5 flex items-center justify-center border-2 border-white shadow-sm animate-in zoom-in duration-300">
                                     {cartItemsCount}
                                 </span>
                             )}
                         </button>
+
+                        {/* Auth */}
                         {isAuthenticated ? (
-                            <button onClick={onLogout} className="bg-red-500 text-white px-4 py-2 rounded-md hover:bg-red-600 transition-colors duration-300">
-                                התנתק
-                            </button>
+                            <div className="flex items-center gap-4">
+                                <div className="text-right">
+                                    <p className="text-[10px] text-gray-400 font-bold uppercase tracking-widest">מחובר כ</p>
+                                    <p className="text-xs font-black text-gray-900">{isGuest ? "אורח" : user?.username}</p>
+                                </div>
+                                <button 
+                                    onClick={onLogout} 
+                                    className="px-5 py-2.5 bg-gray-900 text-white text-xs font-black rounded-xl hover:bg-primary hover:shadow-lg hover:shadow-primary/30 transition-all active:scale-95"
+                                >
+                                    התנתק
+                                </button>
+                            </div>
                         ) : (
-                            <>
-                                <button onClick={onShowLogin} className="bg-green-500 text-white px-4 py-2 rounded-md hover:bg-green-600 transition-colors duration-300">
+                            <div className="flex flex-row-reverse items-center gap-3">
+                                <button 
+                                    onClick={onShowLogin} 
+                                    className="px-6 py-2.5 bg-primary text-white text-sm font-black rounded-xl hover:bg-primary-hover shadow-lg shadow-primary/20 transition-all active:scale-95"
+                                >
                                     התחברות
                                 </button>
-                                <button onClick={onShowRegister} className="bg-gray-300 text-gray-800 px-4 py-2 rounded-md hover:bg-gray-400 transition-colors duration-300">
+                                <button 
+                                    onClick={onShowRegister} 
+                                    className="px-6 py-2.5 text-gray-600 text-sm font-bold hover:text-primary transition-all"
+                                >
                                     הרשמה
                                 </button>
-                            </>
+                            </div>
                         )}
                     </div>
                 </div>
 
-                {/* Section 3: Mobile elements (always visible) */}
-                <div className="flex flex-row-reverse items-center space-x-6 md:hidden">
-                    {isAdmin && (
-                        <AdminNotifications
-                            newOrders={adminNewOrders}
-                            onMarkOrderAsSeen={onMarkOrdersAsSeen}
-                        />
-                    )}
-                    {/* Mobile Search Button */}
+                {/* Mobile Menu Button */}
+                <div className="flex flex-row-reverse items-center gap-4 md:hidden">
+                    {/* Search */}
                     <button
                         onClick={onToggleSearchDrawer}
-                        className="bg-gray-700/50 p-2 rounded-full text-gray-200 hover:text-white transition-colors"
+                        className="p-2 text-gray-400"
                     >
-                        <FaSearch className="h-5 w-5" />
+                        <FaSearch size={20} />
                     </button>
-                    {/* Cart Button */}
-                    <button onClick={onToggleDrawer} className="relative text-gray-200 hover:text-white focus:outline-none">
-                        <FaShoppingCart className="h-6 w-6" />
+
+                    {/* Cart */}
+                    <button 
+                        onClick={onToggleDrawer} 
+                        className="relative p-2 text-gray-400"
+                    >
+                        <FaShoppingCart size={24} />
                         {cartItemsCount > 0 && (
-                            <span className="absolute -top-2 -right-2 bg-red-500 text-white text-xs rounded-full h-4 w-4 flex items-center justify-center">
+                            <span className="absolute -top-1 -right-1 bg-primary text-white text-[10px] font-black rounded-full h-5 w-5 flex items-center justify-center border-2 border-white">
                                 {cartItemsCount}
                             </span>
                         )}
                     </button>
-                    {/* Hamburger Button */}
-                    <button onClick={toggleMobileMenu} className="text-gray-200 hover:text-white focus:outline-none focus:text-white">
-                        {isMobileMenuOpen ? <FaTimes className="h-6 w-6" /> : <FaBars className="h-6 w-6" />}
+
+                    {/* Hamburger */}
+                    <button 
+                        onClick={toggleMobileMenu} 
+                        className="w-10 h-10 flex items-center justify-center bg-gray-100 rounded-xl text-gray-900"
+                    >
+                        {isMobileMenuOpen ? <FaTimes size={20} /> : <FaBars size={20} />}
                     </button>
                 </div>
             </div>
 
-            {/* Section 4: Mobile Dropdown Menu (hidden on desktop) */}
-            <div className={`md:hidden ${isMobileMenuOpen ? 'block' : 'hidden'} bg-gray-700 border-t border-gray-600`}>
-                <div className="px-2 pt-2 pb-3 space-y-1 text-right">
-                    <NavLink to="/" onClick={toggleMobileMenu} className="block px-3 py-2 rounded-md text-base font-medium text-gray-300 hover:bg-white/5">דף הבית</NavLink>
-                    <NavLink to="/repair-lab" onClick={toggleMobileMenu} className="block px-3 py-2 rounded-md text-base font-medium text-gray-300 hover:bg-white/5">מעבדת תיקונים</NavLink>
-                    <NavLink to="/products?category=אביזרים נלווים" onClick={toggleMobileMenu} className="block px-3 py-2 rounded-md text-base font-medium text-gray-300 hover:bg-white/5">אביזרים נלווים</NavLink>
-                    {isAdmin && (
-                        <NavLink to="/admin" onClick={toggleMobileMenu} className="block px-3 py-2 rounded-md text-base font-medium text-gray-300 hover:bg-white/5">איזור מנהל</NavLink>
+            {/* Mobile Dropdown Menu */}
+            <div className={`md:hidden absolute top-full left-0 w-full bg-white/95 backdrop-blur-2xl border-b border-gray-100 overflow-hidden transition-all duration-500 ${isMobileMenuOpen ? 'max-h-[600px] opacity-100' : 'max-h-0 opacity-0 pointer-events-none'}`}>
+                <div className="p-6 space-y-4 text-right flex flex-col">
+                    <NavLink to="/" onClick={toggleMobileMenu} className="text-xl font-black text-gray-900 p-2">דף הבית</NavLink>
+                    <NavLink to="/repair-lab" onClick={toggleMobileMenu} className="text-xl font-black text-gray-900 p-2">מעבדת תיקונים</NavLink>
+                    {isAuthenticated && (
+                        <NavLink to="/profile" onClick={toggleMobileMenu} className="text-xl font-black text-gray-900 p-2">איזור אישי</NavLink>
                     )}
+                    {isAuthenticated && isAdmin && (
+                        <NavLink to="/admin" onClick={toggleMobileMenu} className="text-xl font-black text-gray-900 p-2">איזור מנהל</NavLink>
+                    )}
+                    <hr className="border-gray-100" />
                     {isAuthenticated ? (
-                        <>
-                            <NavLink to="/profile" onClick={toggleMobileMenu} className="block px-3 py-2 rounded-md text-base font-medium text-gray-300 hover:bg-white/5">איזור אישי</NavLink>
-                            <button onClick={() => { onLogout(); toggleMobileMenu(); }} className="w-full text-right px-3 py-2 rounded-md text-base font-medium text-gray-300 hover:bg-white/5">התנתק</button>
-                        </>
+                        <button onClick={() => { onLogout(); toggleMobileMenu(); }} className="w-full py-4 bg-gray-900 text-white font-black rounded-2xl">התנתק</button>
                     ) : (
-                        <>
-                            <button onClick={() => { onShowLogin(); toggleMobileMenu(); }} className="w-full text-right px-3 py-2 rounded-md text-base font-medium text-gray-300 hover:bg-white/5">התחברות</button>
-                            <button onClick={() => { onShowRegister(); toggleMobileMenu(); }} className="w-full text-right px-3 py-2 rounded-md text-base font-medium text-gray-300 hover:bg-white/5">הרשמה</button>
-                        </>
+                        <div className="space-y-3">
+                            <button onClick={() => { onShowLogin(); toggleMobileMenu(); }} className="w-full py-4 bg-primary text-white font-black rounded-2xl shadow-lg shadow-primary/20">התחברות</button>
+                            <button onClick={() => { onShowRegister(); toggleMobileMenu(); }} className="w-full py-4 text-gray-600 font-bold">הרשמה</button>
+                        </div>
                     )}
                 </div>
             </div>

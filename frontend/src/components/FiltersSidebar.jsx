@@ -1,20 +1,9 @@
 import { Link, useSearchParams } from 'react-router-dom';
 import { useState, useEffect } from 'react';
-import { FaFilter, FaTimes } from 'react-icons/fa';
-
+import { FaFilter, FaTimes, FaChevronLeft } from 'react-icons/fa';
 
 /**
  * FiltersSidebar Component.
- * Provides a UI for filtering products by subcategory and variant-specific attributes (e.g., color, storage).
- * 
- * @param {Object} props - Component props.
- * @param {string} props.selectedCategoryName - The name of the currently selected main category.
- * @param {string} props.selectedSubcategoryName - The name of the currently selected subcategory.
- * @param {Object} props.relevantCategory - Metadata for the selected category, including available variant fields.
- * @param {Object} props.activeFilters - Currently applied variant filters.
- * @param {Object} props.availableFilters - Map of available filter values for each field.
- * @param {Function} props.onFilterChange - Callback for when a filter selection changes.
- * @param {Array} props.dynamicSubcategories - List of unique subcategories available for the current selection.
  */
 const FiltersSidebar = ({
     selectedCategoryName,
@@ -45,12 +34,6 @@ const FiltersSidebar = ({
             { key: 'maxPrice', value: maxPrice, isVariant: false }
         ];
 
-        // Add all local variants to bulk updates
-        // We need to know which ones were removed too
-        // Actually, easiest is to just reset all variant filters and set new ones
-        // But bulkUpdate already handles this if we pass null for removed ones
-
-        // Let's get all possible variant keys from relevantCategory
         relevantCategory.variantFields.forEach(field => {
             bulkUpdates.push({
                 key: field,
@@ -94,34 +77,38 @@ const FiltersSidebar = ({
     };
 
     const sidebarContent = (
-        <div className="flex flex-col h-full">
-            <div className="flex justify-between items-center md:hidden mb-6">
-                <h2 className="text-2xl font-bold">סינון מוצרים</h2>
-                <button onClick={() => setIsMobileOpen(false)} className="text-gray-500 hover:text-black">
-                    <FaTimes size={24} />
+        <div className="flex flex-col h-full text-right">
+            {/* Header */}
+            <div className="flex justify-between items-center mb-8">
+                <h2 className="text-2xl font-black text-gray-900 tracking-tighter">סינון מוצרים</h2>
+                <button onClick={() => setIsMobileOpen(false)} className="md:hidden w-10 h-10 flex items-center justify-center bg-gray-50 rounded-xl text-gray-400">
+                    <FaTimes size={20} />
                 </button>
             </div>
 
-            <div className="mb-6 border-b pb-4">
+            {/* Apply Button */}
+            <div className="mb-8">
                 <button
                     onClick={handleApplyFilters}
-                    className="w-full bg-green-600 text-white py-3 rounded-xl font-bold hover:bg-green-700 transition-all shadow-lg flex items-center justify-center gap-2 mb-4"
+                    className="w-full bg-primary text-white py-4 rounded-2xl font-black shadow-xl shadow-primary/20 hover:bg-primary-hover hover:scale-[1.02] active:scale-95 transition-all flex items-center justify-center gap-3"
                 >
-                    <FaFilter size={14} />
-                    החל את כל הסינונים
+                    <FaFilter size={16} />
+                    החל סינונים
                 </button>
             </div>
 
-            <div className="mb-8 border-b pb-4">
-                {/* <h2 className="text-xl font-bold mb-4">מותג/חברה</h2> */}
-                <ul className="space-y-2 text-right">
+            {/* Subcategories Section */}
+            <div className="mb-10">
+                <h3 className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-4 px-1">מותג / קטגוריה</h3>
+                <ul className="space-y-1">
                     <li>
                         <Link
                             to={createSubcategoryUrl(null)}
                             onClick={() => window.innerWidth < 768 && setIsMobileOpen(false)}
-                            className={`block py-2 px-4 rounded-md transition-colors ${!selectedSubcategoryName ? 'bg-sky-500 text-white' : 'hover:bg-gray-200 text-gray-800'}`}
+                            className={`flex items-center justify-between py-3 px-4 rounded-2xl font-bold transition-all ${!selectedSubcategoryName ? 'bg-primary/10 text-primary' : 'text-gray-600 hover:bg-gray-50'}`}
                         >
-                            הכל
+                            <FaChevronLeft size={12} className={!selectedSubcategoryName ? 'opacity-100' : 'opacity-0'} />
+                            <span>הכל</span>
                         </Link>
                     </li>
 
@@ -130,9 +117,10 @@ const FiltersSidebar = ({
                             <Link
                                 to={createSubcategoryUrl(subName)}
                                 onClick={() => window.innerWidth < 768 && setIsMobileOpen(false)}
-                                className={`block py-2 px-4 rounded-md transition-colors ${selectedSubcategoryName === subName ? 'bg-sky-500 text-white' : 'hover:bg-gray-200 text-gray-800'}`}
+                                className={`flex items-center justify-between py-3 px-4 rounded-2xl font-bold transition-all ${selectedSubcategoryName === subName ? 'bg-primary/10 text-primary' : 'text-gray-600 hover:bg-gray-50'}`}
                             >
-                                {subName}
+                                <FaChevronLeft size={12} className={selectedSubcategoryName === subName ? 'opacity-100' : 'opacity-0'} />
+                                <span>{subName}</span>
                             </Link>
                         </li>
                     ))}
@@ -140,30 +128,33 @@ const FiltersSidebar = ({
             </div>
 
             {/* Price Filter */}
-            <div className="mb-8 border-b pb-6">
-                <h2 className="text-xl font-bold mb-4">סינון לפי מחיר</h2>
-                <div className="flex flex-col gap-3">
-                    <div className="flex items-center gap-2">
-                        <input
-                            type="number"
-                            placeholder="מ-"
-                            className="w-full p-2 border border-gray-300 rounded-lg text-sm focus:ring-sky-500 focus:border-sky-500"
-                            value={minPrice}
-                            onChange={(e) => setMinPrice(e.target.value)}
-                        />
-                        <span className="text-gray-500">עד</span>
-                        <input
-                            type="number"
-                            placeholder="עד-"
-                            className="w-full p-2 border border-gray-300 rounded-lg text-sm focus:ring-sky-500 focus:border-sky-500"
-                            value={maxPrice}
-                            onChange={(e) => setMaxPrice(e.target.value)}
-                        />
+            <div className="mb-10">
+                <h3 className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-4 px-1">טווח מחירים</h3>
+                <div className="space-y-4">
+                    <div className="flex items-center gap-3">
+                        <div className="flex-1 relative">
+                            <span className="absolute right-4 top-1/2 -translate-y-1/2 text-[10px] font-black text-gray-400">מ-</span>
+                            <input
+                                type="number"
+                                className="w-full pr-10 pl-4 py-3 bg-gray-50 border-2 border-transparent focus:border-primary/20 focus:bg-white rounded-xl text-sm font-bold text-gray-900 transition-all outline-none"
+                                value={minPrice}
+                                onChange={(e) => setMinPrice(e.target.value)}
+                            />
+                        </div>
+                        <div className="flex-1 relative">
+                            <span className="absolute right-4 top-1/2 -translate-y-1/2 text-[10px] font-black text-gray-400">עד-</span>
+                            <input
+                                type="number"
+                                className="w-full pr-10 pl-4 py-3 bg-gray-50 border-2 border-transparent focus:border-primary/20 focus:bg-white rounded-xl text-sm font-bold text-gray-900 transition-all outline-none"
+                                value={maxPrice}
+                                onChange={(e) => setMaxPrice(e.target.value)}
+                            />
+                        </div>
                     </div>
-                    <p className="text-xs text-gray-400 italic text-center">* המחירים בשקלים (₪)</p>
                 </div>
             </div>
 
+            {/* Dynamic Variant Filters */}
             {relevantCategory.variantFields.map(field => {
                 const translatedField = {
                     color: 'צבע',
@@ -174,18 +165,18 @@ const FiltersSidebar = ({
                 }[field] || field;
 
                 return (
-                    <div key={field} className="mb-8 border-b pb-4">
-                        <h2 className="text-xl font-bold mb-4">סינון לפי {translatedField}</h2>
+                    <div key={field} className="mb-10">
+                        <h3 className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-4 px-1">{translatedField}</h3>
 
                         {availableFilters[field] && availableFilters[field].length > 0 ? (
-                            <div className="flex flex-wrap gap-2">
+                            <div className="flex flex-wrap flex-row-reverse gap-2">
                                 {availableFilters[field].map(value => (
                                     <button
                                         key={value}
                                         onClick={() => toggleVariant(field, value)}
-                                        className={`py-1 px-3 border rounded-full text-sm transition-colors ${isFilterActive(field, value)
-                                            ? 'bg-sky-600 text-white border-sky-600'
-                                            : 'bg-white text-gray-700 hover:bg-gray-100 border-gray-300'
+                                        className={`py-2 px-4 rounded-xl text-sm font-bold transition-all border-2 ${isFilterActive(field, value)
+                                            ? 'bg-primary border-primary text-white shadow-lg shadow-primary/20'
+                                            : 'bg-white border-gray-100 text-gray-600 hover:border-primary/20 hover:text-primary'
                                             }`}
                                     >
                                         {value}
@@ -199,14 +190,14 @@ const FiltersSidebar = ({
                                             delete next[field];
                                             return next;
                                         })}
-                                        className="py-1 px-3 border rounded-full text-sm bg-red-100 text-red-600 border-red-300 hover:bg-red-200"
+                                        className="py-2 px-4 rounded-xl text-sm font-black bg-red-50 text-red-500 hover:bg-red-500 hover:text-white transition-all"
                                     >
-                                        ❌ נקה הכל ({localVariants[field].length})
+                                        נקה ({localVariants[field].length})
                                     </button>
                                 )}
                             </div>
                         ) : (
-                            <p className="text-sm text-gray-500">אין פילטרים זמינים.</p>
+                            <p className="text-sm text-gray-400 italic">אין פילטרים זמינים.</p>
                         )}
                     </div>
                 );
@@ -217,27 +208,33 @@ const FiltersSidebar = ({
     return (
         <>
             {/* Mobile Toggle Button */}
-            <div className="md:hidden sticky top-20 z-30 mb-4">
+            <div className="md:hidden sticky top-[80px] z-30 mb-6 animate-in slide-in-from-top-4 duration-500">
                 <button
                     onClick={() => setIsMobileOpen(true)}
-                    className="w-full bg-white border border-gray-300 shadow-sm py-3 px-4 rounded-xl flex items-center justify-center gap-2 font-bold text-gray-700 hover:bg-gray-50 transition-colors"
+                    className="w-full bg-white/80 backdrop-blur-xl border border-white/40 shadow-xl py-4 px-6 rounded-[2rem] flex items-center justify-between font-black text-gray-900 hover:scale-[1.02] active:scale-95 transition-all"
                 >
-                    <FaFilter className="text-sky-500" />
-                    סינונים ופילטרים
+                    <span className="flex items-center gap-3">
+                        <div className="w-8 h-8 bg-primary/10 rounded-lg flex items-center justify-center text-primary">
+                            <FaFilter size={14} />
+                        </div>
+                        סינונים ופילטרים
+                    </span>
+                    <FaChevronLeft size={14} className="opacity-30" />
                 </button>
             </div>
 
             {/* Mobile Drawer */}
-            <div className={`fixed inset-0 bg-black bg-opacity-50 z-50 transition-opacity duration-300 md:hidden ${isMobileOpen ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}>
+            <div className={`fixed inset-0 z-[100] transition-all duration-500 md:hidden ${isMobileOpen ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}>
+                <div className="absolute inset-0 bg-gray-900/40 backdrop-blur-md" onClick={() => setIsMobileOpen(false)}></div>
                 <div
-                    className={`fixed right-0 top-0 h-full w-4/5 max-w-sm bg-white shadow-2xl z-50 transform transition-transform duration-300 ease-in-out p-6 overflow-y-auto ${isMobileOpen ? 'translate-x-0' : 'translate-x-full'}`}
+                    className={`absolute right-0 top-0 h-full w-[85%] max-w-sm bg-white shadow-2xl transition-transform duration-500 ease-out p-8 overflow-y-auto ${isMobileOpen ? 'translate-x-0' : 'translate-x-full'}`}
                 >
                     {sidebarContent}
                 </div>
             </div>
 
             {/* Desktop Sidebar */}
-            <aside className="hidden md:block w-full md:w-1/4 bg-white p-6 rounded-lg shadow-md h-fit sticky top-24">
+            <aside className="hidden md:block w-full md:w-[320px] bg-white p-8 rounded-[2.5rem] shadow-[0_20px_50px_-12px_rgba(0,0,0,0.05)] border border-gray-50 h-fit sticky top-[100px] animate-in fade-in slide-in-from-right-8 duration-700">
                 {sidebarContent}
             </aside>
         </>

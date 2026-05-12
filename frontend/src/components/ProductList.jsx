@@ -22,7 +22,6 @@ const ProductList = ({ onAddToCart, onUpdateProduct, onDeleteProduct, products }
 
     return (
         <div className="container mx-auto p-4">
-            <h2 className="text-3xl font-bold text-center text-gray-800 mb-8">כל המוצרים שלנו</h2>
             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-2 lg:grid-cols-2 xl:grid-cols-3 gap-6">
                 {products.map((product) => (
                     <div key={product._id} className="flex flex-col h-full bg-white rounded-lg shadow-md overflow-hidden hover:shadow-xl transition-shadow duration-300">

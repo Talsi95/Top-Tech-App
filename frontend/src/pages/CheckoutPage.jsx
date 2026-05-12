@@ -47,7 +47,7 @@ const CheckoutPage = ({ cartItems, showNotification, onOrderComplete }) => {
     const guestToken = localStorage.getItem('guestToken');
 
     return (
-        <div className="container mx-auto max-w-lg">
+        <div className="w-full max-w-[1440px] mx-auto px-6 lg:px-12">
             <Elements stripe={stripePromise}>
                 <CheckoutForm
                     cartItems={cartItems}

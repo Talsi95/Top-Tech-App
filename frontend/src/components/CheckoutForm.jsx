@@ -208,89 +208,156 @@ const CheckoutForm = ({ cartItems, showNotification, onOrderComplete, guestToken
     const isDisabled = isFormIncomplete || isProcessing || (formData.paymentMethod === 'credit-card' && !stripe);
 
     return (
-        <div className="p-8 max-w-lg mx-auto bg-white rounded-lg shadow-md mt-10">
-            <h2 className="text-2xl font-bold mb-6 text-center">פרטי הזמנה ותשלום</h2>
-            <form onSubmit={handleSubmit}>
+        <div className="w-full mx-auto py-12" dir="rtl">
+            <div className="text-center mb-12">
+                <h1 className="text-4xl font-extrabold text-gray-900 mb-4 tracking-tight">פרטי הזמנה ותשלום</h1>
+                <p className="text-lg text-gray-600 font-medium">השלם את הפרטים כדי לסיים את הרכישה</p>
+            </div>
 
-                <div className="mb-4">
-                    <label className="block text-gray-700 text-sm font-bold mb-2">שם מלא</label>
-                    <input className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight" type="text" name="fullName" value={formData.fullName} onChange={handleChange} required />
-                </div>
-                <div className="mb-4">
-                    <label className="block text-gray-700 text-sm font-bold mb-2">רחוב</label>
-                    <input className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight" type="text" name="street" value={formData.street} onChange={handleChange} required />
-                </div>
-                <div className="mb-4">
-                    <label className="block text-gray-700 text-sm font-bold mb-2">עיר</label>
-                    <input className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight" type="text" name="city" value={formData.city} onChange={handleChange} required />
-                </div>
-                <div className="mb-6">
-                    <label className="block text-gray-700 text-sm font-bold mb-2">אפשרויות משלוח</label>
-                    <div className="space-y-2 border p-3 rounded-md bg-gray-50">
-                        <label className="flex items-center space-x-3 space-x-reverse cursor-pointer">
-                            <input type="radio" name="shippingMethod" value="pickup-business" checked={formData.shippingMethod === 'pickup-business'} onChange={handleChange} className="form-radio h-4 w-4 text-green-600" />
-                            <span className="text-gray-700 mr-2">איסוף מבית העסק - חינם</span>
-                        </label>
-                        <label className="flex items-center space-x-3 space-x-reverse cursor-pointer">
-                            <input type="radio" name="shippingMethod" value="home-delivery" checked={formData.shippingMethod === 'home-delivery'} onChange={handleChange} className="form-radio h-4 w-4 text-green-600" />
-                            <span className="text-gray-700 mr-2">משלוח עד בית הלקוח - ₪29</span>
-                        </label>
-                        <label className="flex items-center space-x-3 space-x-reverse cursor-pointer">
-                            <input type="radio" name="shippingMethod" value="pickup-point" checked={formData.shippingMethod === 'pickup-point'} onChange={handleChange} className="form-radio h-4 w-4 text-green-600" />
-                            <span className="text-gray-700 mr-2">משלוח לנק׳ איסוף - ₪15</span>
-                        </label>
-                    </div>
-                </div>
-                <div className="mb-6">
-                    <label className="block text-gray-700 text-sm font-bold mb-2">מספר טלפון</label>
-                    <input className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight" type="tel" name="phone" value={formData.phone} onChange={handleChange} required />
-                </div>
-                <div className="mb-6">
-                    <label className="block text-gray-700 text-sm font-bold mb-2">מייל</label>
-                    <input className={`shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight${isGuest ? 'bg-gray-100 cursor-not-allowed' : ''}`} type="email" name="email" value={formData.email} readOnly={true} required />
+            <form onSubmit={handleSubmit} className="grid grid-cols-1 lg:grid-cols-12 gap-8">
+                {/* Left Column: Form Details */}
+                <div className="lg:col-span-7 space-y-8">
+                    <section className="bg-white p-8 md:p-10 rounded-2xl shadow-sm border border-gray-100">
+                        <h2 className="text-xl font-bold mb-6 flex items-center">
+                            <span className="w-8 h-8 bg-primary/10 text-primary rounded-full flex items-center justify-center ml-3 text-sm">1</span>
+                            פרטים אישיים
+                        </h2>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div className="space-y-2">
+                                <label className="text-sm font-semibold text-gray-700 mr-1">שם מלא</label>
+                                <input className="w-full p-3 bg-surface-container border-none rounded-xl focus:ring-2 focus:ring-primary transition-all outline-none" type="text" name="fullName" value={formData.fullName} onChange={handleChange} required />
+                            </div>
+                            <div className="space-y-2">
+                                <label className="text-sm font-semibold text-gray-700 mr-1">מספר טלפון</label>
+                                <input className="w-full p-3 bg-surface-container border-none rounded-xl focus:ring-2 focus:ring-primary transition-all outline-none" type="tel" name="phone" value={formData.phone} onChange={handleChange} required />
+                            </div>
+                            <div className="md:col-span-2 space-y-2">
+                                <label className="text-sm font-semibold text-gray-700 mr-1">מייל</label>
+                                <input className={`w-full p-3 bg-surface-container border-none rounded-xl focus:ring-2 focus:ring-primary transition-all outline-none ${isGuest ? 'opacity-70 cursor-not-allowed' : ''}`} type="email" name="email" value={formData.email} readOnly={true} required />
+                            </div>
+                        </div>
+                    </section>
+
+                    <section className="bg-white p-8 md:p-10 rounded-2xl shadow-sm border border-gray-100">
+                        <h2 className="text-xl font-bold mb-6 flex items-center">
+                            <span className="w-8 h-8 bg-primary/10 text-primary rounded-full flex items-center justify-center ml-3 text-sm">2</span>
+                            כתובת למשלוח
+                        </h2>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div className="space-y-2">
+                                <label className="text-sm font-semibold text-gray-700 mr-1">עיר</label>
+                                <input className="w-full p-3 bg-surface-container border-none rounded-xl focus:ring-2 focus:ring-primary transition-all outline-none" type="text" name="city" value={formData.city} onChange={handleChange} required />
+                            </div>
+                            <div className="space-y-2">
+                                <label className="text-sm font-semibold text-gray-700 mr-1">רחוב ומספר בית</label>
+                                <input className="w-full p-3 bg-surface-container border-none rounded-xl focus:ring-2 focus:ring-primary transition-all outline-none" type="text" name="street" value={formData.street} onChange={handleChange} required />
+                            </div>
+                        </div>
+                    </section>
+
+                    <section className="bg-white p-8 md:p-10 rounded-2xl shadow-sm border border-gray-100">
+                        <h2 className="text-xl font-bold mb-6 flex items-center">
+                            <span className="w-8 h-8 bg-primary/10 text-primary rounded-full flex items-center justify-center ml-3 text-sm">3</span>
+                            שיטת משלוח
+                        </h2>
+                        <div className="grid grid-cols-1 gap-3">
+                            <label className={`flex items-center p-4 rounded-xl border-2 transition-all cursor-pointer ${formData.shippingMethod === 'pickup-business' ? 'border-primary bg-primary/5' : 'border-gray-100 hover:border-gray-200'}`}>
+                                <input type="radio" name="shippingMethod" value="pickup-business" checked={formData.shippingMethod === 'pickup-business'} onChange={handleChange} className="w-5 h-5 text-primary ml-4" />
+                                <div className="flex-1">
+                                    <span className="block font-bold text-gray-900">איסוף מבית העסק</span>
+                                    <span className="text-sm text-gray-500 italic">זמין מיידית</span>
+                                </div>
+                                <span className="font-bold text-green-600">חינם</span>
+                            </label>
+
+                            <label className={`flex items-center p-4 rounded-xl border-2 transition-all cursor-pointer ${formData.shippingMethod === 'home-delivery' ? 'border-primary bg-primary/5' : 'border-gray-100 hover:border-gray-200'}`}>
+                                <input type="radio" name="shippingMethod" value="home-delivery" checked={formData.shippingMethod === 'home-delivery'} onChange={handleChange} className="w-5 h-5 text-primary ml-4" />
+                                <div className="flex-1">
+                                    <span className="block font-bold text-gray-900">משלוח עד הבית</span>
+                                    <span className="text-sm text-gray-500 italic">3-5 ימי עסקים</span>
+                                </div>
+                                <span className="font-bold text-gray-900">₪29</span>
+                            </label>
+
+                            <label className={`flex items-center p-4 rounded-xl border-2 transition-all cursor-pointer ${formData.shippingMethod === 'pickup-point' ? 'border-primary bg-primary/5' : 'border-gray-100 hover:border-gray-200'}`}>
+                                <input type="radio" name="shippingMethod" value="pickup-point" checked={formData.shippingMethod === 'pickup-point'} onChange={handleChange} className="w-5 h-5 text-primary ml-4" />
+                                <div className="flex-1">
+                                    <span className="block font-bold text-gray-900">נקודת איסוף (PUDO)</span>
+                                    <span className="text-sm text-gray-500 italic">קרוב לביתך</span>
+                                </div>
+                                <span className="font-bold text-gray-900">₪15</span>
+                            </label>
+                        </div>
+                    </section>
                 </div>
 
-                <div className="mb-6">
-                    <label className="block text-gray-700 text-sm font-bold mb-2">שיטת תשלום</label>
-                    <select name="paymentMethod" value={formData.paymentMethod} onChange={handleChange}
-                        className="shadow border rounded w-full py-2 px-3 text-gray-700 leading-tight">
-                        <option value="">בחר שיטת תשלום</option>
-                        <option value="credit-card">כרטיס אשראי (Stripe)</option>
-                        <option value="cash">מזומן (תשלום במקום)</option>
-                    </select>
-                </div>
+                {/* Right Column: Payment & Summary */}
+                <div className="lg:col-span-5 space-y-8">
+                    <div className="bg-white p-8 md:p-10 rounded-2xl shadow-lg border border-gray-100 sticky top-8">
+                        <h2 className="text-xl font-bold mb-6 flex items-center">
+                            <span className="w-8 h-8 bg-primary/10 text-primary rounded-full flex items-center justify-center ml-3 text-sm">4</span>
+                            תשלום וסיכום
+                        </h2>
 
-                {formData.paymentMethod === 'credit-card' && (
-                    <div className="mb-6 p-4 border rounded-md bg-gray-50">
-                        <label className="block text-gray-700 text-sm font-bold mb-2">פרטי כרטיס אשראי</label>
-                        <CardElement options={CARD_ELEMENT_OPTIONS} />
-                    </div>
-                )}
+                        <div className="space-y-6 mb-8">
+                            <div className="space-y-2">
+                                <label className="text-sm font-semibold text-gray-700">בחר שיטת תשלום</label>
+                                <select name="paymentMethod" value={formData.paymentMethod} onChange={handleChange}
+                                    className="w-full p-3 bg-surface-container border-none rounded-xl focus:ring-2 focus:ring-primary transition-all outline-none font-medium appearance-none">
+                                    <option value="">בחר שיטת תשלום...</option>
+                                    <option value="credit-card">💳 כרטיס אשראי (Stripe)</option>
+                                    <option value="cash">💵 מזומן (תשלום במקום)</option>
+                                </select>
+                            </div>
 
-                {paymentError && (
-                    <div className="text-red-500 text-sm mb-4 text-center">{paymentError}</div>
-                )}
+                            {formData.paymentMethod === 'credit-card' && (
+                                <div className="p-4 bg-surface-container rounded-xl border border-gray-200">
+                                    <label className="block text-xs font-bold text-gray-500 uppercase mb-3 mr-1">פרטי כרטיס אשראי</label>
+                                    <div className="bg-white p-3 rounded-lg border border-gray-100">
+                                        <CardElement options={CARD_ELEMENT_OPTIONS} />
+                                    </div>
+                                </div>
+                            )}
 
-                <div className="bg-gray-100 p-4 rounded-md mb-6">
-                    <div className="flex justify-between items-center mb-2">
-                        <span className="text-gray-600">סיכום ביניים:</span>
-                        <span className="font-semibold">₪{subtotal.toFixed(2)}</span>
+                            {paymentError && (
+                                <div className="p-3 bg-red-50 text-red-500 text-sm rounded-xl text-center font-medium border border-red-100">
+                                    {paymentError}
+                                </div>
+                            )}
+                        </div>
+
+                        <div className="space-y-3 pt-6 border-t border-gray-100 mb-8">
+                            <div className="flex justify-between text-gray-600">
+                                <span>סיכום ביניים</span>
+                                <span className="font-semibold">₪{subtotal.toFixed(2)}</span>
+                            </div>
+                            <div className="flex justify-between text-gray-600">
+                                <span>דמי משלוח</span>
+                                <span className="font-semibold">₪{shippingCost.toFixed(2)}</span>
+                            </div>
+                            <div className="flex justify-between items-center pt-4 border-t border-gray-100">
+                                <span className="text-xl font-extrabold text-gray-900">סה״כ לתשלום</span>
+                                <span className="text-2xl font-black text-primary">₪{totalToDisplay.toFixed(2)}</span>
+                            </div>
+                        </div>
+
+                        <button
+                            type="submit"
+                            disabled={isDisabled}
+                            className={`w-full py-4 rounded-xl text-white font-black text-lg shadow-xl transform transition-all active:scale-95 flex justify-center items-center ${isDisabled ? 'bg-gray-300 cursor-not-allowed' : 'bg-primary hover:bg-primary-hover hover:shadow-primary/30'
+                                }`}
+                        >
+                            {isProcessing ? (
+                                <span className="flex items-center">
+                                    <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                    </svg>
+                                    מעבד תשלום...
+                                </span>
+                            ) : 'שלח הזמנה וסיים רכישה'}
+                        </button>
                     </div>
-                    <div className="flex justify-between items-center mb-2 border-b pb-2">
-                        <span className="text-gray-600">דמי משלוח:</span>
-                        <span className="font-semibold">₪{shippingCost.toFixed(2)}</span>
-                    </div>
-                    <div className="flex justify-between items-center pt-2">
-                        <h3 className="text-xl font-bold text-gray-800">סה״כ: </h3>
-                        <p className="text-xl font-bold text-green-600">₪{totalToDisplay.toFixed(2)}</p>
-                    </div>
-                </div>
-                <div className="flex items-center justify-center">
-                    <button type="submit" disabled={isDisabled}
-                        className={`w-full text-white font-bold py-2 px-4 rounded-md transition-colors duration-300
-                    ${isDisabled ? 'bg-gray-400 cursor-not-allowed' : 'bg-green-500 hover:bg-green-600'}`}>
-                        {isProcessing ? 'מעבד תשלום...' : 'שלח הזמנה'}
-                    </button>
                 </div>
             </form>
         </div>
