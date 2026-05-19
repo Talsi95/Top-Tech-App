@@ -1,5 +1,14 @@
 const Product = require('../models/product');
 const Category = require('../models/category');
+const cloudinary = require('cloudinary').v2;
+
+if (process.env.CLOUDINARY_CLOUD_NAME) {
+    cloudinary.config({
+        cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
+        api_key: process.env.CLOUDINARY_API_KEY,
+        api_secret: process.env.CLOUDINARY_API_SECRET
+    });
+}
 
 /**
  * Fetches products based on category, subcategory, and optional variant filters.
@@ -40,13 +49,13 @@ const getProducts = async (req, res) => {
             variants: {
                 $elemMatch: {
                     $or: [
-                        { 
-                            salePrice: { $exists: true, $ne: null }, 
-                            salePrice: priceQuery 
+                        {
+                            salePrice: { $exists: true, $ne: null },
+                            salePrice: priceQuery
                         },
-                        { 
-                            $or: [{ salePrice: { $exists: false } }, { salePrice: null }], 
-                            price: priceQuery 
+                        {
+                            $or: [{ salePrice: { $exists: false } }, { salePrice: null }],
+                            price: priceQuery
                         }
                     ]
                 }
@@ -71,7 +80,7 @@ const getProducts = async (req, res) => {
         }
     }
 
-    let dbQuery = {};
+    let dbQuery = { storeId: req.storeId };
     if (combinedConditions.length > 0) {
         dbQuery.$and = combinedConditions;
     }
@@ -86,8 +95,8 @@ const getProducts = async (req, res) => {
 
         const availableFilters = getAvailableFilters(products);
 
-        res.json({ 
-            products, 
+        res.json({
+            products,
             availableFilters,
             hasMore: totalProducts > skip + products.length
         });
@@ -140,7 +149,8 @@ const getUniqueSubcategories = async (req, res) => {
 
     try {
         const uniqueSubcategories = await Product.distinct('subcategory', {
-            category: category
+            category: category,
+            storeId: req.storeId
         });
 
         res.json(uniqueSubcategories);
@@ -162,7 +172,8 @@ const searchProducts = async (req, res) => {
     }
 
     const products = await Product.find({
-        name: { $regex: query, $options: 'i' }
+        name: { $regex: query, $options: 'i' },
+        storeId: req.storeId
     });
 
     res.json(products);
@@ -174,7 +185,7 @@ const searchProducts = async (req, res) => {
  * @param {Object} res - Express response object.
  */
 const getProductById = async (req, res) => {
-    const product = await Product.findById(req.params.id);
+    const product = await Product.findOne({ _id: req.params.id, storeId: req.storeId });
     if (!product) {
         return res.status(404).json({ message: 'Product not found' });
     }
@@ -186,10 +197,10 @@ const getProductById = async (req, res) => {
  * @param {Object} productData - The product data to validate.
  * @throws {Error} If validation fails.
  */
-const validateProductVariants = async (productData) => {
+const validateProductVariants = async (productData, storeId) => {
     const { category, variants } = productData;
 
-    const categoryData = await Category.findOne({ name: category });
+    const categoryData = await Category.findOne({ name: category, storeId });
 
     if (!categoryData) {
         throw new Error(`Category "${category}" not found in database.`);
@@ -213,7 +224,8 @@ const validateProductVariants = async (productData) => {
  */
 const createProduct = async (req, res) => {
     try {
-        await validateProductVariants(req.body);
+        req.body.storeId = req.storeId;
+        await validateProductVariants(req.body, req.storeId);
 
         const newProduct = await Product.create(req.body);
         res.status(201).json(newProduct);
@@ -229,10 +241,11 @@ const createProduct = async (req, res) => {
  */
 const updateProduct = async (req, res) => {
     try {
-        await validateProductVariants(req.body);
+        req.body.storeId = req.storeId;
+        await validateProductVariants(req.body, req.storeId);
 
-        const product = await Product.findByIdAndUpdate(
-            req.params.id,
+        const product = await Product.findOneAndUpdate(
+            { _id: req.params.id, storeId: req.storeId },
             req.body,
             { new: true, runValidators: true }
         );
@@ -262,7 +275,7 @@ const updateProductVariant = async (req, res) => {
     }
 
     const product = await Product.findOneAndUpdate(
-        { _id: productId, 'variants._id': variantId },
+        { _id: productId, 'variants._id': variantId, storeId: req.storeId },
         { $set: setFields },
         { new: true, runValidators: true }
     );
@@ -280,11 +293,56 @@ const updateProductVariant = async (req, res) => {
  * @param {Object} res - Express response object.
  */
 const deleteProduct = async (req, res) => {
-    const product = await Product.findByIdAndDelete(req.params.id);
+    const product = await Product.findOneAndDelete({ _id: req.params.id, storeId: req.storeId });
     if (!product) {
         return res.status(404).json({ message: 'Product not found' });
     }
     res.status(200).json({ message: 'Product deleted successfully' });
+};
+
+/**
+ * Uploads a video file to Cloudinary.
+ * @param {Object} req - Express request object.
+ * @param {Object} res - Express response object.
+ */
+const uploadVideo = async (req, res) => {
+    try {
+        if (!req.file) {
+            return res.status(400).json({ message: 'No video file provided.' });
+        }
+
+        const cloudName = process.env.CLOUDINARY_CLOUD_NAME;
+        const apiKey = process.env.CLOUDINARY_API_KEY;
+        const apiSecret = process.env.CLOUDINARY_API_SECRET;
+
+        if (!cloudName || !apiKey || !apiSecret) {
+            console.warn('Cloudinary credentials missing in .env. Falling back to mockup storage.');
+            return res.status(200).json({
+                url: 'https://res.cloudinary.com/demo/video/upload/dog.mp4',
+                message: 'Uploaded to fallback mock storage (Cloudinary credentials missing in backend .env).'
+            });
+        }
+
+        const result = await cloudinary.uploader.upload(req.file.path, {
+            resource_type: 'video',
+            upload_preset: process.env.CLOUDINARY_UPLOAD_PRESET,
+            folder: 'product_videos'
+        });
+
+        // Delete temporary file from server disk
+        const fs = require('fs');
+        fs.unlink(req.file.path, (err) => {
+            if (err) console.error('Error deleting temp file:', err);
+        });
+
+        res.status(200).json({
+            url: result.secure_url,
+            message: 'Video uploaded successfully to Cloudinary.'
+        });
+    } catch (error) {
+        console.error('Cloudinary backend upload error:', error);
+        res.status(500).json({ message: 'Failed to upload video to Cloudinary: ' + error.message });
+    }
 };
 
 module.exports = {
@@ -295,5 +353,6 @@ module.exports = {
     createProduct,
     updateProduct,
     updateProductVariant,
-    deleteProduct
+    deleteProduct,
+    uploadVideo
 };

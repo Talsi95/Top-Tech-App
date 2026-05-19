@@ -1,0 +1,68 @@
+const mongoose = require('mongoose');
+const Schema = mongoose.Schema;
+
+const storeSchema = new Schema({
+    slug: {
+        type: String,
+        required: true,
+        unique: true,
+        trim: true,
+        lowercase: true
+    },
+    name: {
+        type: String,
+        required: true,
+        trim: true
+    },
+    businessInfo: {
+        address: { type: String, default: '' },
+        phone: { type: String, default: '' },
+        whatsapp: { type: String, default: '' },
+        email: { type: String, default: '' }
+    },
+    design: {
+        primaryColor: { type: String, default: '#4f46e5' }, // Default Indigo 600
+        secondaryColor: { type: String, default: '#1f2937' }, // Default Gray 800
+        logoUrl: { type: String, default: '' },
+        faviconUrl: { type: String, default: '' }
+    },
+    labels: {
+        technicalSpecs: { type: String, default: 'מפרט טכני' },
+        bannerDescription: { type: String, default: 'ברוכים הבאים לחנות שלנו' },
+        footerDescription: { type: String, default: 'קניה מהנה ובטוחה' },
+        contactUsLabel: { type: String, default: 'צור קשר בוואטסאפ' },
+        featuredSectionTitle: { type: String, default: 'הנבחרת שלנו' }
+    },
+    features: {
+        hasRepairLab: { type: Boolean, default: false },
+        hasCart: { type: Boolean, default: true },
+        hasUserAccounts: { type: Boolean, default: true },
+        hasCheckout: { type: Boolean, default: true },
+        fullWidthCards: { type: Boolean, default: false },
+        cartDrawer: { type: Boolean, default: true },
+        useSubCategories: { type: Boolean, default: true },
+        showStock: { type: Boolean, default: true },
+        hasArticles: { type: Boolean, default: false }
+    },
+    homePageConfig: {
+        heroType: {
+            type: String,
+            enum: ['banner', 'video', 'slider'],
+            default: 'banner'
+        },
+        mediaUrls: [{ type: String }],
+        heroTitle: { type: String, default: '' },
+        heroSubtitle: { type: String, default: '' }
+    },
+    gallery: [{
+        url: String,
+        type: { type: String, enum: ['image', 'video'], default: 'image' },
+        title: String
+    }]
+}, {
+    timestamps: true
+});
+
+const Store = mongoose.model('Store', storeSchema);
+
+module.exports = Store;

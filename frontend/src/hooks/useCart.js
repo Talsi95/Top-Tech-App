@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import axios from 'axios';
+import { useStore } from '../StoreContext';
 
 /**
  * Hook to manage the shopping cart, including local storage persistence and server-side synchronization.
@@ -8,6 +9,10 @@ import axios from 'axios';
  * @param {Function} showNotification - Function to show notifications to the user.
  */
 const useCart = (isAuthenticated, getToken, showNotification) => {
+  const { store } = useStore();
+  const storeSlug = store?.slug || 'default';
+  const cartStorageKey = `cartItems_${storeSlug}`;
+  
   const [cartItems, setCartItems] = useState([]);
 
   const isGuestUser = useCallback(() => {
@@ -26,7 +31,7 @@ const useCart = (isAuthenticated, getToken, showNotification) => {
    * @param {Array} currentCart - The current items in the cart.
    */
   const saveCart = useCallback(async (currentCart) => {
-    localStorage.setItem('cartItems', JSON.stringify(currentCart));
+    localStorage.setItem(cartStorageKey, JSON.stringify(currentCart));
     try {
       const token = getToken();
       if (!isAuthenticated || isGuestUser()) {
@@ -60,14 +65,14 @@ const useCart = (isAuthenticated, getToken, showNotification) => {
    * Synchronizes local and server carts if necessary.
    */
   const loadCart = useCallback(async () => {
-    const storedCart = localStorage.getItem('cartItems');
+    const storedCart = localStorage.getItem(cartStorageKey);
     let localCart = [];
     if (storedCart) {
       try {
         localCart = JSON.parse(storedCart).filter(item => item.product);
       } catch (e) {
         console.error("Failed to parse cart data from localStorage", e);
-        localStorage.removeItem('cartItems');
+        localStorage.removeItem(cartStorageKey);
       }
     }
 
@@ -93,7 +98,7 @@ const useCart = (isAuthenticated, getToken, showNotification) => {
           setCartItems(localCart);
         } else {
           setCartItems(dbCart);
-          localStorage.removeItem('cartItems');
+          localStorage.removeItem(cartStorageKey);
         }
       } else {
         setCartItems(dbCart);
@@ -102,7 +107,7 @@ const useCart = (isAuthenticated, getToken, showNotification) => {
       console.error("Failed to load cart from DB:", err.response ? err.response.data : err.message);
       setCartItems(localCart);
     }
-  }, [isAuthenticated, getToken, saveCart]);
+  }, [isAuthenticated, getToken, saveCart, cartStorageKey]);
 
   // Initial load of the cart.
   useEffect(() => {
@@ -114,26 +119,35 @@ const useCart = (isAuthenticated, getToken, showNotification) => {
    * @param {Object} product - The product object.
    * @param {Object} variant - The specific variant of the product.
    */
-  const handleAddToCart = useCallback(async (product, variant) => {
+  const handleAddToCart = useCallback(async (product, variant, selectedOptions = [], optionsTotal = 0) => {
     if (!product || !variant) {
       showNotification('שגיאה: לא נבחרה וריאציה למוצר', 'error');
       return;
     }
 
+    // Build a stable key to match items with same product+variant+options combo
+    const optionsKey = JSON.stringify(selectedOptions.map(o => `${o.name}:${o.choice}`).sort());
+
     setCartItems(prevItems => {
       const isItemInCart = prevItems.find(
-        (item) => item.product && item.product._id === product._id && item.variant?._id === variant._id
+        (item) => item.product &&
+          item.product._id === product._id &&
+          item.variant?._id === variant._id &&
+          (item.optionsKey || '[]') === optionsKey
       );
 
       let newCart;
       if (isItemInCart) {
         newCart = prevItems.map((item) =>
-          item.product && item.product._id === product._id && item.variant?._id === variant._id
+          item.product &&
+          item.product._id === product._id &&
+          item.variant?._id === variant._id &&
+          (item.optionsKey || '[]') === optionsKey
             ? { ...item, quantity: item.quantity + 1 }
             : item
         );
       } else {
-        newCart = [...prevItems, { product, variant, quantity: 1 }];
+        newCart = [...prevItems, { product, variant, selectedOptions, optionsTotal, optionsKey, quantity: 1 }];
       }
 
       saveCart(newCart);
@@ -221,8 +235,9 @@ const useCart = (isAuthenticated, getToken, showNotification) => {
     const regularPrice = item.variant?.price ?? item.product?.price ?? 0;
     const salePrice = item.variant?.salePrice;
     const isOnSale = item.variant?.isOnSale;
-    const priceToUse = isOnSale && salePrice && salePrice > 0 ? salePrice : regularPrice;
-    return total + (priceToUse * item.quantity);
+    const basePrice = isOnSale && salePrice && salePrice > 0 ? salePrice : regularPrice;
+    const optionsTotal = item.optionsTotal || 0;
+    return total + ((basePrice + optionsTotal) * item.quantity);
   }, 0);
 
   return {

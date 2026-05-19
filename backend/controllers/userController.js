@@ -17,10 +17,10 @@ const register = async (req, res) => {
 
     try {
         const { username, email, password, phone } = req.body;
-        const newUser = new User({ username, email, password, phone });
+        const newUser = new User({ username, email, password, phone, storeId: req.storeId });
         await newUser.save();
 
-        const token = jwt.sign({ id: newUser._id, username: newUser.username, email: newUser.email, phone: newUser.phone, isAdmin: newUser.isAdmin }, process.env.JWT_SECRET, { expiresIn: '1h' });
+        const token = jwt.sign({ id: newUser._id, storeId: req.storeId, username: newUser.username, email: newUser.email, phone: newUser.phone, isAdmin: newUser.isAdmin, isSuperAdmin: newUser.isSuperAdmin }, process.env.JWT_SECRET, { expiresIn: '1h' });
 
         res.status(201).json({ token });
 
@@ -59,7 +59,12 @@ const login = async (req, res) => {
     }
 
     const { email, password } = req.body;
-    const user = await User.findOne({ email });
+    let user = await User.findOne({ email, storeId: req.storeId });
+
+    if (!user) {
+        // Fallback: Check if there's a Super Admin with this email globally, allowing login from any store.
+        user = await User.findOne({ email, isSuperAdmin: true });
+    }
 
     if (!user) {
         return res.status(401).json({
@@ -76,9 +81,17 @@ const login = async (req, res) => {
     }
 
     const token = jwt.sign(
-        { id: user._id, username: user.username, email: user.email, phone: user.phone, isAdmin: user.isAdmin },
+        { 
+            id: user._id, 
+            storeId: user.isSuperAdmin ? (user.storeId || req.storeId) : req.storeId, 
+            username: user.username, 
+            email: user.email, 
+            phone: user.phone, 
+            isAdmin: user.isAdmin, 
+            isSuperAdmin: user.isSuperAdmin 
+        },
         process.env.JWT_SECRET,
-        { expiresIn: '1h' }
+        { expiresIn: '7d' }
     );
 
     res.status(200).json({ token });
@@ -93,7 +106,7 @@ const login = async (req, res) => {
 const forgotPassword = async (req, res) => {
     const { email } = req.body;
 
-    const user = await User.findOne({ email });
+    const user = await User.findOne({ email, storeId: req.storeId });
     if (!user) {
         return res.status(200).json({ message: 'If a user with that email exists, a reset link has been sent.' });
     }
@@ -139,7 +152,8 @@ const profile = async (req, res) => {
 
             const orders = await Order.find({
                 "shippingAddress.email": guestEmail,
-                isGuestOrder: true
+                isGuestOrder: true,
+                storeId: req.storeId
             }).populate('orderItems.product');
 
             return res.json({
@@ -156,7 +170,7 @@ const profile = async (req, res) => {
             return res.status(404).json({ message: 'User not found' });
         }
 
-        const orders = await Order.find({ user: req.user.id })
+        const orders = await Order.find({ user: req.user.id, storeId: req.storeId })
             .populate({
                 path: 'orderItems.product',
                 model: 'Product',
@@ -190,7 +204,7 @@ const profile = async (req, res) => {
  * @param {Object} res - Express response object.
  */
 const getAllUsers = async (req, res) => {
-    const users = await User.find({}).select('-password');
+    const users = await User.find({ storeId: req.storeId }).select('-password');
     res.status(200).json(users);
 };
 
@@ -210,7 +224,7 @@ const updateProfile = async (req, res) => {
         const { email, phone, username } = req.body;
 
         if (email && email !== user.email) {
-            const emailExists = await User.findOne({ email });
+            const emailExists = await User.findOne({ email, storeId: req.storeId });
             if (emailExists) {
                 return res.status(400).json({ message: 'כתובת המייל כבר קיימת במערכת' });
             }
@@ -222,7 +236,7 @@ const updateProfile = async (req, res) => {
         }
 
         if (username && username !== user.username) {
-            const usernameExists = await User.findOne({ username });
+            const usernameExists = await User.findOne({ username, storeId: req.storeId });
             if (usernameExists) {
                 return res.status(400).json({ message: 'שם המשתמש כבר קיים במערכת' });
             }
@@ -232,9 +246,9 @@ const updateProfile = async (req, res) => {
         const updatedUser = await user.save();
 
         const token = jwt.sign(
-            { id: updatedUser._id, username: updatedUser.username, email: updatedUser.email, phone: updatedUser.phone, isAdmin: updatedUser.isAdmin },
+            { id: updatedUser._id, storeId: req.storeId, username: updatedUser.username, email: updatedUser.email, phone: updatedUser.phone, isAdmin: updatedUser.isAdmin, isSuperAdmin: updatedUser.isSuperAdmin },
             process.env.JWT_SECRET,
-            { expiresIn: '1h' }
+            { expiresIn: '7d' }
         );
 
         res.json({

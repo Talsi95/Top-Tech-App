@@ -17,6 +17,11 @@ const orderItemSchema = new Schema({
         of: String,
         required: false
     },
+    selectedOptions: [{
+        name: { type: String },
+        choice: { type: String },
+        priceAddition: { type: Number, default: 0 }
+    }],
     quantity: {
         type: Number,
         required: true
@@ -30,6 +35,11 @@ const orderItemSchema = new Schema({
 
 
 const orderSchema = new Schema({
+    storeId: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'Store',
+        required: false // Will be true after migration
+    },
     user: {
         type: mongoose.Schema.Types.ObjectId,
         required: false,

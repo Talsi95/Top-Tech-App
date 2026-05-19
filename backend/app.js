@@ -48,15 +48,20 @@ const orderRoutes = require('./routes/orders');
 const categoryRoutes = require('./routes/categoryRoutes');
 const repairRoutes = require('./routes/repairRoutes');
 const repairTypeRoutes = require('./routes/repairTypeRoutes');
+const articlesRoutes = require('./routes/articles');
+const storeResolver = require('./middleware/storeResolver');
+const storeRoutes = require('./routes/stores'); // We will create this
 
-app.use('/api/products', productRoutes);
-app.use('/api/auth', userRoutes);
-app.use('/api/guest', guestRoutes);
-app.use('/api/cart', cartRoutes);
-app.use('/api/orders', orderRoutes);
-app.use('/api/categories', categoryRoutes);
-app.use('/api/repairs', repairRoutes);
-app.use('/api/repair-types', repairTypeRoutes);
+app.use('/api/products', storeResolver, productRoutes);
+app.use('/api/auth', storeResolver, userRoutes);
+app.use('/api/guest', storeResolver, guestRoutes);
+app.use('/api/cart', storeResolver, cartRoutes);
+app.use('/api/orders', storeResolver, orderRoutes);
+app.use('/api/categories', storeResolver, categoryRoutes);
+app.use('/api/repairs', storeResolver, repairRoutes);
+app.use('/api/repair-types', storeResolver, repairTypeRoutes);
+app.use('/api/articles', storeResolver, articlesRoutes);
+app.use('/api/stores', storeRoutes);
 
 // Static file hosting for the frontend production build.
 app.use(express.static(path.join(__dirname, 'dist')));

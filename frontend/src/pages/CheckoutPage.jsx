@@ -1,6 +1,6 @@
 import { Elements } from '@stripe/react-stripe-js';
 import { loadStripe } from '@stripe/stripe-js';
-import { useNavigate } from 'react-router-dom';
+import useStoreNavigate from '../hooks/useStoreNavigate';
 import CheckoutForm from '../components/CheckoutForm';
 import { useEffect } from 'react';
 import { useAuth } from '../AuthContext';
@@ -17,7 +17,7 @@ const stripePromise = loadStripe(import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY || 
  * @param {Function} props.onOrderComplete - Callback function called after a successful order.
  */
 const CheckoutPage = ({ cartItems, showNotification, onOrderComplete }) => {
-    const navigate = useNavigate();
+    const navigate = useStoreNavigate();
     const { isAuthenticated, isGuest } = useAuth();
 
     useEffect(() => {

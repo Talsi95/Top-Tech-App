@@ -7,6 +7,7 @@ const Category = require('../models/category');
  */
 const createCategory = async (req, res) => {
     try {
+        req.body.storeId = req.storeId;
         const newCategory = await Category.create(req.body);
         res.status(201).json(newCategory);
     } catch (error) {
@@ -20,8 +21,8 @@ const createCategory = async (req, res) => {
  * @param {Object} res - Express response object.
  */
 const updateCategory = async (req, res) => {
-    const category = await Category.findByIdAndUpdate(
-        req.params.id,
+    const category = await Category.findOneAndUpdate(
+        { _id: req.params.id, storeId: req.storeId },
         req.body,
         { new: true, runValidators: true }
     );
@@ -37,7 +38,7 @@ const updateCategory = async (req, res) => {
  * @param {Object} res - Express response object.
  */
 const deleteCategory = async (req, res) => {
-    const category = await Category.findByIdAndDelete(req.params.id);
+    const category = await Category.findOneAndDelete({ _id: req.params.id, storeId: req.storeId });
     if (!category) {
         return res.status(404).json({ message: 'Category not found' });
     }
@@ -50,7 +51,7 @@ const deleteCategory = async (req, res) => {
  * @param {Object} res - Express response object.
  */
 const getCategories = async (req, res) => {
-    const categories = await Category.find({});
+    const categories = await Category.find({ storeId: req.storeId }).sort({ order: 1, createdAt: 1 });
     res.status(200).json(categories);
 };
 
@@ -61,7 +62,7 @@ const getCategories = async (req, res) => {
  */
 const getAdminCategoriesData = async (req, res) => {
     try {
-        const categories = await Category.find({});
+        const categories = await Category.find({ storeId: req.storeId }).sort({ order: 1, createdAt: 1 });
 
         const adminCategories = categories.reduce((acc, cat) => {
             acc[cat.name] = cat.subcategories.map(sub => sub.name);
@@ -80,10 +81,39 @@ const getAdminCategoriesData = async (req, res) => {
     }
 };
 
+/**
+ * Reorders categories in bulk.
+ * @param {Object} req - Express request object.
+ * @param {Object} res - Express response object.
+ */
+const reorderCategories = async (req, res) => {
+    try {
+        const { orderings } = req.body; // array of { id, order }
+        if (!Array.isArray(orderings)) {
+            return res.status(400).json({ message: 'Orderings must be an array' });
+        }
+
+        const bulkOps = orderings.map(item => ({
+            updateOne: {
+                filter: { _id: item.id, storeId: req.storeId },
+                update: { $set: { order: item.order } }
+            }
+        }));
+
+        await Category.bulkWrite(bulkOps);
+
+        const categories = await Category.find({ storeId: req.storeId }).sort({ order: 1, createdAt: 1 });
+        res.status(200).json(categories);
+    } catch (error) {
+        res.status(500).json({ message: error.message || "Failed to reorder categories." });
+    }
+};
+
 module.exports = {
     createCategory,
     updateCategory,
     deleteCategory,
     getCategories,
     getAdminCategoriesData,
+    reorderCategories,
 };

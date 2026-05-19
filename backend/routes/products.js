@@ -2,6 +2,8 @@ const express = require('express');
 const router = express.Router();
 const { protect, admin } = require('../middleware/authMiddleware');
 const asyncHandler = require('../middleware/asyncHandler');
+const multer = require('multer');
+const upload = multer({ dest: 'uploads/' });
 const {
     getProducts,
     getUniqueSubcategories,
@@ -10,7 +12,8 @@ const {
     createProduct,
     updateProduct,
     updateProductVariant,
-    deleteProduct
+    deleteProduct,
+    uploadVideo
 } = require('../controllers/productController');
 
 
@@ -26,6 +29,7 @@ router.get('/:id', asyncHandler(getProductById));
 
 
 router.post('/', asyncHandler(createProduct));
+router.post('/upload-video', protect, admin, upload.single('video'), asyncHandler(uploadVideo));
 
 
 router.put('/:id', protect, admin, asyncHandler(updateProduct));

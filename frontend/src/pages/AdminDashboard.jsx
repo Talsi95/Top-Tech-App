@@ -1,7 +1,9 @@
+import useStoreNavigate from '../hooks/useStoreNavigate';
 import { useState, useEffect } from 'react';
 import { useAuth } from '../AuthContext';
-import { useNavigate, useLocation } from 'react-router-dom';
-import { Package, Users, ShoppingBag, Grid, Wrench, FileText, ChevronLeft } from 'lucide-react';
+import { useStore } from '../StoreContext';
+import {  useLocation  } from 'react-router-dom';;
+import { Package, Users, ShoppingBag, Grid, Wrench, FileText, ChevronLeft, Settings, BookOpen } from 'lucide-react';
 import ProductFormPage from '../pages/ProductFormPage';
 import UserList from '../components/UserList';
 import AllOrdersList from '../components/AllOrdersList';
@@ -9,13 +11,16 @@ import CategoryManagement from '../components/CategoryManagement';
 import RepairManagement from '../components/RepairManagement';
 import RepairTypeManagement from '../components/RepairTypeManagement';
 import InventoryManagement from '../components/InventoryManagement';
+import StoreSettings from '../components/StoreSettings';
+import ArticleManagement from '../components/ArticleManagement';
 
 /**
  * AdminDashboard Component.
  */
 const AdminDashboard = ({ showNotification }) => {
-    const { isAuthenticated, isAdmin } = useAuth();
-    const navigate = useNavigate();
+    const { isAuthenticated, isAdmin, isSuperAdmin } = useAuth();
+    const { store } = useStore();
+    const navigate = useStoreNavigate();
     const location = useLocation();
     const [activeTab, setActiveTab] = useState('addProduct');
 
@@ -42,6 +47,8 @@ const AdminDashboard = ({ showNotification }) => {
             case 'repairs': return <RepairManagement showNotification={showNotification} />;
             case 'repairTypes': return <RepairTypeManagement showNotification={showNotification} />;
             case 'inventory': return <InventoryManagement showNotification={showNotification} />;
+            case 'articles': return <ArticleManagement showNotification={showNotification} />;
+            case 'settings': return <StoreSettings showNotification={showNotification} />;
             default: return null;
         }
     };
@@ -51,9 +58,17 @@ const AdminDashboard = ({ showNotification }) => {
         { id: 'users', label: 'לקוחות', icon: Users },
         { id: 'orders', label: 'הזמנות', icon: ShoppingBag },
         { id: 'categories', label: 'קטגוריות', icon: Grid },
-        { id: 'repairs', label: 'תיקונים', icon: Wrench },
-        { id: 'repairTypes', label: 'שירותים', icon: FileText },
         { id: 'inventory', label: 'מלאי', icon: Package },
+        ...(store?.features?.hasRepairLab ? [
+            { id: 'repairs', label: 'תיקונים', icon: Wrench },
+            { id: 'repairTypes', label: 'שירותים', icon: FileText },
+        ] : []),
+        ...(store?.features?.hasArticles ? [
+            { id: 'articles', label: 'מאמרים ובלוג', icon: BookOpen },
+        ] : []),
+        ...(isSuperAdmin ? [
+            { id: 'settings', label: 'הגדרות', icon: Settings }
+        ] : []),
     ];
 
     if (isAuthenticated && isAdmin) {

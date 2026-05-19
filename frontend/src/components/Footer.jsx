@@ -1,11 +1,15 @@
 import React from 'react';
 import { FaWhatsapp, FaFacebook, FaInstagram, FaPhoneAlt, FaEnvelope, FaMapMarkerAlt, FaLock } from 'react-icons/fa';
+import { useStore } from '../StoreContext';
+import StoreLink from './StoreLink';
 
 /**
  * Footer Component.
  * A comprehensive footer with contact info, social links, and business details.
  */
 const Footer = () => {
+    const { store } = useStore();
+
     return (
         <footer className="bg-gray-900 text-gray-300 py-12 mt-auto border-t border-gray-800">
             <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -13,12 +17,12 @@ const Footer = () => {
                     
                     {/* Business Info */}
                     <div className="space-y-4">
-                        <h3 className="text-xl font-bold text-white mb-6">Top Tech</h3>
+                        <h3 className="text-xl font-bold text-white mb-6">{store?.name || "Top Tech"}</h3>
                         <p className="text-sm leading-relaxed text-gray-400">
-                            היעד המוביל שלכם למוצרי טכנולוגיה, סמארטפונים ומעבדת תיקונים מקצועית. איכות, אמינות ושירות ללא פשרות.
+                            {store?.labels?.footerDescription || `היעד המוביל שלכם למוצרי טכנולוגיה${store?.features?.hasRepairLab ? ', סמארטפונים ומעבדת תיקונים מקצועית' : ' וסמארטפונים'}. איכות, אמינות ושירות ללא פשרות.`}
                         </p>
                         <div className="flex gap-4 pt-4 justify-end">
-                            <a href="https://wa.me/972500000000" target="_blank" rel="noopener noreferrer" className="bg-green-600/20 text-green-500 p-2 rounded-full hover:bg-green-600 hover:text-white transition-all duration-300">
+                            <a href={`https://wa.me/${store?.businessInfo?.whatsapp?.replace(/[^0-9]/g, '') || "972500000000"}`} target="_blank" rel="noopener noreferrer" className="bg-green-600/20 text-green-500 p-2 rounded-full hover:bg-green-600 hover:text-white transition-all duration-300">
                                 <FaWhatsapp className="w-6 h-6" />
                             </a>
                             <a href="https://facebook.com" target="_blank" rel="noopener noreferrer" className="bg-blue-600/20 text-blue-500 p-2 rounded-full hover:bg-blue-600 hover:text-white transition-all duration-300">
@@ -35,15 +39,15 @@ const Footer = () => {
                         <h3 className="text-xl font-bold text-white mb-6">יצירת קשר</h3>
                         <ul className="space-y-4">
                             <li className="flex items-center gap-3 justify-end">
-                                <span>050-1234567</span>
+                                <span>{store?.businessInfo?.phone || "050-1234567"}</span>
                                 <FaPhoneAlt className="text-sky-500" />
                             </li>
                             <li className="flex items-center gap-3 justify-end">
-                                <a href="mailto:info@toptech.co.il" className="hover:text-white transition-colors">info@toptech.co.il</a>
+                                <a href={`mailto:${store?.businessInfo?.email || "info@toptech.co.il"}`} className="hover:text-white transition-colors">{store?.businessInfo?.email || "info@toptech.co.il"}</a>
                                 <FaEnvelope className="text-sky-500" />
                             </li>
                             <li className="flex items-center gap-3 justify-end">
-                                <span>רחוב הרצל 10, תל אביב</span>
+                                <span>{store?.businessInfo?.address || "רחוב הרצל 10, תל אביב"}</span>
                                 <FaMapMarkerAlt className="text-sky-500" />
                             </li>
                         </ul>
@@ -71,8 +75,13 @@ const Footer = () => {
 
                     {/* Store Info */}
                     <div className="space-y-4">
-                        <h3 className="text-xl font-bold text-white mb-6">שעות פעילות</h3>
+                        <h3 className="text-xl font-bold text-white mb-6">מידע נוסף</h3>
                         <ul className="space-y-2 text-gray-400">
+                            {store?.features?.hasArticles && (
+                                <li className="mb-4">
+                                    <StoreLink to="/articles" className="text-primary hover:underline font-bold transition-all">הבלוג והמאמרים שלנו</StoreLink>
+                                </li>
+                            )}
                             <li>א' - ה': 09:00 - 19:00</li>
                             <li>יום ו': 09:00 - 14:00</li>
                             <li>שבת: סגור</li>
@@ -82,7 +91,7 @@ const Footer = () => {
 
                 <div className="mt-12 pt-8 border-t border-gray-800 text-center">
                     <p className="text-sm text-gray-500 font-medium">
-                        &copy; {new Date().getFullYear()} Top Tech. כל הזכויות שמורות.
+                        &copy; {new Date().getFullYear()} {store?.name || "Top Tech"}. כל הזכויות שמורות.
                     </p>
                 </div>
             </div>

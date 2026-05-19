@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import axios from 'axios';
+import useStoreNavigate from '../hooks/useStoreNavigate';
 
 /**
  * ResetPassword Component.
@@ -8,7 +9,7 @@ import axios from 'axios';
  */
 const ResetPassword = () => {
     const [searchParams] = useSearchParams();
-    const navigate = useNavigate();
+    const navigate = useStoreNavigate();
     const [newPassword, setNewPassword] = useState('');
     const [confirmPassword, setConfirmPassword] = useState('');
     const [message, setMessage] = useState('');

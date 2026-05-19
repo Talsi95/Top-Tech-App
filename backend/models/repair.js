@@ -2,6 +2,11 @@ const mongoose = require('mongoose');
 const Schema = mongoose.Schema;
 
 const repairSchema = new Schema({
+    storeId: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'Store',
+        required: false // Will be true after migration
+    },
     customerName: {
         type: String,
         required: true,

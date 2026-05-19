@@ -5,6 +5,7 @@ import { useAuth } from '../AuthContext';
 import Notification from '../components/Notification';
 import axios from 'axios';
 import Loader from '../components/Loader.jsx';
+import useStoreNavigate from '../hooks/useStoreNavigate';
 
 /**
  * ProductFormPage Component.
@@ -15,7 +16,7 @@ import Loader from '../components/Loader.jsx';
  */
 const ProductFormPage = ({ showNotification }) => {
     const { id } = useParams();
-    const navigate = useNavigate();
+    const navigate = useStoreNavigate();
     const { isAdmin, getToken } = useAuth();
     const [existingProduct, setExistingProduct] = useState(null);
     const [loading, setLoading] = useState(true);

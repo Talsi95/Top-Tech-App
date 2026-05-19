@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import useStoreNavigate from '../hooks/useStoreNavigate';
 import { FaBell } from 'react-icons/fa';
 
 /**
@@ -12,7 +12,7 @@ import { FaBell } from 'react-icons/fa';
  */
 const AdminNotifications = ({ newOrders = [], onMarkOrderAsSeen }) => {
     const [isDropdownOpen, setIsDropdownOpen] = useState(false);
-    const navigate = useNavigate();
+    const navigate = useStoreNavigate();
 
     const newOrdersCount = newOrders.length;
 

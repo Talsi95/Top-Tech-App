@@ -1,5 +1,6 @@
 import { useState, useCallback } from 'react';
-import { Routes, Route, useNavigate, useSearchParams } from 'react-router-dom';
+import { Routes, Route, useSearchParams } from 'react-router-dom';
+import useStoreNavigate from './hooks/useStoreNavigate';
 import ProductFormPage from './pages/ProductFormPage';
 import AdminDashboard from './pages/AdminDashboard';
 import UserArea from './pages/UserArea';
@@ -22,7 +23,10 @@ import OrderConfirmationPage from './pages/OrderConfirmationPage';
 import UpdateVariantForm from './components/UpdateVariantForm';
 import Loader from './components/Loader';
 import RepairLab from './pages/RepairLab';
+import ArticlesPage from './pages/ArticlesPage';
+import ArticleShowPage from './pages/ArticleShowPage';
 import { useAuth } from './AuthContext';
+import { useStore } from './StoreContext';
 import ScrollToTop from './components/ScrollToTop';
 
 // Hooks
@@ -41,7 +45,8 @@ const App = () => {
   const [notification, setNotification] = useState({ message: '', type: '' });
   const [searchParams] = useSearchParams();
   const { isAuthenticated, isAdmin, logout, getToken } = useAuth();
-  const navigate = useNavigate();
+  const { store } = useStore();
+  const navigate = useStoreNavigate();
 
   /**
    * Displays a global notification.
@@ -56,8 +61,10 @@ const App = () => {
    * Toggles the shopping cart drawer.
    */
   const toggleCartDrawer = useCallback(() => {
-    setIsDrawerOpen(prev => !prev);
-  }, []);
+    if (store?.features?.hasCart) {
+      setIsDrawerOpen(prev => !prev);
+    }
+  }, [store?.features?.hasCart]);
 
   const {
     products,
@@ -122,27 +129,31 @@ const App = () => {
         onMarkOrdersAsSeen={markOrderAsSeen}
       />
 
-      <SearchDrawer
-        isOpen={isSearchDrawerOpen}
-        onClose={toggleSearchDrawer}
-        results={searchResults}
-        searchQuery={searchQuery}
-        onSearchChange={handleSearchChange}
-      />
+      {store?.features?.cartDrawer !== false && (
+        <SearchDrawer
+          isOpen={isSearchDrawerOpen}
+          onClose={toggleSearchDrawer}
+          results={searchResults}
+          searchQuery={searchQuery}
+          onSearchChange={handleSearchChange}
+        />
+      )}
 
-      <CartDrawer
-        isOpen={isDrawerOpen}
-        onClose={toggleCartDrawer}
-        cartItems={cartItems}
-        onRemoveFromCart={handleRemoveFromCart}
-        onUpdateQuantity={handleUpdateQuantity}
-        totalPrice={totalPrice}
-      />
+      {store?.features?.cartDrawer !== false && store?.features?.hasCart && (
+        <CartDrawer
+          isOpen={isDrawerOpen}
+          onClose={toggleCartDrawer}
+          cartItems={cartItems}
+          onRemoveFromCart={handleRemoveFromCart}
+          onUpdateQuantity={handleUpdateQuantity}
+          totalPrice={totalPrice}
+        />
+      )}
 
       <div className="pt-28 flex-grow">
         <main>
           <Routes>
-            <Route path="/" element={
+            <Route path="" element={
               <HomePage
                 products={products}
                 handleAddToCart={handleAddToCart}
@@ -150,31 +161,47 @@ const App = () => {
                 showNotification={showNotification}
               />
             } />
-            <Route path="/profile" element={<UserArea />} />
-            <Route path="/profile/edit" element={<ProfileEditPage showNotification={showNotification} />} />
-            <Route path="/admin" element={<AdminDashboard showNotification={showNotification} />} />
-            <Route path="/product-form/:id" element={<ProductFormPage showNotification={showNotification} />} />
-            <Route path="/product-form" element={<ProductFormPage showNotification={showNotification} />} />
-            <Route path="/login" element={<LoginPage showNotification={showNotification} />} />
-            <Route path="/register" element={<RegisterPage showNotification={showNotification} />} />
-            <Route path="/guest-checkout" element={<GuestCheckoutPage showNotification={showNotification} />} />
-            <Route path="/order-confirmation/:orderId" element={<OrderConfirmationPage showNotification={showNotification} />} />
-            <Route path="/forgot-password" element={<ForgotPassword />} />
-            <Route path="/reset-password" element={<ResetPassword />} />
-            <Route path="/admin/update-variant/:id" element={<UpdateVariantForm />} />
-            <Route path="/products" element={<ProductsPage getToken={getToken} showNotification={showNotification} />} />
-            <Route path="/repair-lab" element={<RepairLab />} />
+            {store?.features?.hasUserAccounts && (
+              <>
+                <Route path="profile" element={<UserArea />} />
+                <Route path="profile/edit" element={<ProfileEditPage showNotification={showNotification} />} />
+                <Route path="login" element={<LoginPage showNotification={showNotification} />} />
+                <Route path="register" element={<RegisterPage showNotification={showNotification} />} />
+                <Route path="forgot-password" element={<ForgotPassword />} />
+                <Route path="reset-password" element={<ResetPassword />} />
+              </>
+            )}
+            
+            {store?.features?.hasCheckout && store?.features?.hasCart && (
+              <>
+                <Route path="guest-checkout" element={<GuestCheckoutPage showNotification={showNotification} />} />
+                <Route path="checkout" element={
+                  <CheckoutPage
+                    cartItems={cartItems}
+                    showNotification={showNotification}
+                    onOrderComplete={handleCreateOrder}
+                  />
+                } />
+              </>
+            )}
+            
+            <Route path="admin" element={<AdminDashboard showNotification={showNotification} />} />
+            <Route path="product-form/:id" element={<ProductFormPage showNotification={showNotification} />} />
+            <Route path="product-form" element={<ProductFormPage showNotification={showNotification} />} />
+            <Route path="order-confirmation/:orderId" element={<OrderConfirmationPage showNotification={showNotification} />} />
+            <Route path="admin/update-variant/:id" element={<UpdateVariantForm />} />
+            <Route path="products" element={<ProductsPage getToken={getToken} showNotification={showNotification} />} />
+            <Route path="repair-lab" element={<RepairLab />} />
+            {store?.features?.hasArticles && (
+              <>
+                <Route path="articles" element={<ArticlesPage />} />
+                <Route path="articles/:articleSlug" element={<ArticleShowPage />} />
+              </>
+            )}
             <Route
-              path="/product/:id"
+              path="product/:id"
               element={<ShowPage onAddToCart={handleAddToCart} />}
             />
-            <Route path="/checkout" element={
-              <CheckoutPage
-                cartItems={cartItems}
-                showNotification={showNotification}
-                onOrderComplete={handleCreateOrder}
-              />
-            } />
           </Routes>
         </main>
       </div>

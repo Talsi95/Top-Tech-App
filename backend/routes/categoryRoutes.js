@@ -8,7 +8,8 @@ const {
     updateCategory,
     deleteCategory,
     getCategories,
-    getAdminCategoriesData
+    getAdminCategoriesData,
+    reorderCategories
 } = require('../controllers/categoryController');
 
 router.get('/admin-data', protect, asyncHandler(getAdminCategoriesData));
@@ -16,6 +17,8 @@ router.get('/admin-data', protect, asyncHandler(getAdminCategoriesData));
 router.get('/', asyncHandler(getCategories));
 
 router.post('/', protect, admin, asyncHandler(createCategory));
+
+router.put('/reorder', protect, admin, asyncHandler(reorderCategories));
 
 router.put('/:id', protect, admin, asyncHandler(updateCategory));
 

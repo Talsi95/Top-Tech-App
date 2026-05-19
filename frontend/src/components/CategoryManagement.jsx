@@ -10,6 +10,7 @@ const initialNewCategory = {
     name: '',
     subcategories: [{ name: '' }],
     variantFields: [],
+    imageUrl: '',
 };
 
 /**
@@ -119,7 +120,8 @@ const CategoryManagement = ({ showNotification }) => {
         const dataToSend = {
             name: categoryName,
             subcategories: filteredSubcategories.map(sub => ({ name: sub.name.trim() })),
-            variantFields: newCategory.variantFields
+            variantFields: newCategory.variantFields,
+            imageUrl: newCategory.imageUrl
         };
 
         setIsSubmitting(true);
@@ -160,7 +162,8 @@ const CategoryManagement = ({ showNotification }) => {
         setNewCategory({
             name: category.name,
             subcategories: category.subcategories.length > 0 ? category.subcategories.map(sub => ({ name: sub.name })) : [{ name: '' }],
-            variantFields: category.variantFields || []
+            variantFields: category.variantFields || [],
+            imageUrl: category.imageUrl || ''
         });
         window.scrollTo({ top: 0, behavior: 'smooth' });
     };
@@ -213,6 +216,18 @@ const CategoryManagement = ({ showNotification }) => {
                                 placeholder="לדוגמה: טלפונים חכמים"
                                 required
                             />
+                        </div>
+
+                        <div className="mb-4">
+                            <label className="block text-gray-700 font-medium mb-1">קישור לתמונה (URL)</label>
+                            <input
+                                type="text"
+                                className="w-full mt-1 p-2 border border-gray-300 rounded-lg focus:ring-sky-500 focus:border-sky-500"
+                                value={newCategory.imageUrl}
+                                onChange={(e) => setNewCategory({ ...newCategory, imageUrl: e.target.value })}
+                                placeholder="https://example.com/image.jpg"
+                            />
+                            <p className="text-[10px] text-gray-400 mt-1">תמונה זו תוצג בבאנר/סליידר בדף הבית</p>
                         </div>
 
                         <div className="mb-4 border-t pt-4">
@@ -345,6 +360,12 @@ const CategoryManagement = ({ showNotification }) => {
                                             : 'אין'
                                     }
                                 </p>
+                                {category.imageUrl && (
+                                    <div className="mt-2 flex items-center gap-3">
+                                        <img src={category.imageUrl} alt={category.name} className="w-12 h-12 object-cover rounded-lg shadow-sm" />
+                                        <span className="text-[10px] text-gray-400 truncate max-w-[200px]">{category.imageUrl}</span>
+                                    </div>
+                                )}
                             </div>
                         ))}
                     </div>

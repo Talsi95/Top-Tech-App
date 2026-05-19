@@ -1,10 +1,12 @@
+import useStoreNavigate from '../hooks/useStoreNavigate';
 import { useState } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
+import { Link } from 'react-router-dom';
 import axios from 'axios';
 import { User, Mail, Phone, Lock, ChevronLeft, ArrowRight, LogIn, ShieldCheck } from 'lucide-react';
+import StoreLink from '../components/StoreLink';
 
 const RegisterPage = ({ showNotification }) => {
-    const navigate = useNavigate();
+    const navigate = useStoreNavigate();
     const [username, setUsername] = useState('');
     const [email, setEmail] = useState('');
     const [phone, setPhone] = useState('');
@@ -135,18 +137,18 @@ const RegisterPage = ({ showNotification }) => {
 
                     <div className="mt-10 pt-10 border-t border-gray-50 text-center space-y-4">
                         <p className="text-gray-400 font-medium">כבר רשום במערכת?</p>
-                        <Link to="/login" className="flex items-center justify-center gap-2 w-full py-4 bg-gray-50 text-gray-900 rounded-2xl font-black hover:bg-gray-100 transition-all">
+                        <StoreLink to="/login" className="flex items-center justify-center gap-2 w-full py-4 bg-gray-50 text-gray-900 rounded-2xl font-black hover:bg-gray-100 transition-all">
                             <LogIn size={18} />
                             <span>כניסה לחשבון קיים</span>
-                        </Link>
+                        </StoreLink>
                     </div>
                 </div>
 
                 <div className="mt-8 flex items-center justify-center gap-6">
-                    <Link to="/" className="text-gray-400 hover:text-gray-900 text-sm font-bold flex items-center gap-2">
+                    <StoreLink to="/" className="text-gray-400 hover:text-gray-900 text-sm font-bold flex items-center gap-2">
                         <ArrowRight size={16} />
                         <span>חזרה לדף הבית</span>
-                    </Link>
+                    </StoreLink>
                 </div>
             </div>
         </div>

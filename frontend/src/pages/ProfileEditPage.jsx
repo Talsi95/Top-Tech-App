@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import useStoreNavigate from '../hooks/useStoreNavigate';
 import axios from 'axios';
 import { useAuth } from '../AuthContext';
 import { User, Mail, Phone, Save, ArrowRight, Loader } from 'lucide-react';
@@ -12,7 +12,7 @@ import { User, Mail, Phone, Save, ArrowRight, Loader } from 'lucide-react';
  * @param {Function} props.showNotification - Function to display a global notification.
  */
 const ProfileEditPage = ({ showNotification }) => {
-    const navigate = useNavigate();
+    const navigate = useStoreNavigate();
     const { user, login, getToken } = useAuth();
 
     const [formData, setFormData] = useState({

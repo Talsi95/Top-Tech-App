@@ -1,19 +1,51 @@
+import StoreLink from './StoreLink';
 import { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
 import { FaTimes, FaSearch, FaArrowRight } from 'react-icons/fa';
 import axios from 'axios';
+import { useStore } from '../StoreContext';
 
 /**
  * SearchDrawer Component.
  */
 const SearchDrawer = ({ isOpen, onClose }) => {
+    const { store } = useStore();
+    const isFullWidth = store?.features?.fullWidthCards;
     const [searchQuery, setSearchQuery] = useState('');
     const [searchResults, setSearchResults] = useState([]);
     const [isVisible, setIsVisible] = useState(false);
+    const [popularTags, setPopularTags] = useState(['עגבניה', 'מלפפון', 'חסה', 'תפוח', 'תפוז']);
+
 
     useEffect(() => {
         if (isOpen) {
             setTimeout(() => setIsVisible(true), 10);
+            
+            const fetchPopularTerms = async () => {
+                try {
+                    const response = await axios.get(`${__API_URL__}/products`);
+                    const products = response.data.products || response.data || [];
+                    if (Array.isArray(products) && products.length > 0) {
+                        const terms = new Set();
+                        products.forEach(p => {
+                            if (p.category) terms.add(p.category);
+                            if (p.subcategory) terms.add(p.subcategory);
+                            if (p.name) {
+                                const words = p.name.split(/[\s-]+/);
+                                if (words[0] && words[0].length > 1) {
+                                    terms.add(words[0]);
+                                }
+                            }
+                        });
+                        const filtered = Array.from(terms).filter(t => t && t.trim().length > 1);
+                        if (filtered.length > 0) {
+                            setPopularTags(filtered.slice(0, 8));
+                        }
+                    }
+                } catch (error) {
+                    console.error('Error fetching popular terms:', error);
+                }
+            };
+            fetchPopularTerms();
         } else {
             setIsVisible(false);
         }
@@ -67,8 +99,8 @@ const SearchDrawer = ({ isOpen, onClose }) => {
                 {/* Header */}
                 <div className="p-8 border-b border-gray-100 flex items-center justify-between">
                     <h2 className="text-3xl font-black text-gray-900 tracking-tighter">חיפוש מוצרים</h2>
-                    <button 
-                        onClick={onClose} 
+                    <button
+                        onClick={onClose}
                         className="w-12 h-12 flex items-center justify-center bg-gray-50 rounded-2xl text-gray-400 hover:text-gray-900 hover:bg-gray-100 transition-all"
                     >
                         <FaTimes size={20} />
@@ -104,8 +136,8 @@ const SearchDrawer = ({ isOpen, onClose }) => {
                         <div className="py-10 animate-in fade-in slide-in-from-top-4 duration-500">
                             <h3 className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-6 px-2">חיפושים פופולריים</h3>
                             <div className="flex flex-wrap gap-3">
-                                {['iPhone', 'Samsung', 'Laptops', 'Gaming', 'Headphones'].map(tag => (
-                                    <button 
+                                {popularTags.map(tag => (
+                                    <button
                                         key={tag}
                                         onClick={() => { setSearchQuery(tag); fetchSearchResults(tag); }}
                                         className="px-6 py-3 bg-gray-50 hover:bg-primary hover:text-white text-gray-700 font-bold rounded-2xl transition-all border border-transparent"
@@ -119,20 +151,20 @@ const SearchDrawer = ({ isOpen, onClose }) => {
                         <div className="space-y-4">
                             <h3 className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-4 px-2">תוצאות ({searchResults.length})</h3>
                             {searchResults.map((product, index) => (
-                                <Link 
-                                    key={product._id} 
-                                    to={`/product/${product._id}`} 
+                                <StoreLink
+                                    key={product._id}
+                                    to={`/product/${product._id}`}
                                     onClick={onClose}
                                     className="group flex items-center gap-6 p-4 rounded-3xl hover:bg-gray-50 transition-all border border-transparent hover:border-gray-100 animate-in fade-in slide-in-from-right-4 duration-500"
                                     style={{ animationDelay: `${index * 50}ms` }}
                                 >
-                                    <div className="w-24 h-24 bg-white rounded-2xl border border-gray-100 p-3 flex items-center justify-center overflow-hidden">
-                                        <img 
-                                            src={(product.variants[0]?.imageUrls && product.variants[0].imageUrls.length > 0) 
-                                                ? product.variants[0].imageUrls[0] 
-                                                : product.variants[0]?.imageUrl} 
-                                            alt={product.name} 
-                                            className="w-full h-full object-contain transform group-hover:scale-110 transition-transform duration-500" 
+                                    <div className={`w-24 h-24 bg-white rounded-2xl border border-gray-100 ${isFullWidth ? 'p-0' : 'p-3'} flex items-center justify-center overflow-hidden`}>
+                                        <img
+                                            src={(product.variants[0]?.imageUrls && product.variants[0].imageUrls.length > 0)
+                                                ? product.variants[0].imageUrls[0]
+                                                : product.variants[0]?.imageUrl}
+                                            alt={product.name}
+                                            className={`w-full h-full ${isFullWidth ? 'object-cover' : 'object-contain'} transform group-hover:scale-110 transition-transform duration-500`}
                                         />
                                     </div>
                                     <div className="flex-1 text-right">
@@ -147,7 +179,7 @@ const SearchDrawer = ({ isOpen, onClose }) => {
                                     <div className="w-10 h-10 flex items-center justify-center text-gray-300 group-hover:text-primary group-hover:translate-x-[-4px] transition-all">
                                         <FaArrowRight size={14} className="rotate-180" />
                                     </div>
-                                </Link>
+                                </StoreLink>
                             ))}
                         </div>
                     )}

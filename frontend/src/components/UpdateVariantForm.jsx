@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import axios from 'axios';
 import { useAuth } from '../AuthContext';
+import { useStore } from '../StoreContext';
 import { useParams } from 'react-router-dom';
 import Loader from './Loader';
 
@@ -11,6 +12,8 @@ import Loader from './Loader';
 const UpdateVariantForm = () => {
     const { id: productId } = useParams();
     const { getToken } = useAuth();
+    const { store } = useStore();
+    const showStock = store?.features?.showStock !== false;
     const [product, setProduct] = useState(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
@@ -88,21 +91,23 @@ const UpdateVariantForm = () => {
                             <p className="text-sm">מזהה וריאציה: {variant._id}</p>
                         </div>
                     </div>
-                    <div className="flex items-center space-x-4">
-                        <label className="text-gray-700">מלאי:</label>
-                        <input
-                            type="number"
-                            value={editedStock[variant._id] || ''}
-                            onChange={(e) => handleStockChange(variant._id, e.target.value)}
-                            className="w-24 p-2 border rounded-md text-center"
-                        />
-                        <button
-                            onClick={() => handleUpdateVariant(variant._id)}
-                            className="bg-blue-500 text-white px-4 py-2 rounded-md hover:bg-blue-600"
-                        >
-                            עדכן
-                        </button>
-                    </div>
+                    {showStock && (
+                        <div className="flex items-center space-x-4">
+                            <label className="text-gray-700">מלאי:</label>
+                            <input
+                                type="number"
+                                value={editedStock[variant._id] || ''}
+                                onChange={(e) => handleStockChange(variant._id, e.target.value)}
+                                className="w-24 p-2 border rounded-md text-center"
+                            />
+                            <button
+                                onClick={() => handleUpdateVariant(variant._id)}
+                                className="bg-blue-500 text-white px-4 py-2 rounded-md hover:bg-blue-600"
+                            >
+                                עדכן
+                            </button>
+                        </div>
+                    )}
                 </div>
             ))}
         </div>

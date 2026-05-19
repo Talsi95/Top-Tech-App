@@ -19,6 +19,9 @@ const protect = async (req, res, next) => {
 
             // Handle guest tokens (used for guest checkout tracking).
             if (decoded.isGuest === true) {
+                if (decoded.storeId && req.storeId && decoded.storeId.toString() !== req.storeId.toString()) {
+                    return res.status(401).json({ message: 'Token belongs to a different store' });
+                }
                 req.user = {
                     id: 'guest_' + decoded.email,
                     isGuest: true,
@@ -30,10 +33,14 @@ const protect = async (req, res, next) => {
             }
 
             // Fetch authenticated user from DB.
-            const user = await User.findById(decoded.id).select('id username email isAdmin');
+            const user = await User.findById(decoded.id).select('id username email isAdmin isSuperAdmin storeId');
 
             if (!user) {
                 return res.status(401).json({ message: 'Not authorized, user not found' });
+            }
+
+            if (!user.isSuperAdmin && user.storeId && req.storeId && user.storeId.toString() !== req.storeId.toString()) {
+                return res.status(401).json({ message: 'User does not belong to this store' });
             }
 
             req.user = user;
@@ -57,11 +64,22 @@ const protect = async (req, res, next) => {
  * @param {Function} next - Next middleware function.
  */
 const admin = (req, res, next) => {
-    if (req.user && req.user.isAdmin) {
+    if (req.user && (req.user.isAdmin || req.user.isSuperAdmin)) {
         next();
     } else {
         res.status(403).json({ message: 'Not authorized as an admin' });
     }
 };
 
-module.exports = { protect, admin };
+/**
+ * Middleware that restricts access to super administrative routes.
+ */
+const superAdmin = (req, res, next) => {
+    if (req.user && req.user.isSuperAdmin) {
+        next();
+    } else {
+        res.status(403).json({ message: 'Not authorized as a super admin' });
+    }
+};
+
+module.exports = { protect, admin, superAdmin };

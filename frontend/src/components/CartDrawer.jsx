@@ -1,13 +1,17 @@
 import { FaTimes, FaTrash, FaMinus, FaPlus, FaShoppingCart } from 'react-icons/fa';
 import { useAuth } from '../AuthContext';
-import { useNavigate } from 'react-router-dom';
+import useStoreNavigate from '../hooks/useStoreNavigate';
+import { useStore } from '../StoreContext';
 
 /**
  * CartDrawer Component.
  */
 const CartDrawer = ({ isOpen, onClose, cartItems, onRemoveFromCart, totalPrice, onUpdateQuantity }) => {
-    const navigate = useNavigate();
+    const navigate = useStoreNavigate();
     const { isAuthenticated } = useAuth();
+    const { store } = useStore();
+    const isFullWidth = store?.features?.fullWidthCards;
+
 
     const handleCheckoutClick = () => {
         onClose();
@@ -64,19 +68,20 @@ const CartDrawer = ({ isOpen, onClose, cartItems, onRemoveFromCart, totalPrice, 
                                     ? item.product.variants[0].imageUrls[0] 
                                     : item.product?.imageUrl));
                             
-                            const itemKey = item.product?._id + (item.variant?._id || '');
+                            const itemKey = item.product?._id + (item.variant?._id || '') + (item.optionsKey || '');
                             const isItemOnSale = item.variant?.isOnSale;
                             const regularPrice = item.variant?.price;
                             const salePrice = item.variant?.salePrice;
                             const effectivePrice = isItemOnSale && salePrice && salePrice > 0 ? salePrice : regularPrice;
-                            const itemTotal = (effectivePrice || 0) * item.quantity;
+                            const optionsTotal = item.optionsTotal || 0;
+                            const itemTotal = ((effectivePrice || 0) + optionsTotal) * item.quantity;
 
                             if (!item.product) return null;
 
                             return (
                                 <div key={itemKey} className="flex gap-4 group animate-in slide-in-from-left-4 duration-300">
-                                    <div className="relative w-24 h-24 flex-shrink-0 bg-surface-container rounded-2xl overflow-hidden shadow-sm border border-gray-100">
-                                        <img src={itemImageUrl} alt={item.product?.name} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" />
+                                    <div className={`relative w-24 h-24 flex-shrink-0 bg-surface-container rounded-2xl overflow-hidden shadow-sm border border-gray-100 ${isFullWidth ? 'p-0' : 'p-2'}`}>
+                                        <img src={itemImageUrl} alt={item.product?.name} className={`w-full h-full ${isFullWidth ? 'object-cover' : 'object-contain'} group-hover:scale-110 transition-transform duration-500`} />
                                     </div>
                                     
                                     <div className="flex-1 flex flex-col justify-between py-1">
@@ -84,6 +89,15 @@ const CartDrawer = ({ isOpen, onClose, cartItems, onRemoveFromCart, totalPrice, 
                                             <h3 className="font-bold text-gray-900 leading-tight mb-1">{item.product.name}</h3>
                                             {item.variant && (
                                                 <p className="text-xs text-gray-500 font-medium">{item.variant.color} | {item.variant.storage}</p>
+                                            )}
+                                            {item.selectedOptions?.length > 0 && (
+                                                <div className="flex flex-wrap gap-1 mt-1.5">
+                                                    {item.selectedOptions.map((opt, i) => (
+                                                        <span key={i} className="text-[10px] bg-primary/8 text-primary font-bold px-2 py-0.5 rounded-full border border-primary/20">
+                                                            {opt.name}: {opt.choice}{opt.priceAddition > 0 ? ` +₪${opt.priceAddition}` : ''}
+                                                        </span>
+                                                    ))}
+                                                </div>
                                             )}
                                         </div>
 

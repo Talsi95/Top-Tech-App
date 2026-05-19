@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useAuth } from '../AuthContext.jsx';
 import axios from 'axios';
-import { useNavigate } from 'react-router-dom';
+import useStoreNavigate from '../hooks/useStoreNavigate';
 import Loader from '../components/Loader.jsx';
 
 /**
@@ -13,7 +13,7 @@ import Loader from '../components/Loader.jsx';
  */
 const AllOrdersList = ({ showNotification }) => {
     const { getToken } = useAuth();
-    const navigate = useNavigate();
+    const navigate = useStoreNavigate();
     const [orders, setOrders] = useState([]);
     const [searchTerm, setSearchTerm] = useState('');
     const [loading, setLoading] = useState(true);

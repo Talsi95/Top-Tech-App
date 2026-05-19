@@ -1,5 +1,6 @@
 import { createContext, useState, useEffect, useContext } from 'react';
 import { jwtDecode } from 'jwt-decode';
+import { useStore } from './StoreContext';
 
 // Context for authentication state and operations.
 const AuthContext = createContext(null);
@@ -14,6 +15,7 @@ export const AuthProvider = ({ children }) => {
     const [user, setUser] = useState(null);
     const [loading, setLoading] = useState(true);
     const [isGuest, setIsGuest] = useState(false);
+    const { store } = useStore();
 
     // Load token from local storage on mount and validate it.
     useEffect(() => {
@@ -47,6 +49,19 @@ export const AuthProvider = ({ children }) => {
         }
         setLoading(false);
     }, []);
+
+    // Verify that the logged-in user belongs to the current store
+    // Super admins bypass this check and stay logged in across all stores
+    useEffect(() => {
+        if (store && user && !user.isSuperAdmin) {
+            const userStoreId = user.storeId?.toString();
+            const currentStoreId = store._id?.toString();
+            if (userStoreId && currentStoreId && userStoreId !== currentStoreId) {
+                console.log(`[Auth] Logging out user due to store mismatch: user store (${userStoreId}) !== current store (${currentStoreId})`);
+                logout();
+            }
+        }
+    }, [store, user]);
 
     /**
      * Logs the user in by saving the token and decoding user data.
@@ -90,6 +105,7 @@ export const AuthProvider = ({ children }) => {
         isAuthenticated: !!user,
         isGuest,
         isAdmin: user ? user.isAdmin : false,
+        isSuperAdmin: user ? user.isSuperAdmin : false,
         login,
         logout,
         getToken,

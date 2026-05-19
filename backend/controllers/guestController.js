@@ -13,7 +13,7 @@ const verifyFirebaseAndSyncGuest = async (req, res) => {
 
         let finalEmail = email;
 
-        const lastOrder = await Order.findOne({ "shippingAddress.phone": phone })
+        const lastOrder = await Order.findOne({ "shippingAddress.phone": phone, storeId: req.storeId })
             .sort({ createdAt: -1 });
 
         if (!finalEmail) {
@@ -30,7 +30,8 @@ const verifyFirebaseAndSyncGuest = async (req, res) => {
             {
                 isGuest: true,
                 phone: phone,
-                email: finalEmail
+                email: finalEmail,
+                storeId: req.storeId
             },
             process.env.JWT_SECRET,
             { expiresIn: '7d' }
@@ -76,7 +77,7 @@ const handleRequestOTP = async (req, res) => {
 
     try {
         if (!finalEmail) {
-            const lastOrder = await Order.findOne({ "shippingAddress.phone": phone })
+            const lastOrder = await Order.findOne({ "shippingAddress.phone": phone, storeId: req.storeId })
                 .sort({ createdAt: -1 });
 
             if (!lastOrder) {
@@ -169,7 +170,8 @@ const handleVerifyOTP = async (req, res) => {
         const guestPayload = {
             isGuest: true,
             email: guestEmail,
-            phone: cleanPhone
+            phone: cleanPhone,
+            storeId: req.storeId
         };
 
         const guestToken = jwt.sign(

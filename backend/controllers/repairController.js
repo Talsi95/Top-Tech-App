@@ -10,6 +10,7 @@ exports.createRepair = async (req, res) => {
         }
 
         const newRepair = new Repair({
+            storeId: req.storeId,
             customerName,
             phoneNumber,
             deviceModel,
@@ -28,7 +29,7 @@ exports.createRepair = async (req, res) => {
 // Get all repairs (Admin only)
 exports.getAllRepairs = async (req, res) => {
     try {
-        const repairs = await Repair.find().sort({ createdAt: -1 });
+        const repairs = await Repair.find({ storeId: req.storeId }).sort({ createdAt: -1 });
         res.status(200).json(repairs);
     } catch (error) {
         console.error('Error fetching repairs:', error);
@@ -46,8 +47,8 @@ exports.updateRepairStatus = async (req, res) => {
             return res.status(400).json({ message: 'סטטוס לא חוקי' });
         }
 
-        const updatedRepair = await Repair.findByIdAndUpdate(
-            id,
+        const updatedRepair = await Repair.findOneAndUpdate(
+            { _id: id, storeId: req.storeId },
             { status },
             { new: true }
         );
@@ -73,7 +74,7 @@ exports.getRepairStatusByPhone = async (req, res) => {
         }
 
         // Find active repairs
-        const repairs = await Repair.find({ phoneNumber: phone }).sort({ createdAt: -1 });
+        const repairs = await Repair.find({ phoneNumber: phone, storeId: req.storeId }).sort({ createdAt: -1 });
 
         if (repairs.length === 0) {
             return res.status(404).json({ message: 'לא נמצאו תיקונים למספר זה' });

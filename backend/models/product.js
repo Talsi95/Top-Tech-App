@@ -17,6 +17,11 @@ const variantSchema = new Schema({
 }, { strict: false });
 
 const productSchema = new Schema({
+    storeId: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'Store',
+        required: false
+    },
     name: {
         type: String,
         required: true
@@ -44,16 +49,33 @@ const productSchema = new Schema({
         url: { type: String },
         description: { type: String, required: false, default: '' }
     }],
+    video: {
+        type: { type: String, enum: ['link', 'cloudinary'], default: 'link' },
+        url: { type: String, default: '' },
+        title: { type: String, default: '' },
+        description: { type: String, default: '' }
+    },
     technicalSpecs: [{
         key: { type: String },
         value: { type: String }
     }],
     category: { type: String, required: true },
-    subcategory: { type: String, required: true },
+    subcategory: { type: String, required: false },
+    options: [{
+        name: { type: String, required: true },
+        choices: [{
+            name: { type: String, required: true },
+            priceAddition: { type: Number, default: 0 }
+        }]
+    }],
     variants: [variantSchema]
 }, {
     timestamps: true
 });
+
+productSchema.index({ storeId: 1, slug: 1 });
+
+productSchema.index({ storeId: 1, category: 1 });
 
 const Product = mongoose.model('Product', productSchema);
 

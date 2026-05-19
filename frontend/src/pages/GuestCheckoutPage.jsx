@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import useStoreNavigate from '../hooks/useStoreNavigate';
 import axios from 'axios';
 import { Send, Lock, MapPin, Phone, LogIn, Mail } from 'lucide-react';
 import { auth } from '../firebaseConfig';
@@ -111,7 +111,7 @@ const OTPForm = ({ phone, otp, setOtp, handleVerifyOTP, loading, setStep, showNo
  * GuestCheckoutPage Component.
  */
 const GuestCheckoutPage = ({ showNotification }) => {
-    const navigate = useNavigate();
+    const navigate = useStoreNavigate();
     const { login } = useAuth();
 
     const [step, setStep] = useState('details');

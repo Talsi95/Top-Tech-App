@@ -3,7 +3,7 @@ const RepairType = require('../models/repairType');
 // Get all repair types (Public & Admin)
 exports.getAllRepairTypes = async (req, res) => {
     try {
-        const repairTypes = await RepairType.find().sort({ createdAt: -1 });
+        const repairTypes = await RepairType.find({ storeId: req.storeId }).sort({ createdAt: -1 });
         res.status(200).json(repairTypes);
     } catch (error) {
         console.error('Error fetching repair types:', error);
@@ -21,6 +21,7 @@ exports.createRepairType = async (req, res) => {
         }
 
         const newRepairType = new RepairType({
+            storeId: req.storeId,
             name,
             price,
             description,
@@ -44,8 +45,8 @@ exports.updateRepairType = async (req, res) => {
         const { id } = req.params;
         const { name, price, description, stock } = req.body;
 
-        const updatedRepairType = await RepairType.findByIdAndUpdate(
-            id,
+        const updatedRepairType = await RepairType.findOneAndUpdate(
+            { _id: id, storeId: req.storeId },
             { name, price, description, stock },
             { new: true, runValidators: true }
         );
@@ -69,7 +70,7 @@ exports.deleteRepairType = async (req, res) => {
     try {
         const { id } = req.params;
 
-        const deletedRepairType = await RepairType.findByIdAndDelete(id);
+        const deletedRepairType = await RepairType.findOneAndDelete({ _id: id, storeId: req.storeId });
 
         if (!deletedRepairType) {
             return res.status(404).json({ message: 'סוג תיקון לא נמצא' });

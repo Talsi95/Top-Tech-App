@@ -74,11 +74,14 @@ const createOrder = async (req, res) => {
     }
 
     try {
+        const shouldCheckStock = req.store?.features?.showStock !== false;
+
         const productIds = orderItems.map(item => item.product);
         const uniqueProductIds = [...new Set(productIds)];
 
         const products = await Product.find({
-            _id: { $in: uniqueProductIds }
+            _id: { $in: uniqueProductIds },
+            storeId: req.storeId
         }).select('variants name');
 
         const productMap = products.reduce((acc, product) => {
@@ -101,7 +104,7 @@ const createOrder = async (req, res) => {
                 throw new Error(`Variant not found for product: ${product.name}`);
             }
 
-            if (variant.stock < item.quantity) {
+            if (shouldCheckStock && variant.stock < item.quantity) {
                 throw new Error(`Not enough stock for ${product.name}, requested: ${item.quantity}, available: ${variant.stock}`);
             }
 
@@ -119,7 +122,9 @@ const createOrder = async (req, res) => {
                 }
             });
 
-            variant.stock -= item.quantity;
+            if (shouldCheckStock) {
+                variant.stock -= item.quantity;
+            }
 
             orderItemsWithPrice.push({
                 product: item.product,
@@ -160,6 +165,7 @@ const createOrder = async (req, res) => {
         }
 
         const order = new Order({
+            storeId: req.storeId,
             user: userId,
             isGuestOrder: isGuestOrder,
             guestToken: isGuestOrder ? req.user.token : null,
@@ -195,7 +201,9 @@ const createOrder = async (req, res) => {
         res.status(201).json(createdOrder);
 
     } catch (err) {
-        if (paymentMethod === 'credit-card' && err.type === 'StripeCardError' || err.type === 'StripeInvalidRequestError' || err.message.includes('token')) {
+        const shouldCheckStock = req.store?.features?.showStock !== false;
+
+        if (shouldCheckStock && (paymentMethod === 'credit-card' && err.type === 'StripeCardError' || err.type === 'StripeInvalidRequestError' || err.message.includes('token'))) {
             console.log("Payment failed. Initiating stock rollback.");
             await rollbackStock(orderItems);
         } else if (err.message.includes('stock') || err.message.includes('not found')) {
@@ -221,8 +229,8 @@ const getAllOrders = async (req, res) => {
         const limit = parseInt(req.query.limit) || 20;
         const skip = (page - 1) * limit;
 
-        const totalOrders = await Order.countDocuments({});
-        const orders = await Order.find({})
+        const totalOrders = await Order.countDocuments({ storeId: req.storeId });
+        const orders = await Order.find({ storeId: req.storeId })
             .populate('user', 'username email')
             .populate({
                 path: 'orderItems.product',
@@ -275,7 +283,7 @@ const guestOrder = async (req, res) => {
     try {
         const orderId = req.params.orderId;
 
-        const order = await Order.findById(orderId)
+        const order = await Order.findOne({ _id: orderId, storeId: req.storeId })
             .populate('orderItems.product', 'name price imageUrl variants')
             .lean();
 
@@ -307,7 +315,7 @@ const guestOrder = async (req, res) => {
  */
 const getNewOrders = async (req, res) => {
 
-    const orders = await Order.find({ isUnseen: true })
+    const orders = await Order.find({ isUnseen: true, storeId: req.storeId })
         .populate('user', 'username email')
         .populate({
             path: 'orderItems.product',
@@ -357,8 +365,8 @@ const getNewOrders = async (req, res) => {
  * @param {Object} res - Express response object.
  */
 const markOrderAsSeen = async (req, res) => {
-    const order = await Order.findByIdAndUpdate(
-        req.params.id,
+    const order = await Order.findOneAndUpdate(
+        { _id: req.params.id, storeId: req.storeId },
         { isUnseen: false },
         { new: true }
     );
@@ -377,7 +385,7 @@ const markOrderAsSeen = async (req, res) => {
  * @param {Object} res - Express response object.
  */
 const cancelOrder = async (req, res) => {
-    const order = await Order.findById(req.params.id);
+    const order = await Order.findOne({ _id: req.params.id, storeId: req.storeId });
 
     if (order) {
         // Check if the order belongs to the user
@@ -400,8 +408,11 @@ const cancelOrder = async (req, res) => {
 
         const cancelledOrder = await order.save();
 
-        // Rollback stock levels
-        await rollbackStock(order.orderItems);
+        // Rollback stock levels if stock feature is active
+        const shouldCheckStock = req.store?.features?.showStock !== false;
+        if (shouldCheckStock) {
+            await rollbackStock(order.orderItems);
+        }
 
         res.json({ message: 'ההזמנה בוטלה בהצלחה', order: cancelledOrder });
     } else {
@@ -415,7 +426,7 @@ const cancelOrder = async (req, res) => {
  * @param {Object} res - Express response object.
  */
 const updateOrderToDelivered = async (req, res) => {
-    const order = await Order.findById(req.params.id);
+    const order = await Order.findOne({ _id: req.params.id, storeId: req.storeId });
 
     if (order) {
         order.isDelivered = true;

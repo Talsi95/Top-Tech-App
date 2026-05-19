@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import useStoreNavigate from '../hooks/useStoreNavigate';
 import { useStripe, useElements, CardElement } from '@stripe/react-stripe-js';
 import axios from 'axios';
 import { useAuth } from '../AuthContext';
@@ -30,7 +30,7 @@ const CARD_ELEMENT_OPTIONS = {
  * @param {string} props.guestToken - Authentication token for guest users.
  */
 const CheckoutForm = ({ cartItems, showNotification, onOrderComplete, guestToken }) => {
-    const navigate = useNavigate();
+    const navigate = useStoreNavigate();
     const { user, isGuest, getToken, logout } = useAuth();
 
     const stripe = useStripe();

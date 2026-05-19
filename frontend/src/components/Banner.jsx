@@ -1,5 +1,6 @@
+import StoreLink from './StoreLink';
 import { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
+import { useStore } from '../StoreContext';
 import axios from 'axios';
 import laptopsImg from '../assets/laptops.png';
 import smartphonesImg from '../assets/smartphones.png';
@@ -26,6 +27,7 @@ const DEFAULT_CATEGORY_ICON = 'https://img.icons8.com/ios-filled/100/ffffff/box.
  */
 const Banner = () => {
     const [categories, setCategories] = useState([]);
+    const { store } = useStore();
 
     useEffect(() => {
         const fetchCategories = async () => {
@@ -49,20 +51,20 @@ const Banner = () => {
             <div className="relative z-10 w-full max-w-5xl text-center">
                 <div className="space-y-6 mb-16">
                     <h1 className="text-5xl md:text-7xl font-black tracking-tighter leading-tight animate-in fade-in slide-in-from-top-8 duration-700">
-                        העתיד כבר כאן. <br />
-                        <span className="text-transparent bg-clip-text bg-gradient-to-l from-blue-200 to-white">גלו את הטכנולוגיה הבאה שלכם</span>
+                        {/* העתיד כבר כאן. <br /> */}
+                        <span className="text-transparent bg-clip-text bg-gradient-to-l from-blue-200 to-white">{store?.name || "גלו את הטכנולוגיה הבאה שלכם"}</span>
                     </h1>
                     <p className="text-xl md:text-2xl font-medium opacity-80 max-w-2xl mx-auto leading-relaxed animate-in fade-in slide-in-from-bottom-4 duration-1000">
-                        המקום המושלם לגאדג'טים הכי חמים, מחשבים עוצמתיים וכל מה שחדש בעולם הדיגיטלי
+                        {store?.labels?.bannerDescription || "המקום המושלם לגאדג'טים הכי חמים, מחשבים עוצמתיים וכל מה שחדש בעולם הדיגיטלי"}
                     </p>
                 </div>
 
                 {/* Category bubbles grid */}
                 <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-6 px-4">
                     {categories.map((category, index) => {
-                        const image = categoryImages[category.name] || DEFAULT_CATEGORY_ICON;
+                        const image = categoryImages[category.name] || category.imageUrl || DEFAULT_CATEGORY_ICON;
                         return (
-                            <Link
+                            <StoreLink
                                 to={`/products?category=${category.name}`}
                                 key={index}
                                 className="group flex flex-col items-center animate-in fade-in zoom-in duration-500"
@@ -78,7 +80,7 @@ const Banner = () => {
                                 <span className="mt-4 text-sm font-black text-white/90 group-hover:text-white transition-colors">
                                     {category.name}
                                 </span>
-                            </Link>
+                            </StoreLink>
                         );
                     })}
                 </div>

@@ -1,16 +1,19 @@
 import React, { useState } from 'react';
 import { useAuth } from '../AuthContext';
-import { useNavigate } from 'react-router-dom';
+import useStoreNavigate from '../hooks/useStoreNavigate';
 import ProductCard from './ProductCard';
 import ConfirmationModal from './ConfirmationModal';
 import { Edit, Package, Trash2 } from 'lucide-react';
+
+import { useStore } from '../StoreContext';
 
 /**
  * ProductList Component.
  */
 const ProductList = ({ onDeleteProduct, products }) => {
+    const { store } = useStore();
     const { isAdmin } = useAuth();
-    const navigate = useNavigate();
+    const navigate = useStoreNavigate();
     const [confirmConfig, setConfirmConfig] = useState({ isOpen: false, onConfirm: null, title: '', message: '' });
 
     const openConfirm = (title, message, onConfirm) => {
@@ -21,11 +24,15 @@ const ProductList = ({ onDeleteProduct, products }) => {
         return <div className="text-center text-gray-500 py-12">אופס.. נראה שאין תוצאות עבור חיפוש זה</div>;
     }
 
+    const isFullWidth = store?.features?.fullWidthCards;
+
     return (
-        <div className="container mx-auto p-4">
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-2 xl:grid-cols-3 gap-6">
+        <div className={`container mx-auto py-4 ${isFullWidth ? "px-0" : "px-4"}`}>
+            <div className={`grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-2 xl:grid-cols-3 ${isFullWidth ? "gap-0" : "gap-6"} sm:gap-6`}>
                 {products.map((product) => (
-                    <div key={product._id} className="flex flex-col h-full bg-white rounded-[2rem] border border-gray-100 overflow-hidden hover:shadow-2xl hover:shadow-primary/5 transition-all duration-500">
+                    <div key={product._id} className={`flex flex-col h-full bg-white ${
+                        isFullWidth ? "rounded-none sm:rounded-[2rem] border-b" : "rounded-[2rem] border"
+                    } sm:border border-gray-100 overflow-hidden hover:shadow-2xl hover:shadow-primary/5 transition-all duration-500`}>
                         <div className="flex-grow">
                             <ProductCard product={product} />
                         </div>

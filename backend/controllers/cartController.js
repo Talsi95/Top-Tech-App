@@ -8,7 +8,7 @@ const User = require('../models/user');
  */
 const getCart = async (req, res) => {
     try {
-        const user = await User.findById(req.user.id).populate('cart.product');
+        const user = await User.findOne({ _id: req.user.id, storeId: req.storeId }).populate('cart.product');
         if (!user) {
             return res.json([]);
         }
@@ -50,8 +50,8 @@ const updateCart = async (req, res) => {
             quantity: item.quantity
         }));
 
-    const updatedUser = await User.findByIdAndUpdate(
-        req.user.id,
+    const updatedUser = await User.findOneAndUpdate(
+        { _id: req.user.id, storeId: req.storeId },
         { cart: updatedCart },
         { new: true, runValidators: true }
     ).populate('cart.product');

@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useAuth } from '../AuthContext.jsx';
-import { useNavigate } from 'react-router-dom';
+import useStoreNavigate from '../hooks/useStoreNavigate';
 import { Package, User, LogOut, Settings, Calendar, CreditCard, ChevronLeft, MapPin } from 'lucide-react';
 import axios from 'axios';
 import Loader from '../components/Loader.jsx';
@@ -10,7 +10,7 @@ import Loader from '../components/Loader.jsx';
  */
 const UserArea = () => {
     const { isAuthenticated, getToken, logout } = useAuth();
-    const navigate = useNavigate();
+    const navigate = useStoreNavigate();
     const [userData, setUserData] = useState(null);
     const [userOrders, setUserOrders] = useState([]);
     const [loading, setLoading] = useState(true);

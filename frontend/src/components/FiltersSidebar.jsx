@@ -1,4 +1,5 @@
-import { Link, useSearchParams } from 'react-router-dom';
+import StoreLink from './StoreLink';
+import { useSearchParams } from 'react-router-dom';
 import { useState, useEffect } from 'react';
 import { FaFilter, FaTimes, FaChevronLeft } from 'react-icons/fa';
 
@@ -102,26 +103,26 @@ const FiltersSidebar = ({
                 <h3 className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-4 px-1">מותג / קטגוריה</h3>
                 <ul className="space-y-1">
                     <li>
-                        <Link
+                        <StoreLink
                             to={createSubcategoryUrl(null)}
                             onClick={() => window.innerWidth < 768 && setIsMobileOpen(false)}
                             className={`flex items-center justify-between py-3 px-4 rounded-2xl font-bold transition-all ${!selectedSubcategoryName ? 'bg-primary/10 text-primary' : 'text-gray-600 hover:bg-gray-50'}`}
                         >
                             <FaChevronLeft size={12} className={!selectedSubcategoryName ? 'opacity-100' : 'opacity-0'} />
                             <span>הכל</span>
-                        </Link>
+                        </StoreLink>
                     </li>
 
                     {dynamicSubcategories.map(subName => (
                         <li key={subName}>
-                            <Link
+                            <StoreLink
                                 to={createSubcategoryUrl(subName)}
                                 onClick={() => window.innerWidth < 768 && setIsMobileOpen(false)}
                                 className={`flex items-center justify-between py-3 px-4 rounded-2xl font-bold transition-all ${selectedSubcategoryName === subName ? 'bg-primary/10 text-primary' : 'text-gray-600 hover:bg-gray-50'}`}
                             >
                                 <FaChevronLeft size={12} className={selectedSubcategoryName === subName ? 'opacity-100' : 'opacity-0'} />
                                 <span>{subName}</span>
-                            </Link>
+                            </StoreLink>
                         </li>
                     ))}
                 </ul>

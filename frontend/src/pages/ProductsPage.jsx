@@ -7,12 +7,16 @@ import Loader from '../components/Loader';
 import ConfirmationModal from '../components/ConfirmationModal';
 import { Edit, Package, Trash2 } from 'lucide-react';
 import { useAuth } from '../AuthContext';
+import { useStore } from '../StoreContext';
+import useStoreNavigate from '../hooks/useStoreNavigate';
 
 /**
  * ProductsPage Component.
  * Displays a list of products with advanced filtering and category selection capabilities.
  */
 const ProductsPage = ({ getToken, showNotification }) => {
+    const { store } = useStore();
+    const isFullWidth = store?.features?.fullWidthCards;
     const [searchParams, setSearchParams] = useSearchParams();
     const [products, setProducts] = useState([]);
     const [loading, setLoading] = useState(true);
@@ -34,7 +38,7 @@ const ProductsPage = ({ getToken, showNotification }) => {
     const [hasMore, setHasMore] = useState(true);
 
     const { isAdmin } = useAuth();
-    const navigate = useNavigate();
+    const navigate = useStoreNavigate();
 
     const selectedCategoryName = searchParams.get('category');
     const selectedSubcategoryName = searchParams.get('subcategory');
@@ -216,7 +220,7 @@ const ProductsPage = ({ getToken, showNotification }) => {
     if (error) return <div className="text-center mt-10 text-red-600">שגיאה: {error}</div>;
 
     return (
-        <div className="container mx-auto p-4 md:p-8">
+        <div className={`container mx-auto py-4 ${isFullWidth ? "px-0" : "px-4"} md:px-8 md:py-8`}>
             <h1 className="text-3xl font-bold mb-6 text-center">{selectedSubcategoryName || selectedCategoryName || "כל המוצרים"}</h1>
 
             {(Object.keys(activeFilters).length > 0 || hasPriceFilters) && (
@@ -245,14 +249,16 @@ const ProductsPage = ({ getToken, showNotification }) => {
                     />
                 )}
 
-                <div className="flex-1 grid gap-6 grid-cols-1 sm:grid-cols-2 lg:grid-cols-2 xl:grid-cols-3">
+                <div className={`flex-1 grid ${isFullWidth ? "gap-0" : "gap-6"} sm:gap-6 grid-cols-1 sm:grid-cols-2 lg:grid-cols-2 xl:grid-cols-3`}>
                     {products.length === 0 ? (
                         <div className="col-span-full text-center text-gray-500">
                             לא נמצאו מוצרים תחת הסינונים הנוכחיים.
                         </div>
                     ) : (
                         products.map(product => (
-                            <div key={product._id} className="flex flex-col h-full bg-white rounded-lg shadow-md overflow-hidden hover:shadow-xl transition-shadow duration-300">
+                            <div key={product._id} className={`flex flex-col h-full bg-white ${
+                                isFullWidth ? "rounded-none sm:rounded-[2rem] border-b" : "rounded-[2rem] border shadow-md"
+                            } sm:border border-gray-100 overflow-hidden hover:shadow-xl transition-shadow duration-300`}>
                                 <div className="flex-grow">
                                     <ProductCard product={product} filters={activeFilters} />
                                 </div>
