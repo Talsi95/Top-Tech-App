@@ -8,9 +8,14 @@ export const useStore = () => {
     return useContext(StoreContext);
 };
 
-export const StoreProvider = ({ children }) => {
-    const [store, setStore] = useState(null);
-    const [loading, setLoading] = useState(true);
+export const StoreProvider = ({ children, initialData = {} }) => {
+    // Hydrate from SSR preloaded data if available (window.__INITIAL_DATA__ on client)
+    const ssrStore = (typeof window !== 'undefined' && window.__INITIAL_DATA__?.store)
+        ? window.__INITIAL_DATA__.store
+        : (initialData?.store || null);
+
+    const [store, setStore] = useState(ssrStore);
+    const [loading, setLoading] = useState(!ssrStore);
     const [error, setError] = useState(null);
     const location = useLocation();
     const navigate = useNavigate();
@@ -21,6 +26,7 @@ export const StoreProvider = ({ children }) => {
     const slug = isStoreRoute ? pathParts[2] : null;
 
     useEffect(() => {
+        if (typeof window === 'undefined') return; // Guard for SSR
         if (store) {
             document.title = store.name || 'Top Tech';
             if (store.design) {
@@ -73,7 +79,7 @@ export const StoreProvider = ({ children }) => {
             }
         };
 
-        // Only fetch if store is not loaded or slug changed
+        // Skip fetch if we already have SSR-hydrated store data for this slug
         if (slug && (!store || store.slug !== slug)) {
             setLoading(true);
             fetchStore();

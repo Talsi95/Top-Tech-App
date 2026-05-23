@@ -17,20 +17,20 @@ const getCart = async (req, res) => {
             .filter(item => item.product) // Filter out items where the product no longer exists
             .map(item => {
                 const productData = item.product;
-                const priceToUse = productData.isOnSale ? productData.salePrice : productData.price;
+                const variantObj = productData.variants.find(v => v._id.toString() === item.variant?.toString());
 
                 return {
                     _id: item._id,
-                    product: {
-                        ...productData.toObject(),
-                        price: priceToUse
-                    },
+                    product: productData.toObject(),
+                    variant: variantObj ? variantObj.toObject() : null,
+                    selectedOptions: item.selectedOptions || [],
                     quantity: item.quantity
                 };
             });
 
         res.json(formattedCart);
     } catch (error) {
+        console.error("Error in getCart:", error);
         res.status(500).json({ message: 'Server error' });
     }
 };
@@ -41,26 +41,48 @@ const getCart = async (req, res) => {
  * @param {Object} res - Express response object.
  */
 const updateCart = async (req, res) => {
-    const { cartItems } = req.body;
+    try {
+        const { cartItems } = req.body;
 
-    const updatedCart = cartItems
-        .filter(item => item.product && (typeof item.product === 'string' || item.product._id))
-        .map(item => ({
-            product: typeof item.product === 'string' ? item.product : item.product._id,
-            quantity: item.quantity
-        }));
+        const updatedCart = cartItems
+            .filter(item => item.product && (typeof item.product === 'string' || item.product._id))
+            .map(item => ({
+                product: typeof item.product === 'string' ? item.product : item.product._id,
+                variant: item.variant ? (typeof item.variant === 'string' ? item.variant : item.variant._id) : null,
+                selectedOptions: item.selectedOptions || [],
+                quantity: item.quantity
+            }));
 
-    const updatedUser = await User.findOneAndUpdate(
-        { _id: req.user.id, storeId: req.storeId },
-        { cart: updatedCart },
-        { new: true, runValidators: true }
-    ).populate('cart.product');
+        const updatedUser = await User.findOneAndUpdate(
+            { _id: req.user.id, storeId: req.storeId },
+            { cart: updatedCart },
+            { new: true, runValidators: true }
+        ).populate('cart.product');
 
-    if (!updatedUser) {
-        return res.status(404).json({ message: 'User not found' });
+        if (!updatedUser) {
+            return res.status(404).json({ message: 'User not found' });
+        }
+
+        const formattedCart = updatedUser.cart
+            .filter(item => item.product)
+            .map(item => {
+                const productData = item.product;
+                const variantObj = productData.variants.find(v => v._id.toString() === item.variant?.toString());
+
+                return {
+                    _id: item._id,
+                    product: productData.toObject(),
+                    variant: variantObj ? variantObj.toObject() : null,
+                    selectedOptions: item.selectedOptions || [],
+                    quantity: item.quantity
+                };
+            });
+
+        res.status(200).json(formattedCart);
+    } catch (error) {
+        console.error("Error in updateCart:", error);
+        res.status(500).json({ message: 'Server error' });
     }
-
-    res.status(200).json(updatedUser.cart);
 };
 
 module.exports = {

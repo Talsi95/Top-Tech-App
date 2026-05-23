@@ -185,7 +185,17 @@ const searchProducts = async (req, res) => {
  * @param {Object} res - Express response object.
  */
 const getProductById = async (req, res) => {
-    const product = await Product.findOne({ _id: req.params.id, storeId: req.storeId });
+    const { id } = req.params;
+    let query = { storeId: req.storeId };
+    
+    const mongoose = require('mongoose');
+    if (mongoose.Types.ObjectId.isValid(id)) {
+        query.$or = [{ _id: id }, { slug: id }];
+    } else {
+        query.slug = id;
+    }
+
+    const product = await Product.findOne(query);
     if (!product) {
         return res.status(404).json({ message: 'Product not found' });
     }

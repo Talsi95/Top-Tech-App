@@ -33,10 +33,10 @@ const ProductForm = ({ showNotification, existingProduct, onUpdateSuccess, admin
                 options: existingProduct.options || [],
                 variants: existingProduct.variants.map(v => ({
                     ...v,
-                    price: v.price || '',
-                    salePrice: v.salePrice || '',
-                    stock: v.stock || '',
-                    isOnSale: v.isOnSale || (v.salePrice && v.salePrice > 0),
+                    price: (v.price !== undefined && v.price !== null) ? v.price : '',
+                    salePrice: (v.salePrice !== undefined && v.salePrice !== null) ? v.salePrice : '',
+                    stock: (v.stock !== undefined && v.stock !== null) ? v.stock : '',
+                    isOnSale: !!(v.isOnSale || (v.salePrice && v.salePrice > 0)),
                     imageUrls: v.imageUrls && v.imageUrls.length > 0 ? v.imageUrls : [v.imageUrl || ''],
                 }))
             };
@@ -98,10 +98,10 @@ const ProductForm = ({ showNotification, existingProduct, onUpdateSuccess, admin
                 options: options || [],
                 variants: variants.map(v => ({
                     ...v,
-                    price: v.price || '',
-                    salePrice: v.salePrice || '',
-                    stock: v.stock || '',
-                    isOnSale: v.isOnSale || (v.salePrice && v.salePrice > 0),
+                    price: (v.price !== undefined && v.price !== null) ? v.price : '',
+                    salePrice: (v.salePrice !== undefined && v.salePrice !== null) ? v.salePrice : '',
+                    stock: (v.stock !== undefined && v.stock !== null) ? v.stock : '',
+                    isOnSale: !!(v.isOnSale || (v.salePrice && v.salePrice > 0)),
                     imageUrls: v.imageUrls && v.imageUrls.length > 0 ? v.imageUrls : [v.imageUrl || ''],
                 }))
             }));
@@ -203,13 +203,16 @@ const ProductForm = ({ showNotification, existingProduct, onUpdateSuccess, admin
         const method = isUpdating ? 'PUT' : 'POST';
 
         const cleanedVariants = formData.variants.map(v => {
+            const filteredUrls = v.imageUrls.filter(url => url && url.trim() !== '');
+            const primaryUrl = filteredUrls[0] || '';
             const { imageUrl, ...rest } = v;
             return {
                 ...rest,
                 price: parseFloat(v.price),
-                stock: parseInt(v.stock, 10),
+                stock: showStock ? parseInt(v.stock, 10) : 0,
                 salePrice: v.isOnSale ? parseFloat(v.salePrice) : null,
-                imageUrls: v.imageUrls.filter(url => url && url.trim() !== '')
+                imageUrls: filteredUrls,
+                imageUrl: primaryUrl
             };
         });
 

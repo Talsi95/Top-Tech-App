@@ -5,19 +5,21 @@ import axios from 'axios';
  * Hook to manage product data, including fetching and deleting products.
  * @param {URLSearchParams} searchParams - The search parameters for filtering products.
  */
-const useProducts = (searchParams) => {
+const useProducts = (searchParams, enabled = true) => {
   const [products, setProducts] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(enabled);
   const [error, setError] = useState(null);
 
+  const searchParamsString = searchParams.toString();
+
   /**
-   * Fetches products from the backend API based on current search parameters.
+   * Identical fetch logic
    */
   const fetchProducts = useCallback(async () => {
     setLoading(true);
     setError(null);
     try {
-      const url = `${__API_URL__}/products?${searchParams.toString()}`;
+      const url = `${__API_URL__}/products?${searchParamsString}`;
       const response = await axios.get(url);
       setProducts(response.data.products);
     } catch (err) {
@@ -26,12 +28,14 @@ const useProducts = (searchParams) => {
     } finally {
       setLoading(false);
     }
-  }, [searchParams]);
+  }, [searchParamsString]);
 
   // Fetch products on component mount or when searchParams change.
   useEffect(() => {
-    fetchProducts();
-  }, [fetchProducts]);
+    if (enabled) {
+      fetchProducts();
+    }
+  }, [fetchProducts, enabled]);
 
   /**
    * Deletes a product by ID after user confirmation.

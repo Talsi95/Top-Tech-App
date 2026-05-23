@@ -17,7 +17,17 @@ const getArticles = async (req, res) => {
  */
 const getArticleBySlug = async (req, res) => {
     try {
-        const article = await Article.findOne({ slug: req.params.slug, storeId: req.storeId });
+        const { slug } = req.params;
+        let query = { storeId: req.storeId };
+
+        const mongoose = require('mongoose');
+        if (mongoose.Types.ObjectId.isValid(slug)) {
+            query.$or = [{ _id: slug }, { slug: slug }];
+        } else {
+            query.slug = slug;
+        }
+
+        const article = await Article.findOne(query);
         if (!article) {
             return res.status(404).json({ message: 'Article not found' });
         }

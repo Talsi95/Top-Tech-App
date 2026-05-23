@@ -41,12 +41,12 @@ const StoreSettings = ({ showNotification }) => {
     const handleHeroVideoFileChange = async (e) => {
         const file = e.target.files[0];
         if (!file) return;
-        
+
         setIsUploadingHeroVideo(true);
         const token = getToken();
         const formDataUpload = new FormData();
         formDataUpload.append('video', file);
-        
+
         try {
             const res = await axios.post(`${__API_URL__}/products/upload-video`, formDataUpload, {
                 headers: {
@@ -69,12 +69,12 @@ const StoreSettings = ({ showNotification }) => {
     const handleGalleryVideoFileChange = async (e, idx) => {
         const file = e.target.files[0];
         if (!file) return;
-        
+
         setUploadingGalleryVideoIndices(prev => ({ ...prev, [idx]: true }));
         const token = getToken();
         const formDataUpload = new FormData();
         formDataUpload.append('video', file);
-        
+
         try {
             const res = await axios.post(`${__API_URL__}/products/upload-video`, formDataUpload, {
                 headers: {
@@ -208,6 +208,14 @@ const StoreSettings = ({ showNotification }) => {
                         <label className="block text-sm font-bold text-gray-700 mb-2">כותרת רשימת מוצרים (דף הבית)</label>
                         <input type="text" value={formData.labels?.featuredSectionTitle || ''} onChange={(e) => handleNestedChange('labels', 'featuredSectionTitle', e.target.value)} className="w-full p-4 bg-white rounded-xl border border-gray-200 focus:border-primary outline-none" />
                     </div>
+                    <div>
+                        <label className="block text-sm font-bold text-gray-700 mb-2">כותרת מעל הקטגוריות (דף הבית)</label>
+                        <input type="text" value={formData.labels?.discoverSectionTitle || ''} onChange={(e) => handleNestedChange('labels', 'discoverSectionTitle', e.target.value)} className="w-full p-4 bg-white rounded-xl border border-gray-200 focus:border-primary outline-none" />
+                    </div>
+                    <div>
+                        <label className="block text-sm font-bold text-gray-700 mb-2">תת כותרת מעל הקטגוריות (דף הבית)</label>
+                        <input type="text" value={formData.labels?.discoverSectionSubtitle || ''} onChange={(e) => handleNestedChange('labels', 'discoverSectionSubtitle', e.target.value)} className="w-full p-4 bg-white rounded-xl border border-gray-200 focus:border-primary outline-none" />
+                    </div>
                 </div>
             </div>
 
@@ -227,11 +235,10 @@ const StoreSettings = ({ showNotification }) => {
                                     key={option.id}
                                     type="button"
                                     onClick={() => handleNestedChange('homePageConfig', 'heroType', option.id)}
-                                    className={`p-6 rounded-2xl border-2 transition-all text-right ${
-                                        formData.homePageConfig?.heroType === option.id 
-                                        ? 'border-primary bg-primary/5 shadow-md' 
+                                    className={`p-6 rounded-2xl border-2 transition-all text-right ${formData.homePageConfig?.heroType === option.id
+                                        ? 'border-primary bg-primary/5 shadow-md'
                                         : 'border-gray-100 bg-white hover:border-gray-300'
-                                    }`}
+                                        }`}
                                 >
                                     <div className="font-black text-gray-900 mb-1">{option.label}</div>
                                     <div className="text-xs text-gray-500">{option.desc}</div>
@@ -244,22 +251,22 @@ const StoreSettings = ({ showNotification }) => {
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 animate-in slide-in-from-top-4 duration-500">
                             <div>
                                 <label className="block text-sm font-bold text-gray-700 mb-2">כותרת ראשית (Hero Title)</label>
-                                <input 
-                                    type="text" 
-                                    value={formData.homePageConfig?.heroTitle || ''} 
-                                    onChange={(e) => handleNestedChange('homePageConfig', 'heroTitle', e.target.value)} 
+                                <input
+                                    type="text"
+                                    value={formData.homePageConfig?.heroTitle || ''}
+                                    onChange={(e) => handleNestedChange('homePageConfig', 'heroTitle', e.target.value)}
                                     placeholder="למשל: ברוכים הבאים"
-                                    className="w-full p-4 bg-white rounded-xl border border-gray-200 focus:border-primary outline-none" 
+                                    className="w-full p-4 bg-white rounded-xl border border-gray-200 focus:border-primary outline-none"
                                 />
                             </div>
                             <div>
                                 <label className="block text-sm font-bold text-gray-700 mb-2">כותרת משנית (Hero Subtitle)</label>
-                                <input 
-                                    type="text" 
-                                    value={formData.homePageConfig?.heroSubtitle || ''} 
-                                    onChange={(e) => handleNestedChange('homePageConfig', 'heroSubtitle', e.target.value)} 
+                                <input
+                                    type="text"
+                                    value={formData.homePageConfig?.heroSubtitle || ''}
+                                    onChange={(e) => handleNestedChange('homePageConfig', 'heroSubtitle', e.target.value)}
                                     placeholder="למשל: הקולקציה החדשה כבר כאן"
-                                    className="w-full p-4 bg-white rounded-xl border border-gray-200 focus:border-primary outline-none" 
+                                    className="w-full p-4 bg-white rounded-xl border border-gray-200 focus:border-primary outline-none"
                                 />
                             </div>
                         </div>
@@ -268,28 +275,26 @@ const StoreSettings = ({ showNotification }) => {
                     {formData.homePageConfig?.heroType === 'video' && (
                         <div className="animate-in slide-in-from-top-4 duration-500 bg-white p-6 rounded-2xl border border-gray-100 flex flex-col gap-4">
                             <label className="block text-sm font-bold text-gray-700">מקור הסרטון הראשי</label>
-                            
+
                             {/* Toggle options */}
                             <div className="flex gap-4 mb-2">
                                 <button
                                     type="button"
                                     onClick={() => setHeroVideoMode('link')}
-                                    className={`flex-1 py-3 rounded-xl font-black text-sm transition-all border ${
-                                        heroVideoMode === 'link'
-                                            ? 'bg-primary text-white border-primary shadow-md'
-                                            : 'bg-gray-50 text-gray-600 border-gray-100 hover:bg-gray-100'
-                                    }`}
+                                    className={`flex-1 py-3 rounded-xl font-black text-sm transition-all border ${heroVideoMode === 'link'
+                                        ? 'bg-primary text-white border-primary shadow-md'
+                                        : 'bg-gray-50 text-gray-600 border-gray-100 hover:bg-gray-100'
+                                        }`}
                                 >
                                     הדבקת קישור לסרטון (YouTube/Vimeo/Direct MP4)
                                 </button>
                                 <button
                                     type="button"
                                     onClick={() => setHeroVideoMode('file')}
-                                    className={`flex-1 py-3 rounded-xl font-black text-sm transition-all border ${
-                                        heroVideoMode === 'file'
-                                            ? 'bg-primary text-white border-primary shadow-md'
-                                            : 'bg-gray-50 text-gray-600 border-gray-100 hover:bg-gray-100'
-                                    }`}
+                                    className={`flex-1 py-3 rounded-xl font-black text-sm transition-all border ${heroVideoMode === 'file'
+                                        ? 'bg-primary text-white border-primary shadow-md'
+                                        : 'bg-gray-50 text-gray-600 border-gray-100 hover:bg-gray-100'
+                                        }`}
                                 >
                                     העלאת קובץ וידאו מובנה ל-Cloudinary
                                 </button>
@@ -299,16 +304,16 @@ const StoreSettings = ({ showNotification }) => {
                             {heroVideoMode === 'link' ? (
                                 <div className="flex flex-col gap-2">
                                     <label className="text-xs font-bold text-gray-400">קישור ישיר או כתובת YouTube/Vimeo:</label>
-                                    <input 
-                                        type="text" 
-                                        value={formData.homePageConfig?.mediaUrls?.[0] || ''} 
+                                    <input
+                                        type="text"
+                                        value={formData.homePageConfig?.mediaUrls?.[0] || ''}
                                         onChange={(e) => {
                                             const urls = [...(formData.homePageConfig?.mediaUrls || [])];
                                             urls[0] = e.target.value;
                                             handleNestedChange('homePageConfig', 'mediaUrls', urls);
-                                        }} 
+                                        }}
                                         placeholder="https://example.com/video.mp4"
-                                        className="w-full p-4 bg-gray-50 rounded-xl border border-transparent focus:border-primary focus:bg-white outline-none font-bold" 
+                                        className="w-full p-4 bg-gray-50 rounded-xl border border-transparent focus:border-primary focus:bg-white outline-none font-bold"
                                     />
                                     <p className="text-[10px] text-gray-400 mr-2">מומלץ להשתמש בקישור ישיר לקובץ MP4 לקבלת ביצועים מקסימליים</p>
                                 </div>
@@ -495,22 +500,20 @@ const StoreSettings = ({ showNotification }) => {
                                                         <button
                                                             type="button"
                                                             onClick={() => setGalleryVideoModes(prev => ({ ...prev, [index]: 'link' }))}
-                                                            className={`px-2 py-1 text-[10px] font-bold rounded-md transition-all ${
-                                                                currentMode === 'link' 
-                                                                    ? 'bg-white text-gray-900 shadow-sm' 
-                                                                    : 'text-gray-400 hover:text-gray-600'
-                                                            }`}
+                                                            className={`px-2 py-1 text-[10px] font-bold rounded-md transition-all ${currentMode === 'link'
+                                                                ? 'bg-white text-gray-900 shadow-sm'
+                                                                : 'text-gray-400 hover:text-gray-600'
+                                                                }`}
                                                         >
                                                             קישור
                                                         </button>
                                                         <button
                                                             type="button"
                                                             onClick={() => setGalleryVideoModes(prev => ({ ...prev, [index]: 'file' }))}
-                                                            className={`px-2 py-1 text-[10px] font-bold rounded-md transition-all ${
-                                                                currentMode === 'file' 
-                                                                    ? 'bg-white text-gray-900 shadow-sm' 
-                                                                    : 'text-gray-400 hover:text-gray-600'
-                                                            }`}
+                                                            className={`px-2 py-1 text-[10px] font-bold rounded-md transition-all ${currentMode === 'file'
+                                                                ? 'bg-white text-gray-900 shadow-sm'
+                                                                : 'text-gray-400 hover:text-gray-600'
+                                                                }`}
                                                         >
                                                             קובץ
                                                         </button>
@@ -585,53 +588,53 @@ const StoreSettings = ({ showNotification }) => {
                                                 />
                                             </div>
                                         )}
-                                    <div>
-                                        <label className="block text-xs font-black text-gray-400 mb-1.5 uppercase tracking-wider">סוג תוכן</label>
-                                        <select
-                                            value={item.type || 'image'}
-                                            onChange={(e) => {
-                                                const newGallery = [...formData.gallery];
-                                                newGallery[index].type = e.target.value;
-                                                setFormData({ ...formData, gallery: newGallery });
-                                            }}
-                                            className="w-full p-3.5 bg-gray-50 rounded-xl border border-transparent focus:border-primary focus:bg-white outline-none text-sm transition-all"
-                                        >
-                                            <option value="image">תמונה 🖼️</option>
-                                            <option value="video">וידאו (YouTube/MP4) 🎥</option>
-                                        </select>
+                                        <div>
+                                            <label className="block text-xs font-black text-gray-400 mb-1.5 uppercase tracking-wider">סוג תוכן</label>
+                                            <select
+                                                value={item.type || 'image'}
+                                                onChange={(e) => {
+                                                    const newGallery = [...formData.gallery];
+                                                    newGallery[index].type = e.target.value;
+                                                    setFormData({ ...formData, gallery: newGallery });
+                                                }}
+                                                className="w-full p-3.5 bg-gray-50 rounded-xl border border-transparent focus:border-primary focus:bg-white outline-none text-sm transition-all"
+                                            >
+                                                <option value="image">תמונה 🖼️</option>
+                                                <option value="video">וידאו (YouTube/MP4) 🎥</option>
+                                            </select>
+                                        </div>
+                                        <div>
+                                            <label className="block text-xs font-black text-gray-400 mb-1.5 uppercase tracking-wider">כותרת (אופציונלי)</label>
+                                            <input
+                                                type="text"
+                                                value={item.title || ''}
+                                                onChange={(e) => {
+                                                    const newGallery = [...formData.gallery];
+                                                    newGallery[index].title = e.target.value;
+                                                    setFormData({ ...formData, gallery: newGallery });
+                                                }}
+                                                className="w-full p-3.5 bg-gray-50 rounded-xl border border-transparent focus:border-primary focus:bg-white outline-none text-sm transition-all"
+                                                placeholder="מה רואים כאן?"
+                                            />
+                                        </div>
                                     </div>
-                                    <div>
-                                        <label className="block text-xs font-black text-gray-400 mb-1.5 uppercase tracking-wider">כותרת (אופציונלי)</label>
-                                        <input
-                                            type="text"
-                                            value={item.title || ''}
-                                            onChange={(e) => {
-                                                const newGallery = [...formData.gallery];
-                                                newGallery[index].title = e.target.value;
-                                                setFormData({ ...formData, gallery: newGallery });
-                                            }}
-                                            className="w-full p-3.5 bg-gray-50 rounded-xl border border-transparent focus:border-primary focus:bg-white outline-none text-sm transition-all"
-                                            placeholder="מה רואים כאן?"
-                                        />
-                                    </div>
+
+                                    <button
+                                        type="button"
+                                        onClick={() => {
+                                            const newGallery = formData.gallery.filter((_, i) => i !== index);
+                                            setFormData({ ...formData, gallery: newGallery });
+                                        }}
+                                        className="p-4 bg-red-50 text-red-500 rounded-2xl hover:bg-red-500 hover:text-white transition-all shadow-sm flex-shrink-0"
+                                    >
+                                        <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                        </svg>
+                                    </button>
                                 </div>
-                                
-                                <button
-                                    type="button"
-                                    onClick={() => {
-                                        const newGallery = formData.gallery.filter((_, i) => i !== index);
-                                        setFormData({ ...formData, gallery: newGallery });
-                                    }}
-                                    className="p-4 bg-red-50 text-red-500 rounded-2xl hover:bg-red-500 hover:text-white transition-all shadow-sm flex-shrink-0"
-                                >
-                                    <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                                    </svg>
-                                </button>
-                            </div>
-                        );
-                    })
-                )}
+                            );
+                        })
+                    )}
                 </div>
             </div>
 

@@ -20,6 +20,7 @@ services:
     volumes:
       - ./backend:/app:cached
       - node_modules_backend:/app/node_modules
+      - ./frontend/dist:/app/dist:ro
     ports:
       - "5001:5000"
     env_file:

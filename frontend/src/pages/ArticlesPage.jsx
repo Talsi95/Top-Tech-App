@@ -86,6 +86,7 @@ const ArticlesPage = () => {
                             <StoreLink
                                 key={article._id}
                                 to={`/articles/${article.slug}`}
+                                state={{ article }}
                                 className="group bg-white rounded-[2.5rem] overflow-hidden border border-gray-100 shadow-sm hover:shadow-2xl transition-all duration-500 flex flex-col animate-in fade-in slide-in-from-bottom-8"
                                 style={{ animationDelay: `${idx * 100}ms` }}
                             >

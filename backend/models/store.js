@@ -31,7 +31,9 @@ const storeSchema = new Schema({
         bannerDescription: { type: String, default: 'ברוכים הבאים לחנות שלנו' },
         footerDescription: { type: String, default: 'קניה מהנה ובטוחה' },
         contactUsLabel: { type: String, default: 'צור קשר בוואטסאפ' },
-        featuredSectionTitle: { type: String, default: 'הנבחרת שלנו' }
+        featuredSectionTitle: { type: String, default: 'הנבחרת שלנו' },
+        discoverSectionTitle: { type: String, default: "גלו את המוצרים שלנו" },
+        discoverSectionSubtitle: { type: String, default: "הצטרפו לחוויית הקנייה המתקדמת ביותר עם המוצרים המובילים בשוק" }
     },
     features: {
         hasRepairLab: { type: Boolean, default: false },

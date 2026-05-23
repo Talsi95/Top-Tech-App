@@ -15,6 +15,9 @@ export default defineConfig(({ mode }) => {
     plugins: [tailwindcss(), react()],
     define: {
       __API_URL__: JSON.stringify(API_URL),
+    },
+    ssr: {
+      noExternal: true
     }
   }
 })

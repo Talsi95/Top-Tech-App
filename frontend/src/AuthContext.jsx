@@ -1,4 +1,4 @@
-import { createContext, useState, useEffect, useContext } from 'react';
+import { createContext, useState, useEffect, useContext, useMemo, useCallback } from 'react';
 import { jwtDecode } from 'jwt-decode';
 import { useStore } from './StoreContext';
 
@@ -67,7 +67,7 @@ export const AuthProvider = ({ children }) => {
      * Logs the user in by saving the token and decoding user data.
      * @param {string} token - The JWT token.
      */
-    const login = (token, isGuestLogin = false) => {
+    const login = useCallback((token, isGuestLogin = false) => {
         if (isGuestLogin) {
             localStorage.setItem('guestToken', token);
             localStorage.removeItem('token');
@@ -79,28 +79,28 @@ export const AuthProvider = ({ children }) => {
         }
         const decoded = jwtDecode(token);
         setUser(decoded);
-    };
+    }, []);
 
     /**
      * Logs the user out by clearing the token and user state.
      */
-    const logout = () => {
+    const logout = useCallback(() => {
         localStorage.removeItem('token');
         localStorage.removeItem('guestToken');
         setUser(null);
         setIsGuest(false);
-    };
+    }, []);
 
     /**
      * Retrieves the current auth token from local storage.
      * @returns {string|null} The token or null if not found.
      */
-    const getToken = () => {
+    const getToken = useCallback(() => {
         return localStorage.getItem('token') || localStorage.getItem('guestToken');
-    };
+    }, []);
 
     // Consolidated authentication state.
-    const authState = {
+    const authState = useMemo(() => ({
         user,
         isAuthenticated: !!user,
         isGuest,
@@ -109,7 +109,7 @@ export const AuthProvider = ({ children }) => {
         login,
         logout,
         getToken,
-    };
+    }), [user, isGuest, login, logout, getToken]);
 
     return (
         <AuthContext.Provider value={authState}>

@@ -42,6 +42,7 @@ const useCart = (isAuthenticated, getToken, showNotification) => {
       const simplifiedCart = currentCart.map(item => ({
         product: item.product._id,
         variant: item.variant ? item.variant._id : null,
+        selectedOptions: item.selectedOptions || [],
         quantity: item.quantity
       }));
 
@@ -58,7 +59,19 @@ const useCart = (isAuthenticated, getToken, showNotification) => {
       console.error("Failed to save cart:", err.response ? err.response.data : err.message);
       throw new Error('Failed to save cart on server');
     }
-  }, [getToken]);
+  }, [getToken, isAuthenticated, isGuestUser, cartStorageKey]);
+
+  const mapDbCartItem = useCallback((item) => {
+    const selectedOptions = item.selectedOptions || [];
+    const optionsTotal = selectedOptions.reduce((acc, opt) => acc + (opt.priceAddition || 0), 0);
+    const optionsKey = JSON.stringify(selectedOptions.map(o => `${o.name}:${o.choice}`).sort());
+    return {
+      ...item,
+      selectedOptions,
+      optionsTotal,
+      optionsKey
+    };
+  }, []);
 
   /**
    * Loads the cart from local storage or the server (if authenticated).
@@ -90,7 +103,7 @@ const useCart = (isAuthenticated, getToken, showNotification) => {
       const response = await axios.get(`${__API_URL__}/cart`, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
-      const dbCart = response.data.filter(item => item.product); // Ensure no null products from DB
+      const dbCart = response.data.filter(item => item.product).map(mapDbCartItem); // Ensure no null products from DB and format them
 
       if (localCart.length > 0) {
         if (dbCart.length === 0 || dbCart.length < localCart.length) {
@@ -107,7 +120,7 @@ const useCart = (isAuthenticated, getToken, showNotification) => {
       console.error("Failed to load cart from DB:", err.response ? err.response.data : err.message);
       setCartItems(localCart);
     }
-  }, [isAuthenticated, getToken, saveCart, cartStorageKey]);
+  }, [isAuthenticated, getToken, saveCart, cartStorageKey, isGuestUser, mapDbCartItem]);
 
   // Initial load of the cart.
   useEffect(() => {

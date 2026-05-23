@@ -30,6 +30,15 @@ const articleSchema = new Schema({
     timestamps: true
 });
 
+const slugify = require('../utils/slugify');
+
+articleSchema.pre('validate', function (next) {
+    if (this.title && (!this.slug || this.isModified('title'))) {
+        this.slug = slugify(this.title);
+    }
+    next();
+});
+
 // Ensure slugs are unique per store
 articleSchema.index({ slug: 1, storeId: 1 }, { unique: true });
 

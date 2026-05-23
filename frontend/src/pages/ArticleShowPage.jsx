@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
-import { useParams } from 'react-router-dom';
+import { useParams, useLocation } from 'react-router-dom';
+import { Helmet } from 'react-helmet-async';
 import axios from 'axios';
 import { useStore } from '../StoreContext';
 import StoreLink from '../components/StoreLink';
@@ -12,9 +13,10 @@ import { FaBookOpen, FaCalendarAlt, FaArrowRight, FaClock } from 'react-icons/fa
  */
 const ArticleShowPage = () => {
     const { articleSlug } = useParams();
+    const location = useLocation();
     const { store } = useStore();
-    const [article, setArticle] = useState(null);
-    const [loading, setLoading] = useState(true);
+    const [article, setArticle] = useState(location.state?.article || null);
+    const [loading, setLoading] = useState(!article);
     const [error, setError] = useState(null);
 
     useEffect(() => {
@@ -24,7 +26,9 @@ const ArticleShowPage = () => {
                 setArticle(data);
             } catch (err) {
                 console.error("Error fetching article:", err);
-                setError("המאמר שחיפשתם לא נמצא או שהוסר");
+                if (!article) {
+                    setError("המאמר שחיפשתם לא נמצא או שהוסר");
+                }
             } finally {
                 setLoading(false);
             }
@@ -57,8 +61,36 @@ const ArticleShowPage = () => {
         );
     }
 
+    const schemaData = {
+        "@context": "https://schema.org",
+        "@type": "Article",
+        "headline": article.title,
+        "image": article.image ? [article.image] : [store?.design?.faviconUrl || '/top-tech.svg'],
+        "datePublished": article.createdAt,
+        "dateModified": article.updatedAt || article.createdAt,
+        "author": {
+            "@type": "Organization",
+            "name": store?.name || "Top Tech"
+        },
+        "publisher": {
+            "@type": "Organization",
+            "name": store?.name || "Top Tech",
+            "logo": {
+                "@type": "ImageObject",
+                "url": store?.design?.faviconUrl || "https://example.com/logo.png"
+            }
+        },
+        "description": article.content ? article.content.substring(0, 150) + "..." : ""
+    };
+
     return (
         <div className="min-h-screen bg-gray-50/50 py-12 px-6 lg:px-12" dir="rtl">
+            <Helmet>
+                <title>{`${article.title} | ${store?.name || 'Top Tech'}`}</title>
+                <script type="application/ld+json">
+                    {JSON.stringify(schemaData)}
+                </script>
+            </Helmet>
             <div className="max-w-[900px] mx-auto">
                 
                 {/* Back Button */}

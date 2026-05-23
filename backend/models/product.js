@@ -16,6 +16,8 @@ const variantSchema = new Schema({
     }
 }, { strict: false });
 
+const slugify = require('../utils/slugify');
+
 const productSchema = new Schema({
     storeId: {
         type: mongoose.Schema.Types.ObjectId,
@@ -25,6 +27,12 @@ const productSchema = new Schema({
     name: {
         type: String,
         required: true
+    },
+    slug: {
+        type: String,
+        required: true,
+        trim: true,
+        lowercase: true
     },
     description: {
         type: String
@@ -71,6 +79,13 @@ const productSchema = new Schema({
     variants: [variantSchema]
 }, {
     timestamps: true
+});
+
+productSchema.pre('validate', function (next) {
+    if (this.name && (!this.slug || this.isModified('name'))) {
+        this.slug = slugify(this.name);
+    }
+    next();
 });
 
 productSchema.index({ storeId: 1, slug: 1 });

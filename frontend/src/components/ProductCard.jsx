@@ -29,14 +29,14 @@ const ProductCard = ({ product, filters = {} }) => {
         : (primaryVariant.imageUrl || (product.variants?.[0]?.imageUrl));
 
     const CardWrapper = store?.features?.hasCart ? StoreLink : 'div';
-    
+
     // Dynamic classes based on fullWidthCards feature
     const wrapperClass = isFullWidth
         ? "group relative bg-white rounded-none sm:rounded-[2rem] shadow-sm hover:shadow-[0_30px_60px_-15px_rgba(0,0,0,0.1)] transition-all duration-500 flex flex-col h-full border-b sm:border border-gray-100 hover:border-primary/20 overflow-hidden"
         : "group relative bg-white p-6 rounded-[2rem] shadow-sm hover:shadow-[0_30px_60px_-15px_rgba(0,0,0,0.1)] transition-all duration-500 flex flex-col h-full border border-gray-100 hover:border-primary/20";
 
-    const wrapperProps = store?.features?.hasCart 
-        ? { to: `/product/${product._id}`, className: wrapperClass } 
+    const wrapperProps = store?.features?.hasCart
+        ? { to: `/products/${product.slug || product._id}`, state: { product }, className: wrapperClass }
         : { className: wrapperClass };
 
     const whatsappLink = `https://wa.me/${store?.businessInfo?.whatsapp}?text=${encodeURIComponent(`היי, אני מעוניין במוצר: ${product.name}`)}`;
@@ -44,28 +44,26 @@ const ProductCard = ({ product, filters = {} }) => {
     return (
         <CardWrapper {...wrapperProps}>
             {/* Image Section */}
-            <div className={`relative w-full overflow-hidden flex items-center justify-center ${
-                isFullWidth 
-                ? "h-80 sm:h-72 bg-white" 
+            <div className={`relative w-full overflow-hidden flex items-center justify-center ${isFullWidth
+                ? "h-80 sm:h-72 bg-white"
                 : "h-56 mb-6 rounded-2xl bg-white border border-gray-50 p-4"
-            }`}>
+                }`}>
                 <img
                     src={imageUrl}
                     alt={product.name}
-                    className={`w-full h-full transition-transform duration-700 ease-out group-hover:scale-110 ${
-                        isFullWidth ? "object-cover" : "object-contain"
-                    }`}
+                    className={`w-full h-full transition-transform duration-700 ease-out group-hover:scale-110 ${isFullWidth ? "object-cover" : "object-contain"
+                        }`}
                 />
-                
+
                 {/* Sale Badge */}
                 {store?.features?.hasCart && primaryVariant.salePrice && (
                     <div className="absolute top-4 left-4 z-10 bg-red-500 text-white text-[10px] font-black px-3 py-1 rounded-full uppercase tracking-wider shadow-lg shadow-red-500/20">
                         מבצע חם
                     </div>
                 )}
-                
+
                 {!store?.features?.hasCart && (
-                    <StoreLink to={`/product/${product._id}`} className="absolute inset-0 z-0" />
+                    <StoreLink to={`/products/${product.slug || product._id}`} state={{ product: product }} className="absolute inset-0 z-0" />
                 )}
             </div>
 
@@ -74,9 +72,8 @@ const ProductCard = ({ product, filters = {} }) => {
                 <h2 className={`${isFullWidth ? "text-2xl" : "text-xl"} font-black text-gray-900 mb-2 leading-tight group-hover:text-primary transition-colors duration-300`}>
                     {product.name}
                 </h2>
-                <p className={`text-gray-500 text-sm font-medium leading-relaxed ${
-                    isFullWidth ? "text-base mb-8 whitespace-pre-line" : "mb-6 line-clamp-2"
-                }`}>
+                <p className={`text-gray-500 text-sm font-medium leading-relaxed ${isFullWidth ? "text-base mb-8 whitespace-pre-line" : "mb-6 line-clamp-2"
+                    }`}>
                     {product.description}
                 </p>
 
@@ -114,9 +111,8 @@ const ProductCard = ({ product, filters = {} }) => {
                             target="_blank"
                             rel="noopener noreferrer"
                             onClick={(e) => e.stopPropagation()}
-                            className={`flex-1 py-4 px-4 bg-[#25D366] text-white rounded-2xl text-center font-black shadow-lg shadow-[#25D366]/20 hover:scale-[1.02] active:scale-95 transition-all flex items-center justify-center gap-3 ${
-                                isFullWidth ? "text-base" : "text-sm"
-                            }`}
+                            className={`flex-1 py-4 px-4 bg-[#25D366] text-white rounded-2xl text-center font-black shadow-lg shadow-[#25D366]/20 hover:scale-[1.02] active:scale-95 transition-all flex items-center justify-center gap-3 ${isFullWidth ? "text-base" : "text-sm"
+                                }`}
                         >
                             <FaWhatsapp size={isFullWidth ? 24 : 20} />
                             <span>{store?.labels?.contactUsLabel || 'צור קשר בוואטסאפ'}</span>

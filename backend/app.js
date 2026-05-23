@@ -63,13 +63,15 @@ app.use('/api/repair-types', storeResolver, repairTypeRoutes);
 app.use('/api/articles', storeResolver, articlesRoutes);
 app.use('/api/stores', storeRoutes);
 
-// Static file hosting for the frontend production build.
-app.use(express.static(path.join(__dirname, 'dist')));
+const { getSitemap } = require('./controllers/sitemapController');
+app.get('/store/:slug/sitemap.xml', getSitemap);
 
-// SPA fallback: redirect non-API requests to the frontend index.html.
-app.get(/^\/(?!api).*/, (req, res) => {
-    res.sendFile(path.join(__dirname, 'dist/index.html'));
-});
+// Static file hosting for the frontend production build.
+app.use(express.static(path.join(__dirname, 'dist/client')));
+
+// SSR handler for all non-API requests
+const ssrHandler = require('./middleware/ssrHandler');
+app.get(/^\/(?!api).*/, ssrHandler);
 
 app.use(errorHandler);
 

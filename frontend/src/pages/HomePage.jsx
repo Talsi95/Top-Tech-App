@@ -1,4 +1,5 @@
-import { useMemo, useState, useEffect } from 'react';
+import { useMemo, useState, useEffect, useRef } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import ProductList from '../components/ProductList';
 import Banner from '../components/Banner';
 import CategorySlider from '../components/CategorySlider';
@@ -7,16 +8,48 @@ import Gallery from '../components/Gallery';
 import { useStore } from '../StoreContext';
 import { useAuth } from '../AuthContext';
 import axios from 'axios';
-import { ArrowUp, ArrowDown } from 'lucide-react';
+import { ArrowUp, ArrowDown, ChevronDown } from 'lucide-react';
+import Loader from '../components/Loader';
+import RevealOnScroll from '../components/RevealOnScroll';
+import useProducts from '../hooks/useProducts';
 
 /**
  * HomePage Component.
  * The landing page of the application, displaying a hero banner and featured product list grouped by category.
  */
-const HomePage = ({ handleAddToCart, showNotification, handleDeleteProduct, products }) => {
+const HomePage = ({ handleAddToCart, showNotification }) => {
+    const [searchParams] = useSearchParams();
+    const hasFilters = searchParams.toString().length > 0;
+    const [shouldLoadProducts, setShouldLoadProducts] = useState(hasFilters);
+    const triggerRef = useRef(null);
+
+    const { products, loading, error, handleDeleteProduct } = useProducts(searchParams, shouldLoadProducts);
     const { store } = useStore();
     const { isAdmin, isSuperAdmin, getToken } = useAuth();
     const [categories, setCategories] = useState([]);
+
+    // IntersectionObserver to lazy-load products as user scrolls
+    useEffect(() => {
+        if (shouldLoadProducts) return;
+
+        const observer = new IntersectionObserver(
+            ([entry]) => {
+                if (entry.isIntersecting) {
+                    setShouldLoadProducts(true);
+                    observer.disconnect();
+                }
+            },
+            {
+                rootMargin: '300px', // Pre-fetch products 300px before they scroll into view
+            }
+        );
+
+        if (triggerRef.current) {
+            observer.observe(triggerRef.current);
+        }
+
+        return () => observer.disconnect();
+    }, [shouldLoadProducts]);
 
     // Fetch category configurations on mount or store change
     useEffect(() => {
@@ -107,7 +140,7 @@ const HomePage = ({ handleAddToCart, showNotification, handleDeleteProduct, prod
             try {
                 const { data } = await axios.get(`${__API_URL__}/categories`);
                 setCategories(data);
-            } catch (e) {}
+            } catch (e) { }
         }
     };
 
@@ -123,33 +156,65 @@ const HomePage = ({ handleAddToCart, showNotification, handleDeleteProduct, prod
 
     const multipleCategories = sortedGroupedProducts.length > 1;
 
+    if (error) {
+        return <div className="text-center text-red-500 text-xl font-semibold py-20">שגיאה: {error}</div>;
+    }
+
     return (
         <div className={`max-w-[1440px] mx-auto py-6 ${store?.features?.fullWidthCards ? "px-0" : "px-6"} md:px-12 md:py-12`}>
-            {renderHero()}
-            
+            <div className="w-full min-h-[300px] sm:min-h-[400px] md:min-h-[500px] lg:min-h-[600px] relative animate-in fade-in duration-700 ease-out">
+                {renderHero()}
+            </div>
+
             {/* Display titles below hero ONLY for Slider */}
             {store?.homePageConfig?.heroType === 'slider' && (store?.homePageConfig?.heroTitle || store?.homePageConfig?.heroSubtitle) && (
-                <div className="text-center my-12 animate-in fade-in slide-in-from-bottom-4 duration-1000">
+                <div
+                    key={store.homePageConfig.heroTitle}
+                    className="text-center my-12"
+                >
                     {store.homePageConfig.heroTitle && (
-                        <h1 className="text-5xl md:text-6xl font-black text-gray-900 mb-4 tracking-tight">
+                        <h1 className="text-5xl md:text-6xl font-black text-gray-900 mb-4 tracking-tight animate-in fade-in zoom-in-95 blur-in-sm duration-1000 ease-out">
                             {store.homePageConfig.heroTitle}
                         </h1>
                     )}
                     {store.homePageConfig.heroSubtitle && (
-                        <p className="text-xl md:text-2xl text-gray-500 font-medium max-w-2xl mx-auto leading-relaxed">
+                        <p className="text-xl md:text-2xl text-gray-500 font-medium max-w-2xl mx-auto leading-relaxed animate-in fade-in zoom-in-95 blur-in-sm delay-300 duration-1000 ease-out fill-mode-both">
                             {store.homePageConfig.heroSubtitle}
                         </p>
                     )}
                 </div>
             )}
 
-            <div className="space-y-16 mb-12">
-                {multipleCategories ? (
+
+            <RevealOnScroll>
+                <div className="text-center mt-20 mb-12 flex flex-col items-center">
+                    <h2 className="text-4xl md:text-5xl font-black text-gray-900 tracking-tighter mb-4 relative inline-block">
+                        {store?.labels?.discoverSectionTitle || "גלו את המוצרים שלנו"}
+                        <div className="absolute -bottom-2 left-1/2 -translate-x-1/2 w-24 h-1 bg-primary rounded-full" />
+                    </h2>
+                    <p className="text-gray-500 font-medium text-lg mt-3 max-w-md mx-auto">
+                        {store?.labels?.discoverSectionSubtitle || "הצטרפו לחוויית הקנייה המתקדמת ביותר עם המוצרים המובילים בשוק"}
+                    </p>
+
+                    <div className="mt-6 text-primary animate-bounce cursor-pointer opacity-75 hover:opacity-100 transition-opacity"
+                        onClick={() => window.scrollBy({ top: window.innerHeight * 0.6, behavior: 'smooth' })}>
+                        <ChevronDown size={32} className="stroke-[3]" />
+                    </div>
+                </div>
+            </RevealOnScroll>
+
+
+            <div ref={triggerRef} className="space-y-16 mb-12">
+                {!shouldLoadProducts || loading ? (
+                    <div className="flex justify-center items-center py-20 min-h-[300px]">
+                        <Loader subtext='טוען מוצרים...' />
+                    </div>
+                ) : multipleCategories ? (
                     sortedGroupedProducts.map(([category, catProducts], idx) => {
                         const isFirstCategory = idx === 0;
                         const isLastCategory = idx === sortedGroupedProducts.length - 1;
                         return (
-                            <div key={category}>
+                            <RevealOnScroll key={category} delay={idx * 50}>
                                 {/* Category heading with accent bar and reordering controls */}
                                 <div className="flex items-center justify-between mb-8 gap-4 flex-wrap">
                                     <div className="flex items-center gap-4">
@@ -161,7 +226,7 @@ const HomePage = ({ handleAddToCart, showNotification, handleDeleteProduct, prod
                                             {catProducts.length} מוצרים
                                         </span>
                                     </div>
-                                    
+
                                     {(isAdmin || isSuperAdmin) && (
                                         <div className="flex gap-2" dir="ltr">
                                             <button
@@ -189,27 +254,30 @@ const HomePage = ({ handleAddToCart, showNotification, handleDeleteProduct, prod
                                     products={catProducts}
                                     onAddToCart={handleAddToCart}
                                     showNotification={showNotification}
-                                    onDeleteProduct={handleDeleteProduct}
+                                    onDeleteProduct={(id) => handleDeleteProduct(id, getToken, showNotification)}
                                 />
-                            </div>
+                            </RevealOnScroll>
                         );
                     })
                 ) : (
-                    <div>
-                        <h2 className="text-4xl font-black text-gray-900 mb-8 tracking-tight border-r-8 border-primary pr-6">
-                            {store?.labels?.featuredSectionTitle || "הנבחרת שלנו"}
-                        </h2>
-                        <ProductList
-                            products={products}
-                            onAddToCart={handleAddToCart}
-                            showNotification={showNotification}
-                            onDeleteProduct={handleDeleteProduct}
-                        />
-                    </div>
+                    <RevealOnScroll>
+                        <div>
+                            <h2 className="text-4xl font-black text-gray-900 mb-8 tracking-tight border-r-8 border-primary pr-6">
+                                {store?.labels?.featuredSectionTitle || "הנבחרת שלנו"}
+                            </h2>
+                            <ProductList
+                                products={products}
+                                onAddToCart={handleAddToCart}
+                                showNotification={showNotification}
+                                onDeleteProduct={(id) => handleDeleteProduct(id, getToken, showNotification)}
+                            />
+                        </div>
+                    </RevealOnScroll>
                 )}
             </div>
-
-            <Gallery />
+            <RevealOnScroll>
+                <Gallery />
+            </RevealOnScroll>
         </div>
     )
 };

@@ -1,6 +1,6 @@
 import StoreLink from './StoreLink';
 import { useState, useEffect } from 'react';
-import { FaTimes, FaSearch, FaArrowRight } from 'react-icons/fa';
+import { FaTimes, FaSearch, FaArrowRight, FaFolderOpen } from 'react-icons/fa';
 import axios from 'axios';
 import { useStore } from '../StoreContext';
 
@@ -13,13 +13,13 @@ const SearchDrawer = ({ isOpen, onClose }) => {
     const [searchQuery, setSearchQuery] = useState('');
     const [searchResults, setSearchResults] = useState([]);
     const [isVisible, setIsVisible] = useState(false);
-    const [popularTags, setPopularTags] = useState(['עגבניה', 'מלפפון', 'חסה', 'תפוח', 'תפוז']);
-
+    const [popularTags, setPopularTags] = useState(['']);
+    const [matchedCategories, setMatchedCategories] = useState([]);
 
     useEffect(() => {
         if (isOpen) {
             setTimeout(() => setIsVisible(true), 10);
-            
+
             const fetchPopularTerms = async () => {
                 try {
                     const response = await axios.get(`${__API_URL__}/products`);
@@ -61,16 +61,42 @@ const SearchDrawer = ({ isOpen, onClose }) => {
     };
 
     const fetchSearchResults = async (query) => {
-        if (query.length > 2) {
+        if (query.trim().length > 1) {
             try {
-                const response = await axios.get(`${__API_URL__}/products/search?query=${query}`);
-                setSearchResults(response.data);
+                const response = await axios.get(`${__API_URL__}/products/search?query=${encodeURIComponent(query)}`);
+                let data = response.data || [];
+
+                if (data.length === 0) {
+                    const allProductsRes = await axios.get(`${__API_URL__}/products`);
+                    const allProducts = allProductsRes.data.products || allProductsRes.data || [];
+
+                    if (Array.isArray(allProducts)) {
+                        data = allProducts.filter(p =>
+                            p.category?.toLowerCase().includes(query.toLowerCase()) ||
+                            p.subcategory?.toLowerCase().includes(query.toLowerCase())
+                        );
+                    }
+                }
+
+                setSearchResults(data);
+
+                if (Array.isArray(data)) {
+                    const categories = new Set();
+                    data.forEach(p => {
+                        if (p.category && p.category.toLowerCase().includes(query.toLowerCase())) {
+                            categories.add(p.category);
+                        }
+                    });
+                    setMatchedCategories(Array.from(categories));
+                }
             } catch (error) {
                 console.error('Error fetching search results:', error);
                 setSearchResults([]);
+                setMatchedCategories([]);
             }
         } else {
             setSearchResults([]);
+            setMatchedCategories([]);
         }
     };
 
@@ -148,39 +174,70 @@ const SearchDrawer = ({ isOpen, onClose }) => {
                             </div>
                         </div>
                     ) : (
-                        <div className="space-y-4">
-                            <h3 className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-4 px-2">תוצאות ({searchResults.length})</h3>
-                            {searchResults.map((product, index) => (
-                                <StoreLink
-                                    key={product._id}
-                                    to={`/product/${product._id}`}
-                                    onClick={onClose}
-                                    className="group flex items-center gap-6 p-4 rounded-3xl hover:bg-gray-50 transition-all border border-transparent hover:border-gray-100 animate-in fade-in slide-in-from-right-4 duration-500"
-                                    style={{ animationDelay: `${index * 50}ms` }}
-                                >
-                                    <div className={`w-24 h-24 bg-white rounded-2xl border border-gray-100 ${isFullWidth ? 'p-0' : 'p-3'} flex items-center justify-center overflow-hidden`}>
-                                        <img
-                                            src={(product.variants[0]?.imageUrls && product.variants[0].imageUrls.length > 0)
-                                                ? product.variants[0].imageUrls[0]
-                                                : product.variants[0]?.imageUrl}
-                                            alt={product.name}
-                                            className={`w-full h-full ${isFullWidth ? 'object-cover' : 'object-contain'} transform group-hover:scale-110 transition-transform duration-500`}
-                                        />
+                        <div className="space-y-6">
+                            {/* 🌟 חלק חדש: הצגת קטגוריות תואמות במידה ונמצאו */}
+                            {matchedCategories.length > 0 && (
+                                <div className="animate-in fade-in slide-in-from-top-2 duration-400">
+                                    <h3 className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-3 px-2">קטגוריות מתאימות</h3>
+                                    <div className="space-y-2">
+                                        {matchedCategories.map(cat => (
+                                            <StoreLink
+                                                key={cat}
+                                                to={`/products?category=${encodeURIComponent(cat)}`}
+                                                onClick={onClose}
+                                                className="flex items-center justify-between p-4 bg-primary/5 hover:bg-primary/10 border border-primary/10 rounded-2xl transition-all group"
+                                            >
+                                                <div className="flex items-center gap-4">
+                                                    <div className="w-10 h-10 bg-primary/10 rounded-xl flex items-center justify-center text-primary">
+                                                        <FaFolderOpen size={16} />
+                                                    </div>
+                                                    <span className="font-black text-gray-900 text-lg">מעבר לקטגוריית {cat}</span>
+                                                </div>
+                                                <FaArrowRight size={14} className="rotate-180 text-primary group-hover:translate-x-[-4px] transition-all" />
+                                            </StoreLink>
+                                        ))}
                                     </div>
-                                    <div className="flex-1 text-right">
-                                        <h4 className="text-lg font-black text-gray-900 group-hover:text-primary transition-colors">{product.name}</h4>
-                                        <div className="flex items-center justify-end gap-2 mt-1">
-                                            <span className="text-primary font-black text-xl">₪{product.variants[0]?.price.toFixed(2)}</span>
-                                            {product.variants[0]?.salePrice && (
-                                                <span className="text-gray-300 line-through text-sm">₪{product.variants[0].price.toFixed(2)}</span>
-                                            )}
-                                        </div>
-                                    </div>
-                                    <div className="w-10 h-10 flex items-center justify-center text-gray-300 group-hover:text-primary group-hover:translate-x-[-4px] transition-all">
-                                        <FaArrowRight size={14} className="rotate-180" />
-                                    </div>
-                                </StoreLink>
-                            ))}
+                                </div>
+                            )}
+
+                            {/* רשימת המוצרים הרגילה */}
+                            <div>
+                                <h3 className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-4 px-2">מוצרים ({searchResults.length})</h3>
+                                <div className="space-y-4">
+                                    {searchResults.map((product, index) => (
+                                        <StoreLink
+                                            key={product._id}
+                                            to={`/products/${product.slug || product._id}`}
+                                            state={{ product }}
+                                            onClick={onClose}
+                                            className="group flex items-center gap-6 p-4 rounded-3xl hover:bg-gray-50 transition-all border border-transparent hover:border-gray-100 animate-in fade-in slide-in-from-right-4 duration-500"
+                                            style={{ animationDelay: `${index * 50}ms` }}
+                                        >
+                                            <div className={`w-24 h-24 bg-white rounded-2xl border border-gray-100 ${isFullWidth ? 'p-0' : 'p-3'} flex items-center justify-center overflow-hidden`}>
+                                                <img
+                                                    src={(product.variants[0]?.imageUrls && product.variants[0].imageUrls.length > 0)
+                                                        ? product.variants[0].imageUrls[0]
+                                                        : product.variants[0]?.imageUrl}
+                                                    alt={product.name}
+                                                    className={`w-full h-full ${isFullWidth ? 'object-cover' : 'object-contain'} transform group-hover:scale-110 transition-transform duration-500`}
+                                                />
+                                            </div>
+                                            <div className="flex-1 text-right">
+                                                <h4 className="text-lg font-black text-gray-900 group-hover:text-primary transition-colors">{product.name}</h4>
+                                                <div className="flex items-center justify-end gap-2 mt-1">
+                                                    <span className="text-primary font-black text-xl">₪{product.variants[0]?.price.toFixed(2)}</span>
+                                                    {product.variants[0]?.salePrice && (
+                                                        <span className="text-gray-300 line-through text-sm">₪{product.variants[0].price.toFixed(2)}</span>
+                                                    )}
+                                                </div>
+                                            </div>
+                                            <div className="w-10 h-10 flex items-center justify-center text-gray-300 group-hover:text-primary group-hover:translate-x-[-4px] transition-all">
+                                                <FaArrowRight size={14} className="rotate-180" />
+                                            </div>
+                                        </StoreLink>
+                                    ))}
+                                </div>
+                            </div>
                         </div>
                     )}
                 </div>

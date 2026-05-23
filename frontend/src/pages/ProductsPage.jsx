@@ -1,5 +1,5 @@
 import { useEffect, useState, useMemo } from 'react';
-import { useSearchParams, Link, useNavigate } from 'react-router-dom';
+import { useSearchParams, useLocation, Link, useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import ProductCard from '../components/ProductCard';
 import FiltersSidebar from '../components/FiltersSidebar';
@@ -16,8 +16,12 @@ import useStoreNavigate from '../hooks/useStoreNavigate';
  */
 const ProductsPage = ({ getToken, showNotification }) => {
     const { store } = useStore();
+    const location = useLocation();
     const isFullWidth = store?.features?.fullWidthCards;
     const [searchParams, setSearchParams] = useSearchParams();
+
+    const initialCategoryName = location.state?.categoryName || searchParams.get('category') || '';
+
     const [products, setProducts] = useState([]);
     const [loading, setLoading] = useState(true);
     const [isSidebarOpen, setIsSidebarOpen] = useState(false);
@@ -90,10 +94,12 @@ const ProductsPage = ({ getToken, showNotification }) => {
     }, [selectedCategoryName]);
 
     const fetchProducts = async (page = 1, isInitial = false) => {
-        if (isLoadingCategories && !selectedCategoryName) return;
 
-        if (page === 1) setLoading(true);
-        else setLoadingMore(true);
+        if (page === 1) {
+            if (products.length === 0) setLoading(true);
+        } else {
+            setLoadingMore(true);
+        }
 
         try {
             const params = new URLSearchParams(searchParams);
@@ -122,7 +128,7 @@ const ProductsPage = ({ getToken, showNotification }) => {
     useEffect(() => {
         setPageNum(1);
         fetchProducts(1, true);
-    }, [searchParams, isLoadingCategories]);
+    }, [searchParams]);
 
     // Handle Infinite Scroll
     useEffect(() => {
@@ -216,12 +222,12 @@ const ProductsPage = ({ getToken, showNotification }) => {
         }
     };
 
-    if (loading) return <Loader text='טוען מוצרים' />;
+    // if (loading) return <Loader text='טוען מוצרים' />;
     if (error) return <div className="text-center mt-10 text-red-600">שגיאה: {error}</div>;
 
     return (
         <div className={`container mx-auto py-4 ${isFullWidth ? "px-0" : "px-4"} md:px-8 md:py-8`}>
-            <h1 className="text-3xl font-bold mb-6 text-center">{selectedSubcategoryName || selectedCategoryName || "כל המוצרים"}</h1>
+            <h1 className="text-3xl font-bold mb-6 text-center">{selectedSubcategoryName || selectedCategoryName || initialCategoryName || "כל המוצרים"}</h1>
 
             {(Object.keys(activeFilters).length > 0 || hasPriceFilters) && (
                 <div className="mb-4 text-center md:text-right">
@@ -250,15 +256,18 @@ const ProductsPage = ({ getToken, showNotification }) => {
                 )}
 
                 <div className={`flex-1 grid ${isFullWidth ? "gap-0" : "gap-6"} sm:gap-6 grid-cols-1 sm:grid-cols-2 lg:grid-cols-2 xl:grid-cols-3`}>
-                    {products.length === 0 ? (
+                    {loading && products?.length === 0 ? (
+                        <div className="flex justify-center items-center p-20 w-full">
+                            <Loader text="טוען מוצרים מהקטגוריה..." />
+                        </div>
+                    ) : products?.length === 0 ? (
                         <div className="col-span-full text-center text-gray-500">
                             לא נמצאו מוצרים תחת הסינונים הנוכחיים.
                         </div>
                     ) : (
-                        products.map(product => (
-                            <div key={product._id} className={`flex flex-col h-full bg-white ${
-                                isFullWidth ? "rounded-none sm:rounded-[2rem] border-b" : "rounded-[2rem] border shadow-md"
-                            } sm:border border-gray-100 overflow-hidden hover:shadow-xl transition-shadow duration-300`}>
+                        products?.map(product => (
+                            <div key={product._id} className={`flex flex-col h-full bg-white ${isFullWidth ? "rounded-none sm:rounded-[2rem] border-b" : "rounded-[2rem] border shadow-md"
+                                } sm:border border-gray-100 overflow-hidden hover:shadow-xl transition-shadow duration-300`}>
                                 <div className="flex-grow">
                                     <ProductCard product={product} filters={activeFilters} />
                                 </div>
@@ -303,7 +312,7 @@ const ProductsPage = ({ getToken, showNotification }) => {
                             </div>
                         </div>
                     )}
-                    {!hasMore && products.length > 0 && (
+                    {!hasMore && products?.length > 0 && (
                         <p className="col-span-full text-center text-gray-500 py-6 italic border-t mt-6">הגעת לסוף רשימת המוצרים</p>
                     )}
                 </div>

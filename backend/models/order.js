@@ -120,6 +120,8 @@ const orderSchema = new Schema({
     timestamps: true
 });
 
+orderSchema.index({ storeId: 1, createdAt: -1 });
+
 const Order = mongoose.model('Order', orderSchema);
 
 module.exports = Order;

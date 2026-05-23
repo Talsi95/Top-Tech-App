@@ -82,7 +82,10 @@ const CategorySlider = () => {
                     <div
                         key={category._id}
                         className="w-full h-full flex-shrink-0 relative cursor-pointer"
-                        onClick={() => navigate(`/products?category=${category.name}`)}
+                        onClick={() => navigate(
+                            `/products?category=${encodeURIComponent(category.name)}`,
+                            { state: { categoryName: category.name } }
+                        )}
                     >
                         <img
                             src={category.imageUrl || 'https://images.unsplash.com/photo-1511707171634-5f897ff02aa9?q=80&w=2000'}

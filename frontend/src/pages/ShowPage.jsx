@@ -1,5 +1,6 @@
 import { useEffect, useState, useCallback, useRef } from 'react';
-import { useParams, useNavigate, Link } from 'react-router-dom';
+import { useParams, useNavigate, Link, useLocation } from 'react-router-dom';
+import { Helmet } from 'react-helmet-async';
 import axios from 'axios';
 import { ShoppingCart, Plus, Save, Trash2, ChevronLeft, ChevronRight, CheckCircle, Info, Video, Image as ImageIcon, Cpu } from 'lucide-react';
 import { FaWhatsapp } from 'react-icons/fa';
@@ -30,7 +31,7 @@ const VideoItem = ({ video, index, isAdmin, onDelete }) => {
 
     const isCloudinary = video.type === 'cloudinary' || (video.url && video.url.includes('cloudinary.com'));
     const videoId = !isCloudinary && video.url ? (video.url.split('v=')[1]?.split('&')[0]) : null;
-    
+
     let embedUrl = videoId ? `https://www.youtube.com/embed/${videoId}?mute=1&rel=0&controls=0&disablekb=1&iv_load_policy=3&modestbranding=1` : video.url;
     if (isVisible && videoId) embedUrl += embedUrl.includes('?') ? '&autoplay=1' : '?autoplay=1';
 
@@ -75,15 +76,16 @@ const VideoItem = ({ video, index, isAdmin, onDelete }) => {
  * ShowPage Component.
  */
 const ShowPage = ({ onAddToCart }) => {
-    const { id } = useParams();
+    const { id, productSlug } = useParams();
     const navigate = useStoreNavigate();
+    const location = useLocation();
     const { isAdmin, getToken } = useAuth();
     const { store } = useStore();
     const isFullWidth = store?.features?.fullWidthCards;
-    const [product, setProduct] = useState(null);
+    const [product, setProduct] = useState(location.state?.product || null);
     const [selectedVariant, setSelectedVariant] = useState(null);
     const [selectedAttributes, setSelectedAttributes] = useState({});
-    const [loading, setLoading] = useState(true);
+    const [loading, setLoading] = useState(!product);
     const [error, setError] = useState(null);
     const [variantFields, setVariantFields] = useState([]);
     const [currentImageIndex, setCurrentImageIndex] = useState(0);
@@ -109,46 +111,113 @@ const ShowPage = ({ onAddToCart }) => {
     const [confirmConfig, setConfirmConfig] = useState({ isOpen: false, onConfirm: null, title: '', message: '' });
 
     useEffect(() => {
+        const param = productSlug || id;
+        if (!param) return;
+
         const fetchProduct = async () => {
             try {
-                const response = await axios.get(`${__API_URL__}/products/${id}`);
-                const data = response.data;
-                setProduct(data);
-                setEditedDescription(data.longDescription || '');
-                setPrimaryVideoType(data.video?.type || 'link');
-                setPrimaryVideoUrl(data.video?.url || '');
-                setPrimaryVideoTitle(data.video?.title || '');
-                setPrimaryVideoDescription(data.video?.description || '');
+                const initializeVariants = (targetData) => {
+                    if (targetData && targetData.variants?.length > 0) {
+                        const standardFields = ['price', 'stock', 'imageUrl', 'imageUrls', 'isOnSale', 'salePrice', '_id', 'id', 'attributes', '__v'];
+                        const hiddenFields = ['מותג', 'brand'];
+                        const fields = new Set();
 
-                // Fetch Related Products
-                const relatedResponse = await axios.get(`${__API_URL__}/products?category=${encodeURIComponent(data.category)}&limit=10`);
-                const filteredRelated = relatedResponse.data.products
-                    .filter(p => p._id !== id)
-                    .slice(0, 4);
-                setRelatedProducts(filteredRelated);
-
-                if (data.variants?.length > 0) {
-                    const standardFields = ['price', 'stock', 'imageUrl', 'imageUrls', 'isOnSale', 'salePrice', '_id', 'id', 'attributes', '__v'];
-                    const hiddenFields = ['מותג', 'brand'];
-                    const fields = new Set();
-                    data.variants.forEach(v => {
-                        Object.keys(v).forEach(key => {
-                            if (!standardFields.includes(key) && !hiddenFields.includes(key) && v[key] !== undefined && v[key] !== null && String(v[key]).trim() !== '') {
-                                fields.add(key);
-                            }
+                        targetData.variants.forEach(v => {
+                            Object.keys(v).forEach(key => {
+                                if (!standardFields.includes(key) && !hiddenFields.includes(key) && v[key] !== undefined && v[key] !== null && String(v[key]).trim() !== '') {
+                                    fields.add(key);
+                                }
+                            });
                         });
-                    });
-                    const sortedFields = Array.from(fields);
-                    setVariantFields(sortedFields);
-                    const initialAttrs = {};
-                    sortedFields.forEach(f => { initialAttrs[f] = data.variants[0][f]; });
-                    setSelectedAttributes(initialAttrs);
+
+                        const sortedFields = Array.from(fields);
+                        setVariantFields(sortedFields);
+
+                        const initialAttrs = {};
+                        sortedFields.forEach(f => { initialAttrs[f] = targetData.variants[0][f]; });
+                        setSelectedAttributes(initialAttrs);
+                    }
+                };
+
+                if (product) {
+                    initializeVariants(product);
+                    setEditedDescription(product.longDescription || '');
+                    setPrimaryVideoType(product.video?.type || 'link');
+                    setPrimaryVideoUrl(product.video?.url || '');
+                    setPrimaryVideoTitle(product.video?.title || '');
+                    setPrimaryVideoDescription(product.video?.description || '');
+                    setLoading(false);
                 }
-            } catch (err) { setError("Failed to load product details."); }
-            finally { setLoading(false); }
+
+                const category = product?.category;
+                const productPromise = axios.get(`${__API_URL__}/products/${param}`);
+                const relatedPromise = category
+                    ? axios.get(`${__API_URL__}/products?category=${encodeURIComponent(category)}&limit=10`)
+                    : null;
+
+                if (relatedPromise) {
+                    const [res, relatedRes] = await Promise.all([productPromise, relatedPromise]);
+                    const data = res.data;
+
+                    if (id && data.slug) {
+                        navigate(`/products/${data.slug}`, { replace: true });
+                        return;
+                    }
+
+                    setProduct(prev => {
+                        if (prev) {
+                            return {
+                                ...prev,
+                                ...data,
+                                variants: data.variants
+                            };
+                        }
+                        return data;
+                    });
+                    initializeVariants(data);
+                    setEditedDescription(data.longDescription || '');
+                    setPrimaryVideoType(data.video?.type || 'link');
+                    setPrimaryVideoUrl(data.video?.url || '');
+                    setPrimaryVideoTitle(data.video?.title || '');
+                    setPrimaryVideoDescription(data.video?.description || '');
+
+                    const filteredRelated = relatedRes.data.products
+                        .filter(p => p._id !== data._id)
+                        .slice(0, 4);
+                    setRelatedProducts(filteredRelated);
+                } else {
+                    const res = await productPromise;
+                    const data = res.data;
+
+                    if (id && data.slug) {
+                        navigate(`/products/${data.slug}`, { replace: true });
+                        return;
+                    }
+
+                    setProduct(data);
+                    initializeVariants(data);
+                    setEditedDescription(data.longDescription || '');
+                    setPrimaryVideoType(data.video?.type || 'link');
+                    setPrimaryVideoUrl(data.video?.url || '');
+                    setPrimaryVideoTitle(data.video?.title || '');
+                    setPrimaryVideoDescription(data.video?.description || '');
+
+                    const relatedRes = await axios.get(`${__API_URL__}/products?category=${encodeURIComponent(data.category)}&limit=10`);
+                    const filteredRelated = relatedRes.data.products
+                        .filter(p => p._id !== data._id)
+                        .slice(0, 4);
+                    setRelatedProducts(filteredRelated);
+                }
+            } catch (err) {
+                console.error(err);
+                setError("Failed to load product details.");
+            } finally {
+                setLoading(false);
+            }
         };
+
         fetchProduct();
-    }, [id]);
+    }, [id, productSlug]);
 
     useEffect(() => {
         if (!product?.variants) return;
@@ -251,7 +320,7 @@ const ShowPage = ({ onAddToCart }) => {
         finally { setIsSaving(false); }
     };
 
-    if (loading) return <Loader text="טוען חוויה..." />;
+    if (loading) return <Loader subtext="אנא המתן" />;
     if (error) return <div className="min-h-[60vh] flex items-center justify-center text-red-500 text-2xl font-black">{error}</div>;
 
     // Smart Gallery Logic: Fallback to variants with same visual attributes if current one lacks images
@@ -282,8 +351,32 @@ const ShowPage = ({ onAddToCart }) => {
 
     const images = getVariantImages();
 
+    const productPrice = selectedVariant 
+        ? (selectedVariant.isOnSale ? selectedVariant.salePrice : selectedVariant.price) 
+        : 0;
+
+    const schemaData = {
+        "@context": "https://schema.org/",
+        "@type": "Product",
+        "name": product.name,
+        "image": images.length > 0 ? images : [product.imageUrl || '/top-tech.svg'],
+        "description": product.longDescription || product.description || "",
+        "offers": {
+            "@type": "Offer",
+            "priceCurrency": "ILS",
+            "price": productPrice,
+            "availability": selectedVariant && selectedVariant.stock > 0 ? "https://schema.org/InStock" : "https://schema.org/OutOfStock"
+        }
+    };
+
     return (
         <div className="max-w-[1440px] mx-auto px-6 py-12" dir="rtl">
+            <Helmet>
+                <title>{`${product.name} | ${store?.name || 'Top Tech'}`}</title>
+                <script type="application/ld+json">
+                    {JSON.stringify(schemaData)}
+                </script>
+            </Helmet>
             {/* Main Product Showcase */}
             <div className="bg-white rounded-[3rem] shadow-[0_20px_50px_-12px_rgba(0,0,0,0.05)] border border-gray-50 overflow-hidden flex flex-col lg:flex-row gap-12 p-8 lg:p-16 mb-16 animate-in fade-in slide-in-from-bottom-8 duration-700">
                 {/* Visual Section */}
@@ -611,22 +704,20 @@ const ShowPage = ({ onAddToCart }) => {
                                                 <button
                                                     type="button"
                                                     onClick={() => setPrimaryVideoType('link')}
-                                                    className={`flex-1 py-4 rounded-2xl font-black text-sm transition-all border ${
-                                                        primaryVideoType === 'link'
-                                                            ? 'bg-primary text-white border-primary shadow-lg shadow-primary/20 scale-[1.02]'
-                                                            : 'bg-gray-50 text-gray-600 border-gray-100 hover:bg-gray-100'
-                                                    }`}
+                                                    className={`flex-1 py-4 rounded-2xl font-black text-sm transition-all border ${primaryVideoType === 'link'
+                                                        ? 'bg-primary text-white border-primary shadow-lg shadow-primary/20 scale-[1.02]'
+                                                        : 'bg-gray-50 text-gray-600 border-gray-100 hover:bg-gray-100'
+                                                        }`}
                                                 >
                                                     הדבקת קישור לסרטון (YouTube/Vimeo)
                                                 </button>
                                                 <button
                                                     type="button"
                                                     onClick={() => setPrimaryVideoType('cloudinary')}
-                                                    className={`flex-1 py-4 rounded-2xl font-black text-sm transition-all border ${
-                                                        primaryVideoType === 'cloudinary'
-                                                            ? 'bg-primary text-white border-primary shadow-lg shadow-primary/20 scale-[1.02]'
-                                                            : 'bg-gray-50 text-gray-600 border-gray-100 hover:bg-gray-100'
-                                                    }`}
+                                                    className={`flex-1 py-4 rounded-2xl font-black text-sm transition-all border ${primaryVideoType === 'cloudinary'
+                                                        ? 'bg-primary text-white border-primary shadow-lg shadow-primary/20 scale-[1.02]'
+                                                        : 'bg-gray-50 text-gray-600 border-gray-100 hover:bg-gray-100'
+                                                        }`}
                                                 >
                                                     העלאת קובץ סרטון מהמכשיר
                                                 </button>
@@ -650,7 +741,7 @@ const ShowPage = ({ onAddToCart }) => {
                                             {primaryVideoType === 'cloudinary' && (
                                                 <div className="flex flex-col gap-4 animate-in fade-in slide-in-from-top-4 duration-300">
                                                     <label className="text-sm font-bold text-gray-700">קובץ סרטון (MP4, MOV, WebM):</label>
-                                                    
+
                                                     {primaryVideoUrl ? (
                                                         <div className="flex items-center justify-between p-4 bg-green-50 border border-green-100 rounded-2xl text-green-800">
                                                             <div className="flex items-center gap-3">
