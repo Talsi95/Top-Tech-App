@@ -31,11 +31,12 @@ const SuperAdminWrapper = () => {
  * Hydrates the server-rendered HTML or creates a fresh root if SSR is not available.
  */
 const rootElement = document.getElementById('root');
+const initialStoreData = typeof window !== 'undefined' ? window.__INITIAL_DATA__ : undefined;
 
 const AppTree = (
   <HelmetProvider>
     <BrowserRouter>
-      <StoreProvider>
+      <StoreProvider initialData={initialStoreData}>
         <AuthProvider>
           <Routes>
             <Route path="/" element={<PlatformLanding />} />

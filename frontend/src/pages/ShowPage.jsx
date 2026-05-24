@@ -2,7 +2,7 @@ import { useEffect, useState, useCallback, useRef } from 'react';
 import { useParams, useNavigate, Link, useLocation } from 'react-router-dom';
 import { Helmet } from 'react-helmet-async';
 import axios from 'axios';
-import { ShoppingCart, Plus, Save, Trash2, ChevronLeft, ChevronRight, CheckCircle, Info, Video, Image as ImageIcon, Cpu } from 'lucide-react';
+import { ShoppingCart, Plus, Save, Trash2, ChevronLeft, ChevronRight, CheckCircle, Info, Video, Image as ImageIcon, Cpu, Import } from 'lucide-react';
 import { FaWhatsapp } from 'react-icons/fa';
 import { useAuth } from '../AuthContext';
 import { useStore } from '../StoreContext';
@@ -310,7 +310,7 @@ const ShowPage = ({ onAddToCart }) => {
             longDescription: isEditingDescription ? editedDescription : product.longDescription
         };
         try {
-            await axios.put(`${__API_URL__}/products/${id}`, updatedProduct, { headers: { Authorization: `Bearer ${getToken()}` } });
+            await axios.put(`${__API_URL__}/products/${product._id}`, updatedProduct, { headers: { Authorization: `Bearer ${getToken()}` } });
             setProduct(updatedProduct);
             setNewImages([{ url: '', description: '' }]);
             setNewVideos([{ url: '', title: '', description: '' }]);
@@ -351,8 +351,8 @@ const ShowPage = ({ onAddToCart }) => {
 
     const images = getVariantImages();
 
-    const productPrice = selectedVariant 
-        ? (selectedVariant.isOnSale ? selectedVariant.salePrice : selectedVariant.price) 
+    const productPrice = selectedVariant
+        ? (selectedVariant.isOnSale ? selectedVariant.salePrice : selectedVariant.price)
         : 0;
 
     const schemaData = {
@@ -379,6 +379,9 @@ const ShowPage = ({ onAddToCart }) => {
             </Helmet>
             {/* Main Product Showcase */}
             <div className="bg-white rounded-[3rem] shadow-[0_20px_50px_-12px_rgba(0,0,0,0.05)] border border-gray-50 overflow-hidden flex flex-col lg:flex-row gap-12 p-8 lg:p-16 mb-16 animate-in fade-in slide-in-from-bottom-8 duration-700">
+                {/* Product Name for Mobile View */}
+                <h1 className="block lg:hidden text-3xl font-black text-gray-900 tracking-tighter mb-2 leading-tight text-right w-full">{product.name}</h1>
+
                 {/* Visual Section */}
                 <div className="lg:w-1/2 flex flex-col items-center">
                     <div className={`relative group w-full aspect-[4/5] lg:aspect-square bg-gray-50/50 rounded-[2.5rem] flex items-center justify-center ${isFullWidth ? 'p-0' : 'p-4 lg:p-8'} overflow-hidden`}>
@@ -413,39 +416,8 @@ const ShowPage = ({ onAddToCart }) => {
                 {/* Details Section */}
                 <div className="lg:w-1/2 flex flex-col text-right">
                     <div className="flex-1">
-                        <h1 className="text-5xl lg:text-6xl font-black text-gray-900 tracking-tighter mb-4 leading-none">{product.name}</h1>
+                        <h1 className="hidden lg:block text-3xl lg:text-3xl font-black text-gray-900 tracking-tighter mb-4 leading-none">{product.name}</h1>
 
-                        {selectedVariant && store?.features?.hasCart && (
-                            <div className="mb-8">
-                                {(() => {
-                                    const optionsTotal = Object.values(selectedOptions).reduce((sum, opt) => sum + (opt.priceAddition || 0), 0);
-                                    const basePrice = selectedVariant.isOnSale ? selectedVariant.salePrice : selectedVariant.price;
-                                    const totalPrice = basePrice + optionsTotal;
-                                    return (
-                                        <>
-                                            {selectedVariant.isOnSale ? (
-                                                <div className="flex items-center gap-4">
-                                                    <span className="text-5xl font-black text-primary">₪{totalPrice.toFixed(2)}</span>
-                                                    <span className="text-2xl font-bold text-gray-300 line-through">₪{selectedVariant.price.toFixed(2)}</span>
-                                                    <div className="bg-red-50 text-red-500 px-3 py-1 rounded-full text-xs font-black uppercase">SALE</div>
-                                                </div>
-                                            ) : (
-                                                <span className="text-5xl font-black text-gray-900 tracking-tight">₪{totalPrice.toFixed(2)}</span>
-                                            )}
-                                            {optionsTotal > 0 && (
-                                                <p className="text-xs text-gray-400 mt-1">כולל תוספות: +₪{optionsTotal.toFixed(2)}</p>
-                                            )}
-                                        </>
-                                    );
-                                })()}
-                                {store?.features?.showStock !== false && (
-                                    <div className={`flex items-center gap-2 mt-4 font-bold ${selectedVariant.stock > 0 ? 'text-green-500' : 'text-red-500'}`}>
-                                        <div className={`w-2 h-2 rounded-full ${selectedVariant.stock > 0 ? 'bg-green-500 animate-pulse' : 'bg-red-500'}`} />
-                                        <span>{selectedVariant.stock > 0 ? `זמין במלאי (${selectedVariant.stock} יח')` : 'אזל מהמלאי'}</span>
-                                    </div>
-                                )}
-                            </div>
-                        )}
 
                         {/* Variant Selection */}
                         <div className="space-y-8 mb-12">
@@ -539,6 +511,38 @@ const ShowPage = ({ onAddToCart }) => {
                         </div>
                     </div>
 
+                    {selectedVariant && store?.features?.hasCart && (
+                        <div className="mb-8">
+                            {(() => {
+                                const optionsTotal = Object.values(selectedOptions).reduce((sum, opt) => sum + (opt.priceAddition || 0), 0);
+                                const basePrice = selectedVariant.isOnSale ? selectedVariant.salePrice : selectedVariant.price;
+                                const totalPrice = basePrice + optionsTotal;
+                                return (
+                                    <>
+                                        {selectedVariant.isOnSale ? (
+                                            <div className="flex items-center gap-4">
+                                                <span className="text-2xl font-black text-primary">₪{totalPrice.toFixed(2)}</span>
+                                                <span className="text-xl font-bold text-gray-300 line-through">₪{selectedVariant.price.toFixed(2)}</span>
+                                                <div className="bg-red-50 text-red-500 px-3 py-1 rounded-full text-xs font-black uppercase">SALE</div>
+                                            </div>
+                                        ) : (
+                                            <span className="text-2xl font-black text-gray-900 tracking-tight">₪{totalPrice.toFixed(2)}</span>
+                                        )}
+                                        {optionsTotal > 0 && (
+                                            <p className="text-xs text-gray-400 mt-1">כולל תוספות: +₪{optionsTotal.toFixed(2)}</p>
+                                        )}
+                                    </>
+                                );
+                            })()}
+                            {store?.features?.showStock !== false && (
+                                <div className={`flex items-center gap-2 mt-4 font-bold ${selectedVariant.stock > 0 ? 'text-green-500' : 'text-red-500'}`}>
+                                    <div className={`w-2 h-2 rounded-full ${selectedVariant.stock > 0 ? 'bg-green-500 animate-pulse' : 'bg-red-500'}`} />
+                                    <span>{selectedVariant.stock > 0 ? `זמין במלאי (${selectedVariant.stock} יח')` : 'אזל מהמלאי'}</span>
+                                </div>
+                            )}
+                        </div>
+                    )}
+
                     {store?.features?.hasCart ? (
                         <button
                             onClick={() => {
@@ -547,9 +551,9 @@ const ShowPage = ({ onAddToCart }) => {
                                 onAddToCart(product, selectedVariant, selectedOptionsList, optionsTotal);
                             }}
                             disabled={!selectedVariant || (store?.features?.showStock !== false && selectedVariant.stock === 0)}
-                            className="w-full py-6 bg-primary text-white rounded-[2rem] font-black text-xl shadow-2xl shadow-primary/30 hover:bg-primary-hover hover:scale-[1.02] active:scale-95 transition-all flex items-center justify-center gap-4 disabled:bg-gray-100 disabled:text-gray-300 disabled:shadow-none disabled:scale-100"
+                            className="w-full py-4 md:py-6 bg-primary text-white rounded-2xl md:rounded-[2rem] font-black text-base md:text-xl shadow-2xl shadow-primary/30 hover:bg-primary-hover hover:scale-[1.02] active:scale-95 transition-all flex items-center justify-center gap-4 disabled:bg-gray-100 disabled:text-gray-300 disabled:shadow-none disabled:scale-100"
                         >
-                            <ShoppingCart size={24} />
+                            <ShoppingCart className="w-5 h-5 md:w-6 md:h-6" />
                             <span>{store?.features?.showStock !== false && selectedVariant?.stock === 0 ? 'אזל מהמלאי' : 'הוסף לסל הקניות'}</span>
                         </button>
                     ) : (
@@ -557,9 +561,9 @@ const ShowPage = ({ onAddToCart }) => {
                             href={`https://wa.me/${store?.businessInfo?.whatsapp}?text=${encodeURIComponent(`היי, אני מעוניין במוצר: ${product.name}${selectedVariant ? ` (${variantFields.map(f => `${f}: ${selectedVariant[f]}`).join(', ')})` : ''}`)}`}
                             target="_blank"
                             rel="noopener noreferrer"
-                            className="w-full py-6 bg-[#25D366] text-white rounded-[2rem] font-black text-xl shadow-2xl shadow-[#25D366]/30 hover:scale-[1.02] active:scale-95 transition-all flex items-center justify-center gap-4"
+                            className="w-full py-4 md:py-6 bg-[#25D366] text-white rounded-2xl md:rounded-[2rem] font-black text-base md:text-xl shadow-2xl shadow-[#25D366]/30 hover:scale-[1.02] active:scale-95 transition-all flex items-center justify-center gap-4"
                         >
-                            <FaWhatsapp size={28} />
+                            <FaWhatsapp className="w-6 h-6 md:w-7 md:h-7" />
                             <span>{store?.labels?.contactUsLabel || 'צור קשר בוואטסאפ'}</span>
                         </a>
                     )}
@@ -618,7 +622,7 @@ const ShowPage = ({ onAddToCart }) => {
                                                 'האם אתה בטוח שברצונך למחוק את התיאור המורחב? פעולה זו אינה ניתנת לביטול.',
                                                 async () => {
                                                     const updated = { ...product, longDescription: '' };
-                                                    await axios.put(`${__API_URL__}/products/${id}`, updated, { headers: { Authorization: `Bearer ${getToken()}` } });
+                                                    await axios.put(`${__API_URL__}/products/${product._id}`, updated, { headers: { Authorization: `Bearer ${getToken()}` } });
                                                     setProduct(updated);
                                                     setEditedDescription('');
                                                 }
@@ -852,7 +856,7 @@ const ShowPage = ({ onAddToCart }) => {
                                                 ...product,
                                                 video: { type: 'link', url: '' }
                                             };
-                                            await axios.put(`${__API_URL__}/products/${id}`, updated, { headers: { Authorization: `Bearer ${getToken()}` } });
+                                            await axios.put(`${__API_URL__}/products/${product._id}`, updated, { headers: { Authorization: `Bearer ${getToken()}` } });
                                             setProduct(updated);
                                         }
                                     )}
@@ -869,7 +873,7 @@ const ShowPage = ({ onAddToCart }) => {
                                         `האם אתה בטוח שברצונך למחוק את הסרטון "${vid.title}"? פעולה זו אינה ניתנת לביטול.`,
                                         async () => {
                                             const updated = { ...product, videos: product.videos.filter((_, idx) => idx !== i) };
-                                            await axios.put(`${__API_URL__}/products/${id}`, updated, { headers: { Authorization: `Bearer ${getToken()}` } });
+                                            await axios.put(`${__API_URL__}/products/${product._id}`, updated, { headers: { Authorization: `Bearer ${getToken()}` } });
                                             setProduct(updated);
                                         }
                                     )}
@@ -886,7 +890,7 @@ const ShowPage = ({ onAddToCart }) => {
                                                     'האם אתה בטוח שברצונך למחוק תמונה זו מהסקירה? פעולה זו אינה ניתנת לביטול.',
                                                     async () => {
                                                         const updated = { ...product, additionalImages: product.additionalImages.filter((_, idx) => idx !== i) };
-                                                        await axios.put(`${__API_URL__}/products/${id}`, updated, { headers: { Authorization: `Bearer ${getToken()}` } });
+                                                        await axios.put(`${__API_URL__}/products/${product._id}`, updated, { headers: { Authorization: `Bearer ${getToken()}` } });
                                                         setProduct(updated);
                                                     }
                                                 )}
@@ -927,7 +931,7 @@ const ShowPage = ({ onAddToCart }) => {
                             </div>
                         </div>
 
-                        {isAdmin && isAddingSpecs && (
+                        {/* {isAdmin && isAddingSpecs && (
                             <div className="mb-12 p-8 bg-gray-50 rounded-[2.5rem] border border-gray-100 animate-in fade-in zoom-in-95 duration-500">
                                 <div className="flex justify-between items-center mb-6">
                                     <h3 className="text-xl font-black">הוספת מפרט טכני</h3>
@@ -957,6 +961,91 @@ const ShowPage = ({ onAddToCart }) => {
                                     <button onClick={() => { setIsAddingSpecs(false); setNewSpecs([{ key: '', value: '' }]); }} className="px-8 py-3 bg-white text-gray-400 rounded-xl font-bold hover:text-gray-600 transition-all">ביטול</button>
                                 </div>
                             </div>
+                        )} */}
+                        {isAdmin && isAddingSpecs && (
+                            <div className="mb-12 p-8 bg-gray-50 rounded-[2.5rem] border border-gray-100 animate-in fade-in zoom-in-95 duration-500 text-right" dir="rtl">
+                                <div className="flex justify-between items-center mb-6">
+                                    <h3 className="text-xl font-black">הוספת מפרט טכני</h3>
+
+                                    <div className="flex gap-2">
+                                        {/* כפתור ייבוא מהיר חדש */}
+                                        <button
+                                            onClick={() => {
+                                                const rawText = prompt("הדבק כאן את המפרט הטכני המלא (שורות מופרדות בנקודתיים או מקף):");
+                                                if (!rawText) return;
+
+                                                // ניתוח הטקסט והפיכתו לאובייקטים
+                                                const parsedSpecs = rawText
+                                                    .split('\n')
+                                                    .map(line => line.trim())
+                                                    .filter(line => line.length > 0)
+                                                    .map(line => {
+                                                        // מחפש הפרדה של נקודתיים או מקף
+                                                        const match = line.match(/^([^:-]+)[: -](.+)$/);
+                                                        if (match) {
+                                                            return { key: match[1].trim(), value: match[2].trim() };
+                                                        }
+                                                        return { key: line, value: '' }; // אם אין הפרדה, שם את הכל במפתח
+                                                    });
+
+                                                if (parsedSpecs.length > 0) {
+                                                    // אם המערך הנוכחי ריק או מכיל רק שורה ריקה אחת, נחליף אותו. אחרת נשרשר.
+                                                    if (newSpecs.length === 1 && !newSpecs[0].key && !newSpecs[0].value) {
+                                                        setNewSpecs(parsedSpecs);
+                                                    } else {
+                                                        setNewSpecs([...newSpecs, ...parsedSpecs]);
+                                                    }
+                                                }
+                                            }}
+                                            className="p-3 bg-white text-green-600 rounded-xl border border-green-200 hover:bg-green-50 transition-all flex items-center gap-2 font-bold"
+                                        >
+                                            <Import size={18} />
+                                            <span>ייבוא מהיר (הדבקה)</span>
+                                        </button>
+
+                                        <button
+                                            onClick={() => setNewSpecs([...newSpecs, { key: '', value: '' }])}
+                                            className="p-3 bg-white text-primary rounded-xl border border-primary/20 hover:bg-primary/5 transition-all flex items-center gap-2 font-bold"
+                                        >
+                                            <Plus size={18} />
+                                            <span>הוסף שורה</span>
+                                        </button>
+                                    </div>
+                                </div>
+
+                                {/* רשימת השורות (נשארת כרגיל, ומאפשרת עריכה אחרי הייבוא) */}
+                                <div className="space-y-4">
+                                    {newSpecs.map((spec, idx) => (
+                                        <div key={idx} className="grid grid-cols-2 gap-4 relative group p-2">
+                                            <input
+                                                placeholder="שם הפרמטר"
+                                                value={spec.key}
+                                                onChange={e => { const s = [...newSpecs]; s[idx].key = e.target.value; setNewSpecs(s); }}
+                                                className="p-4 bg-white rounded-xl border border-gray-100 outline-none focus:border-primary font-bold text-right"
+                                            />
+                                            <input
+                                                placeholder="ערך"
+                                                value={spec.value}
+                                                onChange={e => { const s = [...newSpecs]; s[idx].value = e.target.value; setNewSpecs(s); }}
+                                                className="p-4 bg-white rounded-xl border border-gray-100 outline-none focus:border-primary font-bold text-right"
+                                            />
+                                            {newSpecs.length > 1 && (
+                                                <button
+                                                    onClick={() => setNewSpecs(newSpecs.filter((_, i) => i !== idx))}
+                                                    className="absolute -left-2 top-1/2 -translate-y-1/2 w-8 h-8 bg-white shadow-lg text-red-400 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all hover:text-red-500"
+                                                >
+                                                    <Trash2 size={14} />
+                                                </button>
+                                            )}
+                                        </div>
+                                    ))}
+                                </div>
+
+                                <div className="flex gap-3 mt-8">
+                                    <button onClick={handleSaveNewContent} disabled={isSaving} className="px-8 py-3 bg-primary text-white rounded-xl font-black shadow-lg shadow-primary/20 hover:scale-105 active:scale-95 transition-all">שמור מפרט</button>
+                                    <button onClick={() => { setIsAddingSpecs(false); setNewSpecs([{ key: '', value: '' }]); }} className="px-8 py-3 bg-white text-gray-400 rounded-xl font-bold hover:text-gray-600 transition-all">ביטול</button>
+                                </div>
+                            </div>
                         )}
 
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -973,7 +1062,7 @@ const ShowPage = ({ onAddToCart }) => {
                                                         `האם אתה בטוח שברצונך למחוק את "${spec.key}"?`,
                                                         async () => {
                                                             const updated = { ...product, technicalSpecs: product.technicalSpecs.filter((_, idx) => idx !== i) };
-                                                            await axios.put(`${__API_URL__}/products/${id}`, updated, { headers: { Authorization: `Bearer ${getToken()}` } });
+                                                            await axios.put(`${__API_URL__}/products/${product._id}`, updated, { headers: { Authorization: `Bearer ${getToken()}` } });
                                                             setProduct(updated);
                                                         }
                                                     )}

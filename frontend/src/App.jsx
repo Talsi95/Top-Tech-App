@@ -128,7 +128,7 @@ const App = () => {
         />
       )}
 
-      <div className="pt-28 flex-grow">
+      <div className="pt-20 flex-grow">
         <main>
           <Suspense fallback={<Loader subtext="אנא המתן" />}>
             <Routes>

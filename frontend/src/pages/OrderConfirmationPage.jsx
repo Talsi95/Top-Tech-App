@@ -165,7 +165,7 @@ const OrderConfirmationPage = ({ showNotification }) => {
                                         order.shippingMethod === 'home-delivery' ? 'משלוח מהיר עד הבית' :
                                         order.shippingMethod === 'pickup-point' ? 'משלוח לנקודת איסוף (קרוב לבית)' :
                                         order.shippingMethod === 'pickup-business' ? 'איסוף עצמי מבית העסק' :
-                                        'לא נבחר'
+                                        order.shippingMethod || 'לא נבחר'
                                     }</p>
                                     <p className="text-xs text-gray-400">דמי משלוח: ₪{order.shippingPrice?.toFixed(2) || '0.00'}</p>
                                 </div>
@@ -208,12 +208,27 @@ const OrderConfirmationPage = ({ showNotification }) => {
                                         <div className="flex-grow flex justify-between items-center">
                                             <div className="space-y-0.5">
                                                 <span className="font-bold text-gray-900 block text-base">
-                                                    {item.product.name}
+                                                    {item.product?.name || 'מוצר'}
                                                 </span>
                                                 <span className="text-xs text-gray-500 flex items-center gap-2">
                                                     <span className="bg-gray-100 px-2 py-0.5 rounded text-gray-600 font-bold">כמות: {item.quantity}</span>
                                                     {variantText && <span>• {variantText}</span>}
                                                 </span>
+                                                {item.selectedOptions && item.selectedOptions.length > 0 && (
+                                                    <div className="text-xs text-gray-500 mt-1 space-y-0.5 pr-2 border-r-2 border-primary/20">
+                                                        {item.selectedOptions.map((opt, oIdx) => (
+                                                            <div key={oIdx} className="flex items-center gap-1.5">
+                                                                <span className="font-semibold text-gray-700">{opt.name}:</span>
+                                                                <span className="text-gray-600">{opt.choice}</span>
+                                                                {opt.priceAddition > 0 && (
+                                                                    <span className="text-green-600 font-medium font-mono text-[10px]">
+                                                                        (+₪{opt.priceAddition.toFixed(2)})
+                                                                    </span>
+                                                                )}
+                                                            </div>
+                                                        ))}
+                                                    </div>
+                                                )}
                                             </div>
                                             <span className="font-black text-gray-900 text-base">
                                                 ₪{(item.quantity * item.price).toFixed(2)}

@@ -130,6 +130,7 @@ const createOrder = async (req, res) => {
                 product: item.product,
                 variant: item.variant,
                 attributes: attributes,
+                selectedOptions: item.selectedOptions || [],
                 quantity: item.quantity,
                 price: unitPrice
             });

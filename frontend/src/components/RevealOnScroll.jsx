@@ -5,6 +5,9 @@ const RevealOnScroll = ({ children, delay = 0 }) => {
     const ref = useRef(null);
 
     useEffect(() => {
+        const isMobile = typeof window !== 'undefined' && window.innerWidth < 768;
+        const rootMarginValue = isMobile ? '0px 0px -25% 0px' : '0px 0px -10% 0px';
+
         const observer = new IntersectionObserver(
             ([entry]) => {
                 if (entry.isIntersecting) {
@@ -13,8 +16,8 @@ const RevealOnScroll = ({ children, delay = 0 }) => {
                 }
             },
             {
-                threshold: 0.1,
-                rootMargin: '0px 0px -10% 0px'
+                threshold: 0.05,
+                rootMargin: rootMarginValue
             }
         );
 

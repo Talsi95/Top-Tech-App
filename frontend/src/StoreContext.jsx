@@ -17,6 +17,7 @@ export const StoreProvider = ({ children, initialData = {} }) => {
     const [store, setStore] = useState(ssrStore);
     const [loading, setLoading] = useState(!ssrStore);
     const [error, setError] = useState(null);
+    const [isMounted, setIsMounted] = useState(false);
     const location = useLocation();
     const navigate = useNavigate();
 
@@ -24,6 +25,10 @@ export const StoreProvider = ({ children, initialData = {} }) => {
     const pathParts = location.pathname.split('/');
     const isStoreRoute = pathParts[1] === 'store';
     const slug = isStoreRoute ? pathParts[2] : null;
+
+    useEffect(() => {
+        setIsMounted(true);
+    }, []);
 
     useEffect(() => {
         if (typeof window === 'undefined') return; // Guard for SSR
@@ -52,6 +57,8 @@ export const StoreProvider = ({ children, initialData = {} }) => {
     }, [store]);
 
     useEffect(() => {
+        if (!isMounted) return;
+
         if (!isStoreRoute) {
             setStore(null);
             setLoading(false);
@@ -87,16 +94,17 @@ export const StoreProvider = ({ children, initialData = {} }) => {
             setLoading(false);
         }
 
-    }, [slug, isStoreRoute, navigate]);
+    }, [slug, isStoreRoute, navigate, isMounted]);
 
     // If it's a store route but loading
-    if (isStoreRoute && loading) {
+    if (isMounted && isStoreRoute && loading) {
         return <div className="min-h-screen flex items-center justify-center">טוען נתוני חנות...</div>;
     }
 
-    if (isStoreRoute && error) {
+    if (isMounted && isStoreRoute && error) {
         return <div className="min-h-screen flex items-center justify-center text-red-500 text-xl font-semibold">{error}</div>;
     }
+
 
     return (
         <StoreContext.Provider value={{ store, slug, loading, setStore }}>

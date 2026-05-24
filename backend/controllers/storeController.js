@@ -30,6 +30,7 @@ const updateStore = asyncHandler(async (req, res) => {
         store.features = req.body.features || store.features;
         store.homePageConfig = req.body.homePageConfig || store.homePageConfig;
         store.gallery = req.body.gallery || store.gallery;
+        store.shippingOptions = req.body.shippingOptions !== undefined ? req.body.shippingOptions : store.shippingOptions;
 
         const updatedStore = await store.save();
         res.json(updatedStore);

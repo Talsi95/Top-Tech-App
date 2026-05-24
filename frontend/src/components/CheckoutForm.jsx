@@ -3,6 +3,7 @@ import useStoreNavigate from '../hooks/useStoreNavigate';
 import { useStripe, useElements, CardElement } from '@stripe/react-stripe-js';
 import axios from 'axios';
 import { useAuth } from '../AuthContext';
+import { useStore } from '../StoreContext';
 
 const CARD_ELEMENT_OPTIONS = {
     style: {
@@ -32,6 +33,7 @@ const CARD_ELEMENT_OPTIONS = {
 const CheckoutForm = ({ cartItems, showNotification, onOrderComplete, guestToken }) => {
     const navigate = useStoreNavigate();
     const { user, isGuest, getToken, logout } = useAuth();
+    const { store } = useStore();
 
     const stripe = useStripe();
     const elements = useElements();
@@ -43,8 +45,22 @@ const CheckoutForm = ({ cartItems, showNotification, onOrderComplete, guestToken
         phone: user?.phone || '',
         email: user?.email || '',
         paymentMethod: '',
-        shippingMethod: 'pickup-business'
+        shippingMethod: ''
     });
+
+    useEffect(() => {
+        if (store?.shippingOptions && store.shippingOptions.length > 0) {
+            setFormData(prev => ({
+                ...prev,
+                shippingMethod: prev.shippingMethod || store.shippingOptions[0].name
+            }));
+        } else if (store) {
+            setFormData(prev => ({
+                ...prev,
+                shippingMethod: prev.shippingMethod || 'pickup-business'
+            }));
+        }
+    }, [store]);
 
     const [isProcessing, setIsProcessing] = useState(false);
     const [paymentError, setPaymentError] = useState(null);
@@ -99,6 +115,10 @@ const CheckoutForm = ({ cartItems, showNotification, onOrderComplete, guestToken
     };
 
     const getShippingCost = () => {
+        if (store?.shippingOptions && store.shippingOptions.length > 0) {
+            const selectedOpt = store.shippingOptions.find(opt => opt.name === formData.shippingMethod);
+            return selectedOpt ? selectedOpt.price : (store.shippingOptions[0]?.price || 0);
+        }
         switch (formData.shippingMethod) {
             case 'home-delivery':
                 return 29;
@@ -164,7 +184,8 @@ const CheckoutForm = ({ cartItems, showNotification, onOrderComplete, guestToken
             orderItems: cartItems.map(item => ({
                 product: item.product._id,
                 variant: item.variant ? item.variant._id : null,
-                quantity: item.quantity
+                quantity: item.quantity,
+                selectedOptions: item.selectedOptions || []
             })),
             shippingAddress: {
                 fullName: formData.fullName,
@@ -261,32 +282,48 @@ const CheckoutForm = ({ cartItems, showNotification, onOrderComplete, guestToken
                             שיטת משלוח
                         </h2>
                         <div className="grid grid-cols-1 gap-3">
-                            <label className={`flex items-center p-4 rounded-xl border-2 transition-all cursor-pointer ${formData.shippingMethod === 'pickup-business' ? 'border-primary bg-primary/5' : 'border-gray-100 hover:border-gray-200'}`}>
-                                <input type="radio" name="shippingMethod" value="pickup-business" checked={formData.shippingMethod === 'pickup-business'} onChange={handleChange} className="w-5 h-5 text-primary ml-4" />
-                                <div className="flex-1">
-                                    <span className="block font-bold text-gray-900">איסוף מבית העסק</span>
-                                    <span className="text-sm text-gray-500 italic">זמין מיידית</span>
-                                </div>
-                                <span className="font-bold text-green-600">חינם</span>
-                            </label>
+                            {store?.shippingOptions && store.shippingOptions.length > 0 ? (
+                                store.shippingOptions.map((option, oIdx) => (
+                                    <label key={oIdx} className={`flex items-center p-4 rounded-xl border-2 transition-all cursor-pointer ${formData.shippingMethod === option.name ? 'border-primary bg-primary/5' : 'border-gray-100 hover:border-gray-200'}`}>
+                                        <input type="radio" name="shippingMethod" value={option.name} checked={formData.shippingMethod === option.name} onChange={handleChange} className="w-5 h-5 text-primary ml-4" />
+                                        <div className="flex-1">
+                                            <span className="block font-bold text-gray-900">{option.name}</span>
+                                        </div>
+                                        <span className="font-bold text-gray-900">
+                                            {option.price === 0 ? 'חינם' : `₪${option.price.toFixed(2)}`}
+                                        </span>
+                                    </label>
+                                ))
+                            ) : (
+                                <>
+                                    <label className={`flex items-center p-4 rounded-xl border-2 transition-all cursor-pointer ${formData.shippingMethod === 'pickup-business' ? 'border-primary bg-primary/5' : 'border-gray-100 hover:border-gray-200'}`}>
+                                        <input type="radio" name="shippingMethod" value="pickup-business" checked={formData.shippingMethod === 'pickup-business'} onChange={handleChange} className="w-5 h-5 text-primary ml-4" />
+                                        <div className="flex-1">
+                                            <span className="block font-bold text-gray-900">איסוף מבית העסק</span>
+                                            <span className="text-sm text-gray-500 italic">זמין מיידית</span>
+                                        </div>
+                                        <span className="font-bold text-green-600">חינם</span>
+                                    </label>
 
-                            <label className={`flex items-center p-4 rounded-xl border-2 transition-all cursor-pointer ${formData.shippingMethod === 'home-delivery' ? 'border-primary bg-primary/5' : 'border-gray-100 hover:border-gray-200'}`}>
-                                <input type="radio" name="shippingMethod" value="home-delivery" checked={formData.shippingMethod === 'home-delivery'} onChange={handleChange} className="w-5 h-5 text-primary ml-4" />
-                                <div className="flex-1">
-                                    <span className="block font-bold text-gray-900">משלוח עד הבית</span>
-                                    <span className="text-sm text-gray-500 italic">3-5 ימי עסקים</span>
-                                </div>
-                                <span className="font-bold text-gray-900">₪29</span>
-                            </label>
+                                    <label className={`flex items-center p-4 rounded-xl border-2 transition-all cursor-pointer ${formData.shippingMethod === 'home-delivery' ? 'border-primary bg-primary/5' : 'border-gray-100 hover:border-gray-200'}`}>
+                                        <input type="radio" name="shippingMethod" value="home-delivery" checked={formData.shippingMethod === 'home-delivery'} onChange={handleChange} className="w-5 h-5 text-primary ml-4" />
+                                        <div className="flex-1">
+                                            <span className="block font-bold text-gray-900">משלוח עד הבית</span>
+                                            <span className="text-sm text-gray-500 italic">3-5 ימי עסקים</span>
+                                        </div>
+                                        <span className="font-bold text-gray-900">₪29</span>
+                                    </label>
 
-                            <label className={`flex items-center p-4 rounded-xl border-2 transition-all cursor-pointer ${formData.shippingMethod === 'pickup-point' ? 'border-primary bg-primary/5' : 'border-gray-100 hover:border-gray-200'}`}>
-                                <input type="radio" name="shippingMethod" value="pickup-point" checked={formData.shippingMethod === 'pickup-point'} onChange={handleChange} className="w-5 h-5 text-primary ml-4" />
-                                <div className="flex-1">
-                                    <span className="block font-bold text-gray-900">נקודת איסוף (PUDO)</span>
-                                    <span className="text-sm text-gray-500 italic">קרוב לביתך</span>
-                                </div>
-                                <span className="font-bold text-gray-900">₪15</span>
-                            </label>
+                                    <label className={`flex items-center p-4 rounded-xl border-2 transition-all cursor-pointer ${formData.shippingMethod === 'pickup-point' ? 'border-primary bg-primary/5' : 'border-gray-100 hover:border-gray-200'}`}>
+                                        <input type="radio" name="shippingMethod" value="pickup-point" checked={formData.shippingMethod === 'pickup-point'} onChange={handleChange} className="w-5 h-5 text-primary ml-4" />
+                                        <div className="flex-1">
+                                            <span className="block font-bold text-gray-900">נקודת איסוף (PUDO)</span>
+                                            <span className="text-sm text-gray-500 italic">קרוב לביתך</span>
+                                        </div>
+                                        <span className="font-bold text-gray-900">₪15</span>
+                                    </label>
+                                </>
+                            )}
                         </div>
                     </section>
                 </div>

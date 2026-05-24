@@ -12,6 +12,7 @@ import { ArrowUp, ArrowDown, ChevronDown } from 'lucide-react';
 import Loader from '../components/Loader';
 import RevealOnScroll from '../components/RevealOnScroll';
 import useProducts from '../hooks/useProducts';
+import useStoreNavigate from '../hooks/useStoreNavigate';
 
 /**
  * HomePage Component.
@@ -27,6 +28,7 @@ const HomePage = ({ handleAddToCart, showNotification }) => {
     const { store } = useStore();
     const { isAdmin, isSuperAdmin, getToken } = useAuth();
     const [categories, setCategories] = useState([]);
+    const navigate = useStoreNavigate();
 
     // IntersectionObserver to lazy-load products as user scrolls
     useEffect(() => {
@@ -251,11 +253,24 @@ const HomePage = ({ handleAddToCart, showNotification }) => {
                                     )}
                                 </div>
                                 <ProductList
-                                    products={catProducts}
+                                    products={catProducts.slice(0, 4)}
                                     onAddToCart={handleAddToCart}
                                     showNotification={showNotification}
                                     onDeleteProduct={(id) => handleDeleteProduct(id, getToken, showNotification)}
                                 />
+                                {catProducts.length > 4 && (
+                                    <div className="text-center mt-8">
+                                        <button
+                                            onClick={() => navigate(
+                                                `/products?category=${encodeURIComponent(category)}`,
+                                                { state: { categoryName: category } }
+                                            )}
+                                            className="inline-flex items-center gap-2 px-8 py-3.5 bg-primary text-white rounded-2xl font-black shadow-lg shadow-primary/20 hover:scale-[1.02] active:scale-95 transition-all text-sm cursor-pointer"
+                                        >
+                                            צפה בכל המוצרים בקטגוריית {category}
+                                        </button>
+                                    </div>
+                                )}
                             </RevealOnScroll>
                         );
                     })
@@ -266,11 +281,21 @@ const HomePage = ({ handleAddToCart, showNotification }) => {
                                 {store?.labels?.featuredSectionTitle || "הנבחרת שלנו"}
                             </h2>
                             <ProductList
-                                products={products}
+                                products={products.slice(0, 4)}
                                 onAddToCart={handleAddToCart}
                                 showNotification={showNotification}
                                 onDeleteProduct={(id) => handleDeleteProduct(id, getToken, showNotification)}
                             />
+                            {products.length > 4 && (
+                                <div className="text-center mt-8">
+                                    <button
+                                        onClick={() => navigate('/products')}
+                                        className="inline-flex items-center gap-2 px-8 py-3.5 bg-primary text-white rounded-2xl font-black shadow-lg shadow-primary/20 hover:scale-[1.02] active:scale-95 transition-all text-sm cursor-pointer"
+                                    >
+                                        צפה בכל המוצרים
+                                    </button>
+                                </div>
+                            )}
                         </div>
                     </RevealOnScroll>
                 )}

@@ -638,6 +638,81 @@ const StoreSettings = ({ showNotification }) => {
                 </div>
             </div>
 
+            {/* Shipping Options Management */}
+            <div className="bg-gray-50 p-6 rounded-[2rem] border border-gray-100">
+                <div className="flex justify-between items-center mb-6">
+                    <h3 className="text-xl font-black text-gray-900 font-sans">אפשרויות משלוח</h3>
+                    <button
+                        type="button"
+                        onClick={() => {
+                            const currentOptions = formData.shippingOptions || [];
+                            const newOptions = [...currentOptions, { name: '', price: 0 }];
+                            setFormData({ ...formData, shippingOptions: newOptions });
+                        }}
+                        className="bg-primary/10 text-primary px-4 py-2 rounded-xl font-bold text-sm hover:bg-primary hover:text-white transition-all flex items-center gap-2"
+                    >
+                        + הוסף אפשרות משלוח
+                    </button>
+                </div>
+
+                <div className="space-y-4">
+                    {(!formData.shippingOptions || formData.shippingOptions.length === 0) ? (
+                        <div className="text-center py-8 text-gray-400 border-2 border-dashed border-gray-200 rounded-2xl">
+                            לא הוגדרו אפשרויות משלוח מותאמות אישית. במקרה כזה, יוצגו אפשרויות ברירת המחדל (משלוח עד הבית, נקודת איסוף, איסוף עצמי).
+                        </div>
+                    ) : (
+                        formData.shippingOptions.map((option, index) => (
+                            <div key={index} className="bg-white p-4 rounded-2xl border border-gray-100 flex flex-col sm:flex-row gap-4 items-center shadow-sm">
+                                <div className="flex-1 w-full">
+                                    <label className="block text-xs font-black text-gray-400 mb-1.5 uppercase">שם אפשרות המשלוח</label>
+                                    <input
+                                        type="text"
+                                        value={option.name || ''}
+                                        onChange={(e) => {
+                                            const newOptions = [...formData.shippingOptions];
+                                            newOptions[index].name = e.target.value;
+                                            setFormData({ ...formData, shippingOptions: newOptions });
+                                        }}
+                                        className="w-full p-3 bg-gray-50 rounded-xl border border-transparent focus:border-primary focus:bg-white outline-none text-sm transition-all"
+                                        placeholder="לדוגמה: משלוח מהיר עד הבית"
+                                        required
+                                    />
+                                </div>
+                                <div className="w-full sm:w-48">
+                                    <label className="block text-xs font-black text-gray-400 mb-1.5 uppercase font-mono">מחיר (₪)</label>
+                                    <input
+                                        type="number"
+                                        value={option.price ?? 0}
+                                        min="0"
+                                        step="0.01"
+                                        onChange={(e) => {
+                                            const newOptions = [...formData.shippingOptions];
+                                            newOptions[index].price = parseFloat(e.target.value) || 0;
+                                            setFormData({ ...formData, shippingOptions: newOptions });
+                                        }}
+                                        className="w-full p-3 bg-gray-50 rounded-xl border border-transparent focus:border-primary focus:bg-white outline-none text-sm transition-all"
+                                        placeholder="0.00"
+                                        required
+                                    />
+                                </div>
+                                <button
+                                    type="button"
+                                    onClick={() => {
+                                        const newOptions = formData.shippingOptions.filter((_, i) => i !== index);
+                                        setFormData({ ...formData, shippingOptions: newOptions });
+                                    }}
+                                    className="p-3 bg-red-50 text-red-500 rounded-xl hover:bg-red-500 hover:text-white transition-all self-end sm:self-center mt-2 sm:mt-0"
+                                >
+                                    <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                    </svg>
+                                </button>
+                            </div>
+                        ))
+                    )}
+                </div>
+            </div>
+
             <button type="submit" disabled={loading} className="w-full py-4 bg-primary text-white rounded-2xl font-black text-xl shadow-lg shadow-primary/30 hover:shadow-primary/50 hover:bg-primary-hover transition-all">
                 {loading ? 'שומר שינויים...' : 'שמירת הגדרות חנות'}
             </button>

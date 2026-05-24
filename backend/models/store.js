@@ -60,6 +60,10 @@ const storeSchema = new Schema({
         url: String,
         type: { type: String, enum: ['image', 'video'], default: 'image' },
         title: String
+    }],
+    shippingOptions: [{
+        name: { type: String, required: true },
+        price: { type: Number, required: true, default: 0 }
     }]
 }, {
     timestamps: true
