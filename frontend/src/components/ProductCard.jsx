@@ -111,6 +111,7 @@ const ProductCard = ({ product, filters = {} }) => {
                             target="_blank"
                             rel="noopener noreferrer"
                             onClick={(e) => e.stopPropagation()}
+                            aria-label="וואטסאפ"
                             className={`flex-1 py-4 px-4 bg-[#25D366] text-white rounded-2xl text-center font-black shadow-lg shadow-[#25D366]/20 hover:scale-[1.02] active:scale-95 transition-all flex items-center justify-center gap-3 ${isFullWidth ? "text-base" : "text-sm"
                                 }`}
                         >

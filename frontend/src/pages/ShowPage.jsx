@@ -551,6 +551,7 @@ const ShowPage = ({ onAddToCart }) => {
                                 onAddToCart(product, selectedVariant, selectedOptionsList, optionsTotal);
                             }}
                             disabled={!selectedVariant || (store?.features?.showStock !== false && selectedVariant.stock === 0)}
+                            aria-label="הוסף לסל הקניות"
                             className="w-full py-4 md:py-6 bg-primary text-white rounded-2xl md:rounded-[2rem] font-black text-base md:text-xl shadow-2xl shadow-primary/30 hover:bg-primary-hover hover:scale-[1.02] active:scale-95 transition-all flex items-center justify-center gap-4 disabled:bg-gray-100 disabled:text-gray-300 disabled:shadow-none disabled:scale-100"
                         >
                             <ShoppingCart className="w-5 h-5 md:w-6 md:h-6" />
@@ -561,6 +562,7 @@ const ShowPage = ({ onAddToCart }) => {
                             href={`https://wa.me/${store?.businessInfo?.whatsapp}?text=${encodeURIComponent(`היי, אני מעוניין במוצר: ${product.name}${selectedVariant ? ` (${variantFields.map(f => `${f}: ${selectedVariant[f]}`).join(', ')})` : ''}`)}`}
                             target="_blank"
                             rel="noopener noreferrer"
+                            aria-label="וואטסאפ"
                             className="w-full py-4 md:py-6 bg-[#25D366] text-white rounded-2xl md:rounded-[2rem] font-black text-base md:text-xl shadow-2xl shadow-[#25D366]/30 hover:scale-[1.02] active:scale-95 transition-all flex items-center justify-center gap-4"
                         >
                             <FaWhatsapp className="w-6 h-6 md:w-7 md:h-7" />
@@ -931,65 +933,30 @@ const ShowPage = ({ onAddToCart }) => {
                             </div>
                         </div>
 
-                        {/* {isAdmin && isAddingSpecs && (
-                            <div className="mb-12 p-8 bg-gray-50 rounded-[2.5rem] border border-gray-100 animate-in fade-in zoom-in-95 duration-500">
-                                <div className="flex justify-between items-center mb-6">
-                                    <h3 className="text-xl font-black">הוספת מפרט טכני</h3>
-                                    <button
-                                        onClick={() => setNewSpecs([...newSpecs, { key: '', value: '' }])}
-                                        className="p-3 bg-white text-primary rounded-xl border border-primary/20 hover:bg-primary/5 transition-all flex items-center gap-2 font-bold"
-                                    >
-                                        <Plus size={18} />
-                                        <span>הוסף שורה</span>
-                                    </button>
-                                </div>
-                                <div className="space-y-4">
-                                    {newSpecs.map((spec, idx) => (
-                                        <div key={idx} className="grid grid-cols-2 gap-4 relative group p-2">
-                                            <input placeholder="שם הפרמטר" value={spec.key} onChange={e => { const s = [...newSpecs]; s[idx].key = e.target.value; setNewSpecs(s); }} className="p-4 bg-white rounded-xl border border-gray-100 outline-none focus:border-primary font-bold" />
-                                            <input placeholder="ערך" value={spec.value} onChange={e => { const s = [...newSpecs]; s[idx].value = e.target.value; setNewSpecs(s); }} className="p-4 bg-white rounded-xl border border-gray-100 outline-none focus:border-primary font-bold" />
-                                            {newSpecs.length > 1 && (
-                                                <button onClick={() => setNewSpecs(newSpecs.filter((_, i) => i !== idx))} className="absolute -left-2 top-1/2 -translate-y-1/2 w-8 h-8 bg-white shadow-lg text-red-400 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all hover:text-red-500">
-                                                    <Trash2 size={14} />
-                                                </button>
-                                            )}
-                                        </div>
-                                    ))}
-                                </div>
-                                <div className="flex gap-3 mt-8">
-                                    <button onClick={handleSaveNewContent} disabled={isSaving} className="px-8 py-3 bg-primary text-white rounded-xl font-black shadow-lg shadow-primary/20 hover:scale-105 active:scale-95 transition-all">שמור מפרט</button>
-                                    <button onClick={() => { setIsAddingSpecs(false); setNewSpecs([{ key: '', value: '' }]); }} className="px-8 py-3 bg-white text-gray-400 rounded-xl font-bold hover:text-gray-600 transition-all">ביטול</button>
-                                </div>
-                            </div>
-                        )} */}
                         {isAdmin && isAddingSpecs && (
                             <div className="mb-12 p-8 bg-gray-50 rounded-[2.5rem] border border-gray-100 animate-in fade-in zoom-in-95 duration-500 text-right" dir="rtl">
                                 <div className="flex justify-between items-center mb-6">
                                     <h3 className="text-xl font-black">הוספת מפרט טכני</h3>
 
                                     <div className="flex gap-2">
-                                        {/* כפתור ייבוא מהיר חדש */}
                                         <button
                                             onClick={() => {
                                                 const rawText = prompt("הדבק כאן את המפרט הטכני המלא (שורות מופרדות בנקודתיים או מקף):");
                                                 if (!rawText) return;
 
-                                                // ניתוח הטקסט והפיכתו לאובייקטים
                                                 const parsedSpecs = rawText
                                                     .split('\n')
                                                     .map(line => line.trim())
                                                     .filter(line => line.length > 0)
                                                     .map(line => {
-                                                        // מחפש הפרדה של נקודתיים או מקף
                                                         const match = line.match(/^([^:-]+)[: -](.+)$/);
                                                         if (match) {
                                                             return { key: match[1].trim(), value: match[2].trim() };
                                                         }
-                                                        return { key: line, value: '' }; // אם אין הפרדה, שם את הכל במפתח
+                                                        return { key: line, value: '' };
                                                     });
 
                                                 if (parsedSpecs.length > 0) {
-                                                    // אם המערך הנוכחי ריק או מכיל רק שורה ריקה אחת, נחליף אותו. אחרת נשרשר.
                                                     if (newSpecs.length === 1 && !newSpecs[0].key && !newSpecs[0].value) {
                                                         setNewSpecs(parsedSpecs);
                                                     } else {
@@ -1013,7 +980,6 @@ const ShowPage = ({ onAddToCart }) => {
                                     </div>
                                 </div>
 
-                                {/* רשימת השורות (נשארת כרגיל, ומאפשרת עריכה אחרי הייבוא) */}
                                 <div className="space-y-4">
                                     {newSpecs.map((spec, idx) => (
                                         <div key={idx} className="grid grid-cols-2 gap-4 relative group p-2">

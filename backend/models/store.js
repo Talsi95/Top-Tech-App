@@ -18,7 +18,10 @@ const storeSchema = new Schema({
         address: { type: String, default: '' },
         phone: { type: String, default: '' },
         whatsapp: { type: String, default: '' },
-        email: { type: String, default: '' }
+        email: { type: String, default: '' },
+        facebook: { type: String, default: '' },
+        instagram: { type: String, default: '' },
+        tiktok: { type: String, default: '' },
     },
     design: {
         primaryColor: { type: String, default: '#4f46e5' }, // Default Indigo 600

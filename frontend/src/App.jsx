@@ -36,6 +36,7 @@ const UpdateVariantForm = lazy(() => import('./components/UpdateVariantForm'));
 const RepairLab = lazy(() => import('./pages/RepairLab'));
 const ArticlesPage = lazy(() => import('./pages/ArticlesPage'));
 const ArticleShowPage = lazy(() => import('./pages/ArticleShowPage'));
+const AccessibilityPage = lazy(() => import('./pages/AccessibilityPage'));
 
 
 /**
@@ -141,6 +142,7 @@ const App = () => {
                     showNotification={showNotification}
                   />
                 } />
+                <Route path="accessibility" element={<AccessibilityPage />} />
                 {store?.features?.hasUserAccounts && (
                   <>
                     <Route path="profile" element={<UserArea />} />

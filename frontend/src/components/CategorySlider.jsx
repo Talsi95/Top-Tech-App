@@ -94,12 +94,14 @@ const CategorySlider = () => {
             {/* Navigation Arrows */}
             <button
                 onClick={(e) => { e.stopPropagation(); next(); }}
+                aria-label="שמאלה"
                 className="absolute left-8 top-1/2 -translate-y-1/2 w-16 h-16 bg-white/10 backdrop-blur-md border border-white/20 rounded-full flex items-center justify-center text-white opacity-0 group-hover:opacity-100 transition-all hover:bg-white hover:text-gray-900 z-20"
             >
                 <ChevronLeft size={32} />
             </button>
             <button
                 onClick={(e) => { e.stopPropagation(); prev(); }}
+                aria-label="ימינה"
                 className="absolute right-8 top-1/2 -translate-y-1/2 w-16 h-16 bg-white/10 backdrop-blur-md border border-white/20 rounded-full flex items-center justify-center text-white opacity-0 group-hover:opacity-100 transition-all hover:bg-white hover:text-gray-900 z-20"
             >
                 <ChevronRight size={32} />
@@ -111,6 +113,7 @@ const CategorySlider = () => {
                     <button
                         key={idx}
                         onClick={(e) => { e.stopPropagation(); setCurrentIndex(idx); }}
+                        aria-label={`החלקה ${idx + 1}`}
                         className={`h-2 rounded-full transition-all duration-500 ${currentIndex === idx ? 'w-12 bg-primary' : 'w-2 bg-white/50'}`}
                     />
                 ))}

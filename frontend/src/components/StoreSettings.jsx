@@ -149,6 +149,18 @@ const StoreSettings = ({ showNotification }) => {
                         <input type="text" value={formData.businessInfo?.whatsapp || ''} onChange={(e) => handleNestedChange('businessInfo', 'whatsapp', e.target.value)} className="w-full p-4 bg-white rounded-xl border border-gray-200 focus:border-primary outline-none" />
                     </div>
                     <div>
+                        <label className="block text-sm font-bold text-gray-700 mb-2">פייסבוק</label>
+                        <input type="text" value={formData.businessInfo?.facebook || ''} onChange={(e) => handleNestedChange('businessInfo', 'facebook', e.target.value)} className="w-full p-4 bg-white rounded-xl border border-gray-200 focus:border-primary outline-none" />
+                    </div>
+                    <div>
+                        <label className="block text-sm font-bold text-gray-700 mb-2">אינסטגרם</label>
+                        <input type="text" value={formData.businessInfo?.instagram || ''} onChange={(e) => handleNestedChange('businessInfo', 'instagram', e.target.value)} className="w-full p-4 bg-white rounded-xl border border-gray-200 focus:border-primary outline-none" />
+                    </div>
+                    <div>
+                        <label className="block text-sm font-bold text-gray-700 mb-2">טיקטוק</label>
+                        <input type="text" value={formData.businessInfo?.tiktok || ''} onChange={(e) => handleNestedChange('businessInfo', 'tiktok', e.target.value)} className="w-full p-4 bg-white rounded-xl border border-gray-200 focus:border-primary outline-none" />
+                    </div>
+                    <div>
                         <label className="block text-sm font-bold text-gray-700 mb-2">דוא"ל</label>
                         <input type="email" value={formData.businessInfo?.email || ''} onChange={(e) => handleNestedChange('businessInfo', 'email', e.target.value)} className="w-full p-4 bg-white rounded-xl border border-gray-200 focus:border-primary outline-none" />
                     </div>

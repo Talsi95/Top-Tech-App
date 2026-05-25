@@ -120,9 +120,9 @@ const Navbar = ({
                         {store?.features?.hasRepairLab && (
                             <StoreNavLink to="/repair-lab" className={({ isActive }) => isActive ? activeLinkClass : navLinkClass}>מעבדת תיקונים</StoreNavLink>
                         )}
-                        {store?.features?.hasArticles && (
+                        {/* {store?.features?.hasArticles && (
                             <StoreNavLink to="/articles" className={({ isActive }) => isActive ? activeLinkClass : navLinkClass}>מאמרים ובלוג</StoreNavLink>
-                        )}
+                        )} */}
                         {isAuthenticated && store?.features?.hasUserAccounts && (
                             <StoreNavLink to="/profile" className={({ isActive }) => isActive ? activeLinkClass : navLinkClass}>איזור אישי</StoreNavLink>
                         )}
@@ -137,6 +137,7 @@ const Navbar = ({
                         {store?.features?.cartDrawer !== false && (
                             <button
                                 onClick={onToggleSearchDrawer}
+                                aria-label="חיפוש"
                                 className="p-2.5 text-gray-400 hover:text-primary hover:bg-primary/5 rounded-xl transition-all group"
                             >
                                 <FaSearch size={20} className="group-hover:scale-110 transition-transform" />
@@ -155,6 +156,7 @@ const Navbar = ({
                         {store?.features?.hasCart && (
                             <button
                                 onClick={onToggleDrawer}
+                                aria-label="עגלת קניות"
                                 className="relative p-2.5 text-gray-400 hover:text-primary hover:bg-primary/5 rounded-xl transition-all group"
                             >
                                 <FaShoppingCart size={22} className="group-hover:scale-110 transition-transform" />
@@ -207,6 +209,7 @@ const Navbar = ({
                     {store?.features?.cartDrawer !== false && (
                         <button
                             onClick={onToggleSearchDrawer}
+                            aria-label="חיפוש"
                             className="p-2 text-gray-400"
                         >
                             <FaSearch size={20} />
@@ -217,6 +220,7 @@ const Navbar = ({
                     {store?.features?.hasCart && (
                         <button
                             onClick={onToggleDrawer}
+                            aria-label="עגלת קניות"
                             className="relative p-2 text-gray-400"
                         >
                             <FaShoppingCart size={24} />
@@ -231,6 +235,7 @@ const Navbar = ({
                     {/* Hamburger */}
                     <button
                         onClick={toggleMobileMenu}
+                        aria-label="תפריט"
                         className="w-10 h-10 flex items-center justify-center bg-gray-100 rounded-xl text-gray-900"
                     >
                         {isMobileMenuOpen ? <FaTimes size={20} /> : <FaBars size={20} />}
@@ -309,9 +314,9 @@ const Navbar = ({
                     {store?.features?.hasRepairLab && (
                         <StoreNavLink to="/repair-lab" onClick={toggleMobileMenu} className="text-xl font-black text-gray-900 p-2">מעבדת תיקונים</StoreNavLink>
                     )}
-                    {store?.features?.hasArticles && (
+                    {/* {store?.features?.hasArticles && (
                         <StoreNavLink to="/articles" onClick={toggleMobileMenu} className="text-xl font-black text-gray-900 p-2">מאמרים ובלוג</StoreNavLink>
-                    )}
+                    )} */}
                     {isAuthenticated && (
                         <StoreNavLink to="/profile" onClick={toggleMobileMenu} className="text-xl font-black text-gray-900 p-2">איזור אישי</StoreNavLink>
                     )}
