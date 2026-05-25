@@ -25,10 +25,16 @@ const HomePage = ({ handleAddToCart, showNotification }) => {
     const triggerRef = useRef(null);
 
     const { products, loading, error, handleDeleteProduct } = useProducts(searchParams, shouldLoadProducts);
-    const { store } = useStore();
+    const { store, categories: globalCategories, isLoadingCategories } = useStore();
     const { isAdmin, isSuperAdmin, getToken } = useAuth();
     const [categories, setCategories] = useState([]);
     const navigate = useStoreNavigate();
+
+    useEffect(() => {
+        if (globalCategories && globalCategories.length > 0) {
+            setCategories(globalCategories);
+        }
+    }, [globalCategories]);
 
     // IntersectionObserver to lazy-load products as user scrolls
     useEffect(() => {
@@ -52,19 +58,6 @@ const HomePage = ({ handleAddToCart, showNotification }) => {
 
         return () => observer.disconnect();
     }, [shouldLoadProducts]);
-
-    // Fetch category configurations on mount or store change
-    useEffect(() => {
-        const fetchCategories = async () => {
-            try {
-                const { data } = await axios.get(`${__API_URL__}/categories`);
-                setCategories(data);
-            } catch (err) {
-                console.error("Error fetching categories:", err);
-            }
-        };
-        fetchCategories();
-    }, [store]);
 
     // Group products by category and sort according to categories order
     const sortedGroupedProducts = useMemo(() => {
@@ -224,9 +217,9 @@ const HomePage = ({ handleAddToCart, showNotification }) => {
                                         <h2 className="text-3xl md:text-4xl font-black text-gray-900 tracking-tight">
                                             {category}
                                         </h2>
-                                        <span className="text-sm font-bold text-gray-400 bg-gray-100 px-3 py-1 rounded-full">
+                                        {/* <span className="text-sm font-bold text-gray-400 bg-gray-100 px-3 py-1 rounded-full">
                                             {catProducts.length} מוצרים
-                                        </span>
+                                        </span> */}
                                     </div>
 
                                     {(isAdmin || isSuperAdmin) && (
@@ -258,19 +251,17 @@ const HomePage = ({ handleAddToCart, showNotification }) => {
                                     showNotification={showNotification}
                                     onDeleteProduct={(id) => handleDeleteProduct(id, getToken, showNotification)}
                                 />
-                                {catProducts.length > 4 && (
-                                    <div className="text-center mt-8">
-                                        <button
-                                            onClick={() => navigate(
-                                                `/products?category=${encodeURIComponent(category)}`,
-                                                { state: { categoryName: category } }
-                                            )}
-                                            className="inline-flex items-center gap-2 px-8 py-3.5 bg-primary text-white rounded-2xl font-black shadow-lg shadow-primary/20 hover:scale-[1.02] active:scale-95 transition-all text-sm cursor-pointer"
-                                        >
-                                            צפה בכל המוצרים בקטגוריית {category}
-                                        </button>
-                                    </div>
-                                )}
+                                <div className="text-center mt-8">
+                                    <button
+                                        onClick={() => navigate(
+                                            `/products?category=${encodeURIComponent(category)}`,
+                                            { state: { categoryName: category } }
+                                        )}
+                                        className="inline-flex items-center gap-2 px-8 py-3.5 bg-primary text-white rounded-2xl font-black shadow-lg shadow-primary/20 hover:scale-[1.02] active:scale-95 transition-all text-sm cursor-pointer"
+                                    >
+                                        צפה בכל המוצרים בקטגוריית {category}
+                                    </button>
+                                </div>
                             </RevealOnScroll>
                         );
                     })

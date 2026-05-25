@@ -2,45 +2,12 @@ import StoreLink from './StoreLink';
 import { useState, useEffect } from 'react';
 import { useStore } from '../StoreContext';
 import axios from 'axios';
-import laptopsImg from '../assets/laptops.png';
-import smartphonesImg from '../assets/smartphones.png';
-import gamingConsolesImg from '../assets/consoles.png';
-import headphonesImg from '../assets/headphones.png';
-import tvImg from '../assets/tv.png';
-import chargersImg from '../assets/chargers.png';
-import storageImg from '../assets/storage.png';
-
-const categoryImages = {
-    'מכשירים ניידים': smartphonesImg,
-    'קונסולות משחק': gamingConsolesImg,
-    'מחשבים ניידים': laptopsImg,
-    'טלוויזיות': tvImg,
-    'אוזניות': headphonesImg,
-    'מטענים': chargersImg,
-    'גיבוי ואחסון': storageImg
-};
-
-const DEFAULT_CATEGORY_ICON = 'https://img.icons8.com/ios-filled/100/ffffff/box.png';
 
 /**
  * Banner Component.
  */
 const Banner = () => {
-    const [categories, setCategories] = useState([]);
-    const { store } = useStore();
-
-    useEffect(() => {
-        const fetchCategories = async () => {
-            try {
-                const response = await axios.get(`${__API_URL__}/categories`);
-                setCategories(response.data);
-            } catch (err) {
-                console.error("Failed to fetch categories for banner:", err);
-            }
-        };
-
-        fetchCategories();
-    }, []);
+    const { store, categories } = useStore();
 
     return (
         <div className="relative min-h-[500px] bg-gradient-to-br from-gray-900 via-primary to-primary-hover text-white py-20 px-8 rounded-[3rem] shadow-2xl mb-16 overflow-hidden flex items-center justify-center">
@@ -62,17 +29,17 @@ const Banner = () => {
                 {/* Category bubbles grid */}
                 <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-6 px-4">
                     {categories.map((category, index) => {
-                        const image = categoryImages[category.name] || category.imageUrl || DEFAULT_CATEGORY_ICON;
                         return (
                             <StoreLink
                                 to={`/products?category=${category.name}`}
+                                state={{ categoryName: category.name }}
                                 key={index}
                                 className="group flex flex-col items-center animate-in fade-in zoom-in duration-500"
                                 style={{ animationDelay: `${index * 100}ms` }}
                             >
                                 <div className="w-24 h-24 lg:w-28 lg:h-28 bg-white/20 backdrop-blur-xl rounded-3xl flex items-center justify-center p-4 border border-white/30 shadow-xl group-hover:bg-white transition-all duration-500">
                                     <img
-                                        src={image}
+                                        src={category.imageUrl}
                                         alt={category.name}
                                         className="w-full h-full object-contain transition-all duration-500"
                                     />

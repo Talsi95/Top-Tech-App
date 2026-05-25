@@ -6,7 +6,7 @@ const RevealOnScroll = ({ children, delay = 0 }) => {
 
     useEffect(() => {
         const isMobile = typeof window !== 'undefined' && window.innerWidth < 768;
-        const rootMarginValue = isMobile ? '0px 0px -25% 0px' : '0px 0px -10% 0px';
+        const rootMarginValue = isMobile ? '0px 0px 15% 0px' : '0px 0px -5% 0px';
 
         const observer = new IntersectionObserver(
             ([entry]) => {
@@ -16,7 +16,7 @@ const RevealOnScroll = ({ children, delay = 0 }) => {
                 }
             },
             {
-                threshold: 0.05,
+                threshold: isMobile ? 0.03 : 0.05,
                 rootMargin: rootMarginValue
             }
         );
@@ -31,7 +31,7 @@ const RevealOnScroll = ({ children, delay = 0 }) => {
             style={{ transitionDelay: `${delay}ms` }}
             className={`transition-all duration-1000 ease-out transform ${isIntersecting
                 ? 'opacity-100 translate-y-0'
-                : 'opacity-0 translate-y-12 pointer-events-none'
+                : 'opacity-0 translate-y-8 pointer-events-none'
                 }`}
         >
             {children}

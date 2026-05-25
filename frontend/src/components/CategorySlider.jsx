@@ -5,29 +5,13 @@ import { useStore } from '../StoreContext';
 import useStoreNavigate from '../hooks/useStoreNavigate';
 
 const CategorySlider = () => {
-    const [categories, setCategories] = useState([]);
-    const [loading, setLoading] = useState(true);
-    const { store } = useStore();
+    const { store, categories, isLoadingCategories } = useStore();
     const navigate = useStoreNavigate();
     const [currentIndex, setCurrentIndex] = useState(0);
 
     const [touchStartX, setTouchStartX] = useState(null);
     const [touchEndX, setTouchEndX] = useState(null);
     const minSwipeDistance = 50;
-
-    useEffect(() => {
-        const fetchCategories = async () => {
-            try {
-                const res = await axios.get(`${__API_URL__}/categories`);
-                setCategories(res.data);
-            } catch (error) {
-                console.error('Error fetching categories:', error);
-            } finally {
-                setLoading(false);
-            }
-        };
-        fetchCategories();
-    }, []);
 
     useEffect(() => {
         if (categories.length > 0) {
@@ -63,7 +47,7 @@ const CategorySlider = () => {
         }
     };
 
-    if (loading || categories.length === 0) return null;
+    if (isLoadingCategories || categories.length === 0) return null;
 
     return (
         <div

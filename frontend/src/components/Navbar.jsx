@@ -6,6 +6,7 @@ import { useStore } from '../StoreContext';
 import AdminNotifications from './AdminNotifications';
 import StoreLink from './StoreLink';
 import StoreNavLink from './StoreNavLink';
+import axios from 'axios';
 
 /**
  * Navbar Component.
@@ -22,8 +23,10 @@ const Navbar = ({
 }) => {
     const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
     const [isScrolled, setIsScrolled] = useState(false);
+    const [isCategoriesOpen, setIsCategoriesOpen] = useState(false);
+    const [activeCategory, setActiveCategory] = useState(null);
     const { user, isAuthenticated, isAdmin, isGuest } = useAuth();
-    const { store } = useStore();
+    const { store, categories, isLoadingCategories } = useStore();
 
     useEffect(() => {
         const handleScroll = () => {
@@ -46,9 +49,9 @@ const Navbar = ({
                 {/* Logo */}
                 <StoreLink to="/" className="flex items-center gap-3 group">
                     {store?.design?.logoUrl ? (
-                        <img 
-                            src={store.design.logoUrl} 
-                            alt={store.name} 
+                        <img
+                            src={store.design.logoUrl}
+                            alt={store.name}
                             className="h-10 w-auto object-contain max-w-[150px] transition-transform duration-500 group-hover:scale-105"
                         />
                     ) : (
@@ -61,6 +64,57 @@ const Navbar = ({
 
                 {/* Desktop Navigation */}
                 <div className="hidden md:flex flex-row-reverse items-center space-x-reverse space-x-10">
+                    {/* categories */}
+                    <div
+                        className="relative group py-2"
+                        onMouseEnter={() => setIsCategoriesOpen(true)}
+                        onMouseLeave={() => { setIsCategoriesOpen(false); setActiveCategory(null); }}
+                    >
+                        <button className={`flex items-center gap-1 ${navLinkClass} h-full`}>
+                            <span>כל הקטגוריות</span>
+                            <svg className={`w-4 h-4 transition-transform duration-300 ${isCategoriesOpen ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7" /></svg>
+                        </button>
+
+                        {isCategoriesOpen && categories && categories.length > 0 && (
+                            <div className="absolute right-0 top-full w-64 text-right animate-in fade-in slide-in-from-top-5 duration-200 z-[110]">
+                                <div className="bg-white/95 backdrop-blur-xl border border-gray-100 rounded-2xl shadow-xl p-3 flex flex-col gap-1">
+                                    {categories.map((category) => (
+                                        <div
+                                            key={category.id || category._id}
+                                            className="relative"
+                                            onMouseEnter={() => setActiveCategory(category.id || category._id)}
+                                        >
+                                            <StoreLink
+                                                to={`/products?category=${encodeURIComponent(category.name)}`}
+                                                state={{ categoryName: category.name }}
+                                                className={`flex items-center justify-between p-3 rounded-xl transition-all ${activeCategory === (category.id || category._id) ? 'bg-primary/5 text-primary font-bold' : 'text-gray-700 hover:bg-gray-50'}`}
+                                            >
+                                                <svg className={`w-3.5 h-3.5 transition-transform ${activeCategory === (category.id || category._id) ? '-translate-x-1' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 19l-7-7 7-7" /></svg>
+                                                <span>{category.name}</span>
+                                            </StoreLink>
+
+                                            {activeCategory === (category.id || category._id) && category.subcategories?.length > 0 && (
+                                                <div className="absolute right-full top-0 pr-2 w-56 text-right animate-in fade-in slide-in-from-right-2 duration-200">
+                                                    <div className="bg-white/95 backdrop-blur-xl border border-gray-100 rounded-2xl shadow-xl p-3 flex flex-col gap-1">
+                                                        {category.subcategories.map((sub) => (
+                                                            <StoreLink
+                                                                key={sub.id || sub._id}
+                                                                to={`/products?category=${encodeURIComponent(category.name)}&subcategory=${encodeURIComponent(sub.name)}`}
+                                                                state={{ categoryName: category.name }}
+                                                                className="p-2.5 text-sm text-gray-600 hover:text-primary hover:bg-primary/5 rounded-xl transition-all"
+                                                            >
+                                                                {sub.name}
+                                                            </StoreLink>
+                                                        ))}
+                                                    </div>
+                                                </div>
+                                            )}
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+                        )}
+                    </div>
                     <div className="flex flex-row-reverse items-center space-x-reverse space-x-8">
                         <StoreNavLink to="/" className={({ isActive }) => isActive ? activeLinkClass : navLinkClass}>דף הבית</StoreNavLink>
                         {store?.features?.hasRepairLab && (
@@ -187,7 +241,71 @@ const Navbar = ({
             {/* Mobile Dropdown Menu */}
             <div className={`md:hidden absolute top-full left-0 w-full bg-white/95 backdrop-blur-2xl border-b border-gray-100 overflow-hidden transition-all duration-500 z-50 ${isMobileMenuOpen ? 'max-h-[600px] opacity-100' : 'max-h-0 opacity-0 pointer-events-none'}`}>
                 <div className="p-6 space-y-4 text-right flex flex-col">
+
                     <StoreNavLink to="/" onClick={toggleMobileMenu} className="text-xl font-black text-gray-900 p-2">דף הבית</StoreNavLink>
+                    {categories && categories.length > 0 && (
+                        <div className="flex flex-col text-right" dir="rtl">
+                            <button
+                                onClick={() => setIsCategoriesOpen(!isCategoriesOpen)}
+                                className="text-xl font-black text-gray-900 p-2 flex flex-row items-center justify-between w-full text-right"
+                            >
+                                <span>כל הקטגוריות</span>
+                                <svg className={`w-5 h-5 transition-transform duration-300 ${isCategoriesOpen ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7" /></svg>
+                            </button>
+
+                            <div className={`transition-all duration-300 overflow-hidden pr-4 flex flex-col gap-2 ${isCategoriesOpen ? 'max-h-[1000px] opacity-100 mt-2' : 'max-h-0 opacity-0'}`}>
+                                {categories.map((category) => {
+                                    const categoryId = category.id || category._id;
+                                    const isSubOpen = activeCategory === categoryId;
+
+                                    return (
+                                        <div key={categoryId} className="flex flex-col border-b border-gray-50 pb-1 text-right">
+                                            <div className="flex flex-row items-center justify-between w-full p-2">
+                                                <StoreLink
+                                                    to={`/products?category=${encodeURIComponent(category.name)}`}
+                                                    state={{ categoryName: category.name }}
+                                                    onClick={toggleMobileMenu}
+                                                    className={`text-lg font-bold text-gray-700 transition-colors text-right flex-1`}
+                                                >
+                                                    {category.name}
+                                                </StoreLink>
+
+                                                {category.subcategories?.length > 0 && (
+                                                    <button
+                                                        onClick={(e) => {
+                                                            e.preventDefault();
+                                                            e.stopPropagation();
+                                                            setActiveCategory(isSubOpen ? null : categoryId);
+                                                        }}
+                                                        className={`p-2 text-gray-500 hover:text-primary transition-colors mr-auto ${isSubOpen ? 'text-primary' : ''}`}
+                                                        type="button"
+                                                    >
+                                                        <svg className={`w-5 h-5 transition-transform duration-200 ${isSubOpen ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7" /></svg>
+                                                    </button>
+                                                )}
+                                            </div>
+
+                                            {category.subcategories?.length > 0 && (
+                                                <div className={`transition-all duration-300 overflow-hidden pr-4 flex flex-col border-r-2 border-gray-100 mr-2 ${isSubOpen ? 'max-h-[500px] opacity-100 my-1' : 'max-h-0 opacity-0'}`}>
+                                                    {category.subcategories.map((sub) => (
+                                                        <StoreLink
+                                                            key={sub.id || sub._id}
+                                                            to={`/products?category=${encodeURIComponent(category.name)}&subcategory=${encodeURIComponent(sub.name)}`}
+                                                            state={{ categoryName: category.name }}
+                                                            onClick={toggleMobileMenu}
+                                                            className="p-2.5 text-sm text-gray-500 hover:text-primary transition-colors text-right"
+                                                        >
+                                                            {sub.name}
+                                                        </StoreLink>
+                                                    ))}
+                                                </div>
+                                            )}
+                                        </div>
+                                    );
+                                })}
+                            </div>
+                        </div>
+                    )}
                     {store?.features?.hasRepairLab && (
                         <StoreNavLink to="/repair-lab" onClick={toggleMobileMenu} className="text-xl font-black text-gray-900 p-2">מעבדת תיקונים</StoreNavLink>
                     )}

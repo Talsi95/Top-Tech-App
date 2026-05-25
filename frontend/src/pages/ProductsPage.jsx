@@ -15,7 +15,7 @@ import useStoreNavigate from '../hooks/useStoreNavigate';
  * Displays a list of products with advanced filtering and category selection capabilities.
  */
 const ProductsPage = ({ getToken, showNotification }) => {
-    const { store } = useStore();
+    const { store, categories, isLoadingCategories } = useStore();
     const location = useLocation();
     const isFullWidth = store?.features?.fullWidthCards;
     const [searchParams, setSearchParams] = useSearchParams();
@@ -34,9 +34,6 @@ const ProductsPage = ({ getToken, showNotification }) => {
     const [error, setError] = useState(null);
     const [dynamicSubcategories, setDynamicSubcategories] = useState([]);
 
-    const [allCategories, setAllCategories] = useState([]);
-    const [isLoadingCategories, setIsLoadingCategories] = useState(true);
-
     const [availableFilters, setAvailableFilters] = useState({});
     const [pageNum, setPageNum] = useState(1);
     const [hasMore, setHasMore] = useState(true);
@@ -48,8 +45,8 @@ const ProductsPage = ({ getToken, showNotification }) => {
     const selectedSubcategoryName = searchParams.get('subcategory');
 
     const relevantCategory = useMemo(() => {
-        return allCategories.find(cat => cat.name === selectedCategoryName);
-    }, [selectedCategoryName, allCategories]);
+        return categories.find(cat => cat.name === selectedCategoryName);
+    }, [selectedCategoryName, categories]);
 
     const activeFilters = useMemo(() => {
         const filters = {};
@@ -62,21 +59,6 @@ const ProductsPage = ({ getToken, showNotification }) => {
         }
         return filters;
     }, [searchParams]);
-
-    useEffect(() => {
-        const fetchAllCategories = async () => {
-            try {
-                const response = await axios.get(`${__API_URL__}/categories`);
-                setAllCategories(response.data);
-            } catch (err) {
-                console.error("Failed to fetch all categories data:", err);
-            } finally {
-                setIsLoadingCategories(false);
-            }
-        };
-
-        fetchAllCategories();
-    }, []);
 
     useEffect(() => {
         const fetchDynamicSubcategories = async () => {

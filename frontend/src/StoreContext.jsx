@@ -18,6 +18,8 @@ export const StoreProvider = ({ children, initialData = {} }) => {
     const [loading, setLoading] = useState(!ssrStore);
     const [error, setError] = useState(null);
     const [isMounted, setIsMounted] = useState(false);
+    const [categories, setCategories] = useState([]);
+    const [isLoadingCategories, setIsLoadingCategories] = useState(true);
     const location = useLocation();
     const navigate = useNavigate();
 
@@ -96,6 +98,24 @@ export const StoreProvider = ({ children, initialData = {} }) => {
 
     }, [slug, isStoreRoute, navigate, isMounted]);
 
+    useEffect(() => {
+        if (isStoreRoute && (!slug || !store)) return;
+
+        const fetchCategories = async () => {
+            setIsLoadingCategories(true);
+            try {
+                const { data } = await axios.get(`${__API_URL__}/categories`);
+                setCategories(data);
+            } catch (err) {
+                console.error("Error fetching categories:", err);
+            } finally {
+                setIsLoadingCategories(false);
+            }
+        };
+
+        fetchCategories();
+    }, [store, slug, isStoreRoute]);
+
     // If it's a store route but loading
     if (isMounted && isStoreRoute && loading) {
         return <div className="min-h-screen flex items-center justify-center">טוען נתוני חנות...</div>;
@@ -107,7 +127,7 @@ export const StoreProvider = ({ children, initialData = {} }) => {
 
 
     return (
-        <StoreContext.Provider value={{ store, slug, loading, setStore }}>
+        <StoreContext.Provider value={{ store, categories, isLoadingCategories, slug, loading, setStore }}>
             {children}
         </StoreContext.Provider>
     );

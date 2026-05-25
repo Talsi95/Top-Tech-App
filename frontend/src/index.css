@@ -19,7 +19,12 @@ body {
     color: #191c1e;
 }
 
-h1, h2, h3, h4, h5, h6 {
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
     font-family: var(--font-montserrat);
 }
 
@@ -34,4 +39,30 @@ h1, h2, h3, h4, h5, h6 {
     max-height: 500px;
     /* Adjust this value as needed */
     opacity: 1;
+}
+
+.text-scale-large {
+    font-size: 115%;
+}
+
+.text-scale-xlarge {
+    font-size: 125%;
+}
+
+.underline-links a {
+    text-decoration: underline !important;
+}
+
+.high-contrast {
+    --bg-surface: #000000;
+    --text-primary: #ffffff;
+    background-color: #000000 !important;
+    color: #ffffff !important;
+}
+
+.high-contrast button,
+.high-contrast a {
+    border: 2px solid #fff !important;
+    background-color: #000 !important;
+    color: #fff !important;
 }
