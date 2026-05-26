@@ -164,6 +164,10 @@ const StoreSettings = ({ showNotification }) => {
                         <label className="block text-sm font-bold text-gray-700 mb-2">דוא"ל</label>
                         <input type="email" value={formData.businessInfo?.email || ''} onChange={(e) => handleNestedChange('businessInfo', 'email', e.target.value)} className="w-full p-4 bg-white rounded-xl border border-gray-200 focus:border-primary outline-none" />
                     </div>
+                    <div>
+                        <label className="block text-sm font-bold text-gray-700 mb-2">מספר ח.פ</label>
+                        <input type="text" value={formData.businessInfo?.companyNumber || ''} onChange={(e) => handleNestedChange('businessInfo', 'companyNumber', e.target.value)} className="w-full p-4 bg-white rounded-xl border border-gray-200 focus:border-primary outline-none" />
+                    </div>
                 </div>
             </div>
 

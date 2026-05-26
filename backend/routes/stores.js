@@ -5,13 +5,15 @@ const {
     updateStore, 
     getAllStores, 
     createStore, 
-    deleteStore 
+    deleteStore,
+    getPublicStores
 } = require('../controllers/storeController');
 const { protect, admin, superAdmin } = require('../middleware/authMiddleware');
 const storeResolver = require('../middleware/storeResolver');
 
 router.get('/', protect, superAdmin, getAllStores);
 router.post('/', protect, superAdmin, createStore);
+router.get('/public-list', getPublicStores);
 router.get('/:slug', getStoreBySlug);
 // use storeResolver here because it's not applied to /api/stores in app.js
 router.put('/', storeResolver, protect, admin, updateStore);

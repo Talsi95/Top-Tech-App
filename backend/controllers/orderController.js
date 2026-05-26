@@ -76,6 +76,7 @@ const createOrder = async (req, res) => {
     try {
         const shouldCheckStock = req.store?.features?.showStock !== false;
 
+        const storeName = req.store?.name || 'החנות שלנו';
         const productIds = orderItems.map(item => item.product);
         const uniqueProductIds = [...new Set(productIds)];
 
@@ -115,10 +116,10 @@ const createOrder = async (req, res) => {
             // Extract variant attributes (excluding standard system fields)
             const standardFields = ['price', 'stock', 'imageUrl', 'imageUrls', 'isOnSale', 'salePrice', '_id', 'id', 'attributes', '__v'];
             const variantObj = variant.toObject ? variant.toObject() : variant;
-            const attributes = {};
+            const attributes = new Map();
             Object.keys(variantObj).forEach(key => {
                 if (!standardFields.includes(key)) {
-                    attributes[key] = variantObj[key];
+                    attributes.set(key, String(variantObj[key]));
                 }
             });
 
@@ -191,7 +192,8 @@ const createOrder = async (req, res) => {
 
         try {
             if (finalEmail) {
-                await sendOrderConfirmationEmail(finalEmail, createdOrder.toObject());
+                const populatedOrder = await Order.findById(createdOrder._id).populate('orderItems.product');
+                await sendOrderConfirmationEmail(finalEmail, populatedOrder.toObject(), req.store);
             } else {
                 console.warn("WARNING: Skipping email confirmation because finalEmail is missing.");
             }

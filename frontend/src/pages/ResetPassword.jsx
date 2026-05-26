@@ -1,7 +1,9 @@
 import { useState, useEffect } from 'react';
-import { useSearchParams, useNavigate } from 'react-router-dom';
+import { useSearchParams } from 'react-router-dom';
 import axios from 'axios';
 import useStoreNavigate from '../hooks/useStoreNavigate';
+import StoreLink from '../components/StoreLink';
+import { Lock, ShieldCheck, ChevronLeft, ArrowRight } from 'lucide-react';
 
 /**
  * ResetPassword Component.
@@ -15,13 +17,14 @@ const ResetPassword = () => {
     const [message, setMessage] = useState('');
     const [error, setError] = useState('');
     const [token, setToken] = useState(null);
+    const [isLoading, setIsLoading] = useState(false);
 
     useEffect(() => {
         const urlToken = searchParams.get('token');
         if (urlToken) {
             setToken(urlToken);
         } else {
-            setError('לא נמצא טוקן לאיפוס סיסמה. הקישור אינו תקין.');
+            setError('לא נמצא מפתח (Token) לאיפוס סיסמה. הקישור אינו תקין.');
         }
     }, [searchParams]);
 
@@ -35,7 +38,7 @@ const ResetPassword = () => {
         setError('');
 
         if (!token) {
-            setError('שגיאה: טוקן לא קיים. אנא נסה לשחזר את הסיסמה שוב.');
+            setError('שגיאה: מפתח איפוס חסר. אנא נסו לשחזר את הסיסמה שוב.');
             return;
         }
 
@@ -44,9 +47,10 @@ const ResetPassword = () => {
             return;
         }
 
+        setIsLoading(true);
         try {
             await axios.post(`${__API_URL__}/auth/reset-password`, { token, newPassword });
-            setMessage('הסיסמה אופסה בהצלחה! תועבר לדף ההתחברות בעוד מספר שניות...');
+            setMessage('הסיסמה אופסה בהצלחה! מועבר לדף ההתחברות...');
             setTimeout(() => {
                 navigate('/login');
             }, 3000);
@@ -56,58 +60,101 @@ const ResetPassword = () => {
             } else {
                 setError('שגיאה באיפוס הסיסמה. אנא נסה שנית מאוחר יותר.');
             }
+        } finally {
+            setIsLoading(false);
         }
     };
 
-    if (!token && !error) {
-        return (
-            <div className="flex justify-center items-center min-h-screen bg-gray-100 p-4">
-                <div className="bg-white p-8 rounded-lg shadow-md w-full max-w-md text-center">
-                    <p>טוען...</p>
-                </div>
-            </div>
-        );
-    }
-
     return (
-        <div className="flex justify-center items-center min-h-screen bg-gray-100 p-4">
-            <div className="bg-white p-8 rounded-lg shadow-md w-full max-w-md">
-                <h2 className="text-3xl font-bold mb-6 text-center">איפוס סיסמה</h2>
+        <div className="min-h-screen flex items-center justify-center bg-gray-50 px-6 py-20 relative overflow-hidden" dir="rtl">
+            {/* Background Decorative Elements */}
+            <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-primary/5 rounded-full blur-3xl -mr-64 -mt-64" />
+            <div className="absolute bottom-0 left-0 w-[500px] h-[500px] bg-primary/5 rounded-full blur-3xl -ml-64 -mb-64" />
 
-                <form onSubmit={handleSubmit}>
-                    <div className="mb-4">
-                        <label htmlFor="newPassword" className="block text-gray-700 font-semibold mb-2">סיסמה חדשה:</label>
-                        <input
-                            type="password"
-                            id="newPassword"
-                            value={newPassword}
-                            onChange={(e) => setNewPassword(e.target.value)}
-                            className="w-full px-4 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-sky-500"
-                            required
-                        />
-                    </div>
-                    <div className="mb-4">
-                        <label htmlFor="confirmPassword" className="block text-gray-700 font-semibold mb-2">אימות סיסמה:</label>
-                        <input
-                            type="password"
-                            id="confirmPassword"
-                            value={confirmPassword}
-                            onChange={(e) => setConfirmPassword(e.target.value)}
-                            className="w-full px-4 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-sky-500"
-                            required
-                        />
+            <div className="w-full max-w-[480px] animate-in fade-in slide-in-from-bottom-8 duration-700">
+                <div className="bg-white rounded-[3rem] shadow-[0_30px_80px_-15px_rgba(0,0,0,0.08)] border border-gray-50 p-10 lg:p-14 relative z-10 overflow-hidden">
+                    <div className="text-center mb-10">
+                        <h1 className="text-4xl font-black text-gray-900 tracking-tighter mb-3">איפוס סיסמה</h1>
+                        <p className="text-gray-400 font-medium">הגדר סיסמה חדשה ומאובטחת לחשבונך</p>
                     </div>
 
-                    {message && <p className="text-green-600 text-center mb-4">{message}</p>}
-                    {error && <p className="text-red-600 text-center mb-4">{error}</p>}
+                    {!token && error ? (
+                        <div className="space-y-6 text-center">
+                            <div className="bg-red-50 text-red-600 p-4 rounded-2xl font-bold text-sm">
+                                {error}
+                            </div>
+                            <StoreLink to="/forgot-password" className="inline-flex items-center gap-2 px-6 py-3 bg-gray-900 text-white rounded-xl font-bold shadow-md hover:bg-black transition-all">
+                                <span>בקש קישור חדש</span>
+                                <ChevronLeft size={16} />
+                            </StoreLink>
+                        </div>
+                    ) : (
+                        <form onSubmit={handleSubmit} className="space-y-6">
+                            <div className="space-y-2">
+                                <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest mr-4">סיסמה חדשה</label>
+                                <div className="relative group">
+                                    <Lock className="absolute right-5 top-1/2 -translate-y-1/2 text-gray-400 group-focus-within:text-primary transition-colors" size={20} />
+                                    <input
+                                        type="password"
+                                        required
+                                        value={newPassword}
+                                        onChange={(e) => setNewPassword(e.target.value)}
+                                        placeholder="••••••••"
+                                        className="w-full bg-gray-50 border border-gray-100 focus:border-primary focus:bg-white rounded-2xl py-4 pr-14 pl-6 outline-none font-bold text-gray-900 transition-all placeholder:text-gray-300"
+                                    />
+                                </div>
+                            </div>
 
-                    <button
-                        type="submit"
-                        className="w-full bg-sky-500 text-white font-bold py-2 px-4 rounded-md hover:bg-sky-600 transition-colors duration-300"
-                    >
-                        אפס סיסמה
-                    </button>
-                </form>
+                            <div className="space-y-2">
+                                <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest mr-4">אימות סיסמה</label>
+                                <div className="relative group">
+                                    <Lock className="absolute right-5 top-1/2 -translate-y-1/2 text-gray-400 group-focus-within:text-primary transition-colors" size={20} />
+                                    <input
+                                        type="password"
+                                        required
+                                        value={confirmPassword}
+                                        onChange={(e) => setConfirmPassword(e.target.value)}
+                                        placeholder="••••••••"
+                                        className="w-full bg-gray-50 border border-gray-100 focus:border-primary focus:bg-white rounded-2xl py-4 pr-14 pl-6 outline-none font-bold text-gray-900 transition-all placeholder:text-gray-300"
+                                    />
+                                </div>
+                            </div>
+
+                            {message && (
+                                <div className="bg-green-50 text-green-700 p-4 rounded-2xl font-bold text-center text-sm flex items-center justify-center gap-2">
+                                    <ShieldCheck className="w-5 h-5 shrink-0" />
+                                    <span>{message}</span>
+                                </div>
+                            )}
+
+                            {error && (
+                                <div className="bg-red-50 text-red-600 p-4 rounded-2xl font-bold text-center text-sm">
+                                    {error}
+                                </div>
+                            )}
+
+                            <button
+                                type="submit"
+                                disabled={isLoading}
+                                className="w-full py-5 bg-gray-900 text-white rounded-2xl font-black text-lg shadow-xl hover:bg-black active:scale-[0.98] transition-all flex items-center justify-center gap-3 disabled:bg-gray-200 disabled:text-gray-400 cursor-pointer"
+                            >
+                                {isLoading ? 'מעדכן סיסמה...' : (
+                                    <>
+                                        <span>אפס סיסמה</span>
+                                        <ChevronLeft size={20} />
+                                    </>
+                                )}
+                            </button>
+                        </form>
+                    )}
+
+                    <div className="mt-8 pt-8 border-t border-gray-50 text-center">
+                        <StoreLink to="/login" className="text-gray-400 hover:text-gray-900 text-sm font-bold flex items-center justify-center gap-2">
+                            <span>חזרה לדף ההתחברות</span>
+                            <ArrowRight size={16} />
+                        </StoreLink>
+                    </div>
+                </div>
             </div>
         </div>
     );

@@ -14,6 +14,7 @@ const storeSchema = new Schema({
         required: true,
         trim: true
     },
+    customDomain: { type: String, unique: true, sparse: true },
     businessInfo: {
         address: { type: String, default: '' },
         phone: { type: String, default: '' },
@@ -22,6 +23,7 @@ const storeSchema = new Schema({
         facebook: { type: String, default: '' },
         instagram: { type: String, default: '' },
         tiktok: { type: String, default: '' },
+        companyNumber: { type: String, default: '' },
     },
     design: {
         primaryColor: { type: String, default: '#4f46e5' }, // Default Indigo 600

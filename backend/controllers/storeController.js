@@ -89,10 +89,20 @@ const deleteStore = asyncHandler(async (req, res) => {
     }
 });
 
+// @desc    Get all public stores info
+// @route   GET /api/stores/public-list
+// @access  Public
+const getPublicStores = asyncHandler(async (req, res) => {
+    const stores = await Store.find({}, 'slug name design businessInfo');
+    res.json(stores);
+});
+
 module.exports = {
     getStoreBySlug,
     updateStore,
     getAllStores,
     createStore,
-    deleteStore
+    deleteStore,
+    getPublicStores
 };
+

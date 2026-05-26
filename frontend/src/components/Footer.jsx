@@ -111,7 +111,7 @@ const Footer = () => {
                     <p className="text-sm text-gray-300 font-medium">
                         &copy; {new Date().getFullYear()} {store?.name || "Top Tech"}. כל הזכויות שמורות.
                     </p>
-                    <p className="text-sm text-gray-300 font-medium">האתר פותח עוצב והונגש ע״י טלסי ווב - פיתוח אתרים</p>
+                    <p className="text-sm text-gray-300 font-medium">האתר פותח עוצב והונגש ע״י PowerDev - פיתוח אתרים</p>
                 </div>
             </div>
         </footer>

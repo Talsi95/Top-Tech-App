@@ -1,189 +1,54 @@
-const sgMail = require('@sendgrid/mail');
+// const sgMail = require('@sendgrid/mail');
+const { Resend } = require('resend');
 const PDFDocument = require('pdfkit');
 const path = require('path');
-const bidi = require('bidi-js');
+const bidiFactory = require('bidi-js');
+const bidi = bidiFactory();
 
-sgMail.setApiKey(process.env.SENDGRID_API_KEY);
+// sgMail.setApiKey(process.env.SENDGRID_API_KEY);
+const resend = new Resend(process.env.RESEND_API_KEY);
 
-// Path to the Hebrew font used for generating PDF invoices.
-const HEBREW_FONT_PATH = path.join(
-    __dirname,
-    '..',
-    'utils',
-    'fonts',
-    'Noto_Sans_Hebrew',
-    'NotoSansHebrew-VariableFont_wdth,wght.ttf'
-);
+const shippingMethodsHeaders = {
+    'pickup-business': 'איסוף מבית העסק',
+    'home-delivery': 'משלוח עד הבית',
+    'pickup-point': 'משלוח לנקודת איסוף'
+};
 
-/**
- * Reorders Hebrew text for RTL display in PDFs.
- * @param {string} text - The text to reorder.
- * @returns {string} The reordered RTL text.
- */
-const rtlText = (text) => {
-    if (!text) return '';
-
-    const bidiProcessor = (typeof bidi === 'function') ? bidi : bidi.get;
-
-    if (typeof bidiProcessor !== 'function') {
-        console.error("Bidi library initialization failed. Check 'bidi-js' installation and export path.");
-        return text;
-    }
-
-    try {
-        const result = bidiProcessor(text);
-        return result.reordered;
-    } catch (e) {
-        console.error("Bidi processing failed, returning original text.", e.message);
-        return text;
-    }
+const paymentMethodsHeaders = {
+    'credit-card': 'כרטיס אשראי',
+    'paypal': 'PayPal',
+    'bit': 'ביט',
+    'cash': 'מזומן'
 };
 
 /**
- * Converts a data stream to a Base64 string.
- * @param {Stream} stream - The data stream to convert.
- * @returns {Promise<string>} Base64 encoded string.
- */
-const streamToBase64 = (stream) => {
-    return new Promise((resolve, reject) => {
-        const chunks = [];
-        stream.on('data', (chunk) => chunks.push(chunk));
-        stream.on('error', reject);
-        stream.on('end', () => {
-            resolve(Buffer.concat(chunks).toString('base64'));
-        });
-    });
-};
-
-/**
- * Generates a PDF invoice for an order with RTL support for Hebrew.
- * @param {Object} orderDetails - The details of the order.
- * @returns {Promise<string>} Base64 encoded PDF content.
- */
-const generateOrderPdf = async (orderDetails) => {
-
-    const doc = new PDFDocument({ size: 'A4', margin: 50, rtl: true });
-
-    try {
-        doc.font(HEBREW_FONT_PATH);
-    } catch (e) {
-        console.error("Warning: Hebrew font file not found at path. Falling back to default font (may display squares).", e.message);
-    }
-
-    const total = orderDetails.totalPrice ? orderDetails.totalPrice.toFixed(2) : '0.00';
-    const totalTax = (orderDetails.totalPrice * 0.17).toFixed(2);
-    const subtotal = (orderDetails.totalPrice / 1.17).toFixed(2);
-    const shippingAddress = orderDetails.shippingAddress || {};
-
-
-    doc.fontSize(24).text(rtlText('הירקות שלי - חשבונית הזמנה'), { align: 'center' });
-    doc.moveDown(1.5);
-
-    doc.fontSize(12);
-
-    doc.text(rtlText(`תאריך הוצאה: ${new Date().toLocaleDateString('he-IL')}`), { align: 'right' });
-    doc.text(rtlText(`מספר הזמנה: ${orderDetails._id}`), { align: 'right' });
-
-    const addressLine = `${shippingAddress.city || 'לא ידוע'}, ${shippingAddress.street || 'לא ידוע'}`;
-    doc.text(rtlText(`כתובת: ${addressLine}`), { align: 'right' });
-
-    const shippingMethods = {
-        'pickup-business': 'איסוף מבית העסק',
-        'home-delivery': 'משלוח עד הבית',
-        'pickup-point': 'משלוח לנקודת איסוף'
-    };
-    const methodText = shippingMethods[orderDetails.shippingMethod] || orderDetails.shippingMethod || 'לא ידוע';
-    doc.text(rtlText(`שיטת משלוח: ${methodText} (₪${orderDetails.shippingPrice || 0})`), { align: 'right' });
-    doc.moveDown(2);
-
-
-    const tableTop = doc.y;
-    const itemGap = 220;
-    const priceGap = 80;
-    const qtyGap = 50;
-    const startX = 50;
-    const endX = 550;
-    const columnWidth = (endX - startX - qtyGap - priceGap * 2) / 1;
-
-    doc.fontSize(10);
-
-    doc.text(rtlText('סה"כ'), endX - priceGap, tableTop, { width: priceGap, align: 'left' });
-
-    doc.text(rtlText('מחיר ליחידה'), endX - priceGap - priceGap, tableTop, { width: priceGap, align: 'center' });
-
-    doc.text(rtlText('כמות'), endX - priceGap - priceGap - qtyGap, tableTop, { width: qtyGap, align: 'center' });
-
-    doc.text(rtlText('שם מוצר'), startX, tableTop, { width: columnWidth, align: 'right' });
-
-
-    doc.moveTo(startX, tableTop + 15).lineTo(endX, tableTop + 15).stroke();
-
-    let position = tableTop + 30;
-
-    orderDetails.orderItems.forEach(item => {
-        const itemName = item.product?.name || item.name || 'מוצר שנמחק';
-        const itemPrice = item.price ? item.price.toFixed(2) : '0.00';
-        const itemQuantity = item.quantity || 0;
-        const itemTotal = (parseFloat(itemPrice) * itemQuantity).toFixed(2);
-
-        const variantName = item.variantName ? ` (${item.variantName})` : '';
-
-        doc.fontSize(10);
-
-        doc.text(`₪${itemTotal}`, endX - priceGap, position, { width: priceGap, align: 'left' });
-
-        doc.text(`₪${itemPrice}`, endX - priceGap - priceGap, position, { width: priceGap, align: 'center' });
-
-        doc.text(itemQuantity.toString(), endX - priceGap - priceGap - qtyGap, position, { width: qtyGap, align: 'center' });
-
-        doc.text(rtlText(`${itemName}${variantName}`), startX, position, { width: columnWidth, align: 'right', lineBreak: false });
-
-
-        position += 20;
-        doc.moveDown(0.5);
-    });
-
-    doc.moveTo(startX, position).lineTo(endX, position).stroke();
-
-    doc.moveDown(1);
-    doc.fontSize(12).text(rtlText(`דמי משלוח: ₪${(orderDetails.shippingPrice || 0).toFixed(2)}`), { align: 'right' });
-    doc.text(rtlText(`סה"כ (ללא מע"מ): ₪${subtotal}`), { align: 'right' });
-    doc.text(rtlText(`מע"מ (17%): ₪${totalTax}`), { align: 'right' });
-
-    doc.moveDown(0.5);
-    doc.fontSize(14).font('Helvetica-Bold').text(rtlText(`סה"כ לתשלום: ₪${total}`), { align: 'right' });
-
-    doc.end();
-
-    return streamToBase64(doc);
-};
-
-
-/**
- * Sends a welcome email to a newly registered user.
+ * Sends a welcome email to a newly registered user, customized by store.
  * @param {string} userEmail - Recipient's email.
  * @param {string} username - Recipient's username.
+ * @param {string} storeName - The specific store name.
  */
-const sendRegistrationEmail = async (userEmail, username) => {
+const sendRegistrationEmail = async (userEmail, username, storeName = 'החנות שלנו') => {
     const msg = {
         to: userEmail,
         from: process.env.SENDER_EMAIL,
-        subject: 'אישור הרשמה לטופ טק',
+        subject: `אישור הרשמה - ${storeName}`,
         html: `
-      <div dir="rtl" style="text-align: right;">
-      <h2>ברוכים הבאים, ${username}!</h2>
-      <p>תודה שנרשמתם לאפליקציית טופ טק. חשבונכם נוצר בהצלחה.</p>
-      <p>עכשיו אתם יכולים להתחבר ולהתחיל לקנות ממוצרי הטכנולוגיה שלנו.</p>
-      <br/>
-      <p>בברכה,</p>
-      <p>הצוות של טופ טק</p>
+      <div dir="rtl" style="text-align: right; font-family: Arial, sans-serif; max-width: 600px; margin: auto; border: 1px solid #e2e8f0; padding: 20px; border-radius: 8px;">
+        <h2 style="color: #0f172a; border-bottom: 2px solid #f1f5f9; padding-bottom: 10px;">ברוכים הבאים, ${username}!</h2>
+        <p style="font-size: 15px; color: #334155; line-height: 1.6;">תודה שנרשמתם לפלטפורמת המסחר של <strong>${storeName}</strong>. החשבון שלכם נוצר בהצלחה.</p>
+        <p style="font-size: 15px; color: #334155; line-height: 1.6;">מעכשיו אתם יכולים להתחבר, לעקוב אחר הזמנות ולרכוש ממגוון המוצרים שלנו בצורה מהירה ומאובטחת.</p>
+        <br/>
+        <p style="font-size: 14px; color: #64748b; margin-top: 20px; border-top: 1px solid #f1f5f9; padding-top: 15px;">
+            בברכה,<br/>
+            צוות <strong>${storeName}</strong>
+        </p>
       </div>
     `,
     };
 
     try {
-        await sgMail.send(msg);
-        console.log('Registration email sent successfully to', userEmail);
+        await resend.emails.send(msg);
+        console.log(`Registration email sent successfully to ${userEmail} for store: ${storeName}`);
     } catch (error) {
         console.error('Failed to send registration email:', error.response ? error.response.body.errors : error);
     }
@@ -193,91 +58,221 @@ const sendRegistrationEmail = async (userEmail, username) => {
  * Sends a password reset link to the user's email.
  * @param {string} userEmail - Recipient's email.
  * @param {string} resetUrl - The password reset URL.
+ * @param {string} storeName - The specific store name.
  */
-const sendResetPasswordEmail = async (userEmail, resetUrl) => {
-    const msg = {
-        to: userEmail,
-        from: process.env.SENDER_EMAIL,
-        subject: 'איפוס סיסמה - טופ טק',
-        html: `
-            <div dir="rtl" style="text-align: right;">
-                <h2>שלום!</h2>
-                <p>קיבלנו בקשה לאיפוס הסיסמה לחשבון שלך.</p>
-                <p>כדי לאפס את הסיסמה שלך, אנא לחץ על הקישור הבא:</p>
-                <a href="${resetUrl}" style="display: inline-block; padding: 10px 20px; background-color: #007bff; color: white; text-decoration: none; border-radius: 5px;">
-                    אפס את הסיסמה
-                </a>
-                <p>אם לא ביקשת איפוס סיסמה, אנא התעלם ממייל זה.</p>
-                <p>הקישור תקף לשעה אחת בלבד.</p>
-                <br/>
-                <p>בברכה,</p>
-                <p>הצוות של טופ טק</p>
-            </div>
-        `,
-    };
-
+const sendResetPasswordEmail = async (userEmail, resetUrl, storeName = 'החנות שלנו') => {
     try {
-        await sgMail.send(msg);
-        console.log('Reset password email sent successfully to', userEmail);
+        await resend.emails.send({
+            from: process.env.SENDER_EMAIL,
+            to: userEmail,
+            subject: `איפוס סיסמה - ${storeName}`,
+            html: `
+                <div dir="rtl" style="text-align: right; font-family: Arial, sans-serif; max-width: 600px; margin: auto; border: 1px solid #e2e8f0; padding: 20px; border-radius: 8px;">
+                    <h2 style="color: #3b82f6; border-bottom: 2px solid #f1f5f9; padding-bottom: 10px;">בקשה לאיפוס סיסמה</h2>
+                    <p style="font-size: 15px; color: #334155;">שלום,</p>
+                    <p style="font-size: 15px; color: #334155; line-height: 1.6;">קיבלנו בקשה לאיפוס הסיסמה לחשבונך באתר <strong>${storeName}</strong>.</p>
+                    <div style="margin: 25px 0; text-align: center;">
+                        <a href="${resetUrl}" style="display: inline-block; padding: 12px 24px; background-color: #3b82f6; color: white; text-decoration: none; border-radius: 6px; font-weight: bold; font-size: 15px;">
+                            לחץ כאן לאיפוס הסיסמה
+                        </a>
+                    </div>
+                    <p style="font-size: 13px; color: #64748b;">אם לא ביקשת פעולה זו, ניתן להתעלם בבטחה מהמייל. הקישור תקף לשעה אחת בלבד.</p>
+                    <br/>
+                    <p style="font-size: 14px; color: #64748b; border-top: 1px solid #f1f5f9; padding-top: 15px;">בברכה,<br/>צוות <strong>${storeName}</strong></p>
+                </div>
+            `,
+        });
+        console.log(`Reset password email sent successfully via Resend to ${userEmail}`);
     } catch (error) {
-        console.error('Failed to send reset password email:', error.response ? error.response.body.errors : error);
+        console.error('Failed to send reset password email via Resend:', error);
         throw new Error('Failed to send email.');
     }
 };
 
 /**
- * Sends an order confirmation email including a PDF invoice attachment.
+ * Sends an order confirmation email containing full details dynamically from the schemas.
  * @param {string} userEmail - Recipient's email.
- * @param {Object} orderDetails - The details of the confirmed order.
+ * @param {Object} orderDetails - The full Order document from Mongoose.
+ * @param {Object|string} store - The store configuration object or name.
  */
-const sendOrderConfirmationEmail = async (userEmail, orderDetails) => {
+const sendOrderConfirmationEmail = async (userEmail, orderDetails, store = null) => {
     const orderId = orderDetails._id;
-    const total = orderDetails.totalPrice ? orderDetails.totalPrice.toFixed(2) : 'N/A';
+    const totalPrice = orderDetails.totalPrice ? orderDetails.totalPrice.toFixed(2) : '0.00';
+    const shippingPrice = orderDetails.shippingPrice ? orderDetails.shippingPrice.toFixed(2) : '0.00';
 
-    let pdfBase64;
-    try {
-        pdfBase64 = await generateOrderPdf(orderDetails);
-    } catch (e) {
-        console.error("Failed to generate PDF:", e);
-        pdfBase64 = null;
+    const totalNum = parseFloat(totalPrice);
+    const subtotal = (totalNum / 1.17).toFixed(2);
+    const tax = (totalNum - parseFloat(subtotal)).toFixed(2);
+
+    let storeName = 'החנות שלנו';
+    if (store) {
+        storeName = typeof store === 'string' ? store : (store.name || 'החנות שלנו');
     }
 
-    const emailBody = pdfBase64 ?
-        'פרטי ההזמנה המלאים וחשבונית רשמית מצורפים כקובץ PDF.' :
-        'הזמנתך אושרה. פרטים נוספים ניתן למצוא בחשבונך.';
+    const shippingAddress = orderDetails.shippingAddress || {};
+    const customerName = shippingAddress.fullName || orderDetails.user?.username || 'לקוח אורח';
+    const fullAddress = `${shippingAddress.street || ''}, ${shippingAddress.city || ''} ${shippingAddress.zipCode || ''}`;
+
+    const methodText = shippingMethodsHeaders[orderDetails.shippingMethod] || orderDetails.shippingMethod || 'משלוח';
+    const paymentText = paymentMethodsHeaders[orderDetails.paymentMethod] || orderDetails.paymentMethod || 'שולמו';
+
+    let itemsTableRows = '';
+    if (orderDetails.orderItems && orderDetails.orderItems.length > 0) {
+        orderDetails.orderItems.forEach((item) => {
+            const itemName = item.product?.name || item.name || 'מוצר';
+            const itemPrice = item.price ? item.price.toFixed(2) : '0.00';
+            const itemQty = item.quantity || 1;
+            const itemTotal = (item.price * itemQty).toFixed(2);
+
+            let detailsHtml = '';
+            if (item.attributes) {
+                const attrs = [];
+                const attributesObj = item.attributes.toObject ? item.attributes.toObject() : item.attributes;
+
+                if (attributesObj instanceof Map) {
+                    for (const [key, value] of attributesObj.entries()) {
+                        attrs.push(`<strong>${key}:</strong> ${value}`);
+                    }
+                } else {
+                    Object.keys(attributesObj).forEach(key => {
+                        attrs.push(`<strong>${key}:</strong> ${attributesObj[key]}`);
+                    });
+                }
+                if (attrs.length > 0) {
+                    detailsHtml += `<div style="font-size: 12px; color: #64748b; margin-top: 2px;">${attrs.join(', ')}</div>`;
+                }
+            }
+
+            if (item.selectedOptions && item.selectedOptions.length > 0) {
+                item.selectedOptions.forEach(opt => {
+                    const priceAddText = opt.priceAddition ? ` (+₪${opt.priceAddition.toFixed(2)})` : '';
+                    detailsHtml += `<div style="font-size: 12px; color: #475569; margin-top: 2px;">🎁 ${opt.name}: ${opt.choice}${priceAddText}</div>`;
+                });
+            }
+
+            itemsTableRows += `
+                <tr style="border-bottom: 1px solid #f1f5f9;">
+                    <td style="padding: 12px 8px; text-align: right; font-size: 14px; color: #1e293b;">
+                        <strong>${itemName}</strong>
+                        ${detailsHtml}
+                    </td>
+                    <td style="padding: 12px 8px; text-align: center; font-size: 14px; color: #334155;">${itemQty}</td>
+                    <td style="padding: 12px 8px; text-align: center; font-size: 14px; color: #334155;">₪${itemPrice}</td>
+                    <td style="padding: 12px 8px; text-align: left; font-size: 14px; color: #1e293b; font-weight: bold;">₪${itemTotal}</td>
+                </tr>
+            `;
+        });
+    }
+
+    const htmlContent = `
+        <div dir="rtl" style="text-align: right; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; max-width: 650px; margin: auto; border: 1px solid #e2e8f0; padding: 25px; border-radius: 12px; background-color: #ffffff; color: #334155;">
+            
+            <div style="text-align: center; margin-bottom: 20px;">
+                <h1 style="color: #0f172a; font-size: 24px; margin: 0; font-weight: 800;">${storeName}</h1>
+                <p style="color: #10b981; font-size: 16px; margin: 5px 0 0 0; font-weight: 600;">אישור הזמנה בהצלחה 🎉</p>
+            </div>
+            
+            <hr style="border: 0; border-top: 1px solid #f1f5f9; margin: 20px 0;" />
+
+            <p style="font-size: 16px; line-height: 1.5; color: #334155;">שלום <strong>${customerName}</strong>,</p>
+            <p style="font-size: 15px; line-height: 1.5; color: #475569;">תודה רבה שקנית אצלנו! שמחים לעדכן שההזמנה שלך התקבלה ומטופלת ברגעים אלו. הנה סיכום פרטי הרכישה שלך:</p>
+
+            <div style="background-color: #f8fafc; border-right: 4px solid #10b981; padding: 15px; border-radius: 6px; margin: 20px 0;">
+                <table style="width: 100%; border-collapse: collapse; font-size: 14px;">
+                    <tr>
+                        <td style="padding: 4px 0; color: #64748b;"><strong>מספר הזמנה:</strong></td>
+                        <td style="padding: 4px 0; text-align: left; color: #1e293b;">#${orderId}</td>
+                    </tr>
+                    <tr>
+                        <td style="padding: 4px 0; color: #64748b;"><strong>תאריך:</strong></td>
+                        <td style="padding: 4px 0; text-align: left; color: #1e293b;">${new Date(orderDetails.createdAt || Date.now()).toLocaleDateString('he-IL')}</td>
+                    </tr>
+                    <tr>
+                        <td style="padding: 4px 0; color: #64748b;"><strong>שיטת תשלום:</strong></td>
+                        <td style="padding: 4px 0; text-align: left; color: #1e293b;">${paymentText}</td>
+                    </tr>
+                </table>
+            </div>
+
+            <h3 style="color: #0f172a; font-size: 16px; margin: 20px 0 10px 0; border-bottom: 2px solid #f1f5f9; padding-bottom: 5px;">פרטי משלוח ויצירת קשר</h3>
+            <table style="width: 100%; border-collapse: collapse; font-size: 14px; margin-bottom: 25px;">
+                <tr>
+                    <td style="padding: 6px 0; color: #64748b; width: 120px;"><strong>שם מלא:</strong></td>
+                    <td style="padding: 6px 0; color: #1e293b;">${customerName}</td>
+                </tr>
+                <tr>
+                    <td style="padding: 6px 0; color: #64748b;"><strong>כתובת למשלוח:</strong></td>
+                    <td style="padding: 6px 0; color: #1e293b;">${fullAddress || 'איסוף עצמי'}</td>
+                </tr>
+                <tr>
+                    <td style="padding: 6px 0; color: #64748b;"><strong>טלפון:</strong></td>
+                    <td style="padding: 6px 0; color: #1e293b; direction: ltr; text-align: right;">${shippingAddress.phone || ''}</td>
+                </tr>
+                <tr>
+                    <td style="padding: 6px 0; color: #64748b;"><strong>סוג משלוח:</strong></td>
+                    <td style="padding: 6px 0; color: #1e293b;">${methodText}</td>
+                </tr>
+            </table>
+
+            <h3 style="color: #0f172a; font-size: 16px; margin: 20px 0 10px 0; border-bottom: 2px solid #f1f5f9; padding-bottom: 5px;">פירוט המוצרים</h3>
+            <table style="width: 100%; border-collapse: collapse; margin-bottom: 20px;">
+                <thead>
+                    <tr style="background-color: #f1f5f9;">
+                        <th style="padding: 10px 8px; text-align: right; font-size: 13px; color: #475569;">מוצר</th>
+                        <th style="padding: 10px 8px; text-align: center; font-size: 13px; color: #475569; width: 50px;">כמות</th>
+                        <th style="padding: 10px 8px; text-align: center; font-size: 13px; color: #475569; width: 90px;">מחיר יחידה</th>
+                        <th style="padding: 10px 8px; text-align: left; font-size: 13px; color: #475569; width: 80px;">סה"כ</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    ${itemsTableRows}
+                </tbody>
+            </table>
+
+            <div style="width: 250px; margin-right: auto; margin-left: 0; font-size: 14px;">
+                <table style="width: 100%; border-collapse: collapse;">
+                    <tr>
+                        <td style="padding: 4px 0; color: #64748b;">דמי משלוח:</td>
+                        <td style="padding: 4px 0; text-align: left; color: #1e293b;">₪${shippingPrice}</td>
+                    </tr>
+                    <tr>
+                        <td style="padding: 4px 0; color: #64748b;">לפני מע"מ:</td>
+                        <td style="padding: 4px 0; text-align: left; color: #1e293b;">₪${subtotal}</td>
+                    </tr>
+                    <tr>
+                        <td style="padding: 4px 0; color: #64748b;">מע"מ (17%):</td>
+                        <td style="padding: 4px 0; text-align: left; color: #1e293b;">₪${tax}</td>
+                    </tr>
+                    <tr style="border-top: 1px solid #e2e8f0;">
+                        <td style="padding: 10px 0; color: #0f172a; font-size: 16px;"><strong>סה"כ כולל מע"מ:</strong></td>
+                        <td style="padding: 10px 0; text-align: left; color: #10b981; font-size: 18px; font-weight: bold;">₪${totalPrice}</td>
+                    </tr>
+                </table>
+            </div>
+
+            <hr style="border: 0; border-top: 1px solid #f1f5f9; margin: 30px 0 20px 0;" />
+            
+            <p style="font-size: 13px; color: #94a3b8; text-align: center; margin: 0;">
+                מכתב זה מהווה אישור הזמנה בלבד. חשבונית מס רשמית תישלח בהמשך. קנייה מהנה!
+            </p>
+            <p style="font-size: 14px; color: #64748b; text-align: center; margin-top: 10px; font-weight: bold;">
+                צוות ${storeName}
+            </p>
+        </div>
+    `;
 
     const msg = {
         to: userEmail,
         from: process.env.SENDER_EMAIL,
-        subject: `✅ אישור הזמנה #${orderId} - טופ טק`,
-        html: `
-            <div dir="rtl" style="text-align: right; font-family: Arial, sans-serif; max-width: 600px; margin: auto;">
-                <h2 style="color: #4CAF50;">תודה רבה על הזמנתך!</h2>
-                <p>הזמנתך התקבלה בהצלחה.</p>
-                <p><strong>מספר הזמנה:</strong> ${orderId}</p>
-                <p><strong>סה"כ לתשלום:</strong> ₪${total}</p>
-                <p style="font-weight: bold;">${emailBody}</p>
-                
-                <hr style="border: none; border-top: 1px solid #eee; margin: 20px 0;">
-                
-                <p>בברכה,<br/>הצוות של טופ טק</p>
-            </div>
-        `,
-        attachments: pdfBase64 ? [
-            {
-                content: pdfBase64,
-                filename: `Invoice_Order_${orderId}.pdf`,
-                type: 'application/pdf',
-                disposition: 'attachment',
-            },
-        ] : [],
+        subject: `✅ אישור הזמנה #${orderId} - ${storeName}`,
+        html: htmlContent
     };
 
     try {
-        await sgMail.send(msg);
-        console.log(`Order confirmation email with PDF sent successfully to ${userEmail} (Order #${orderId})`);
+        await resend.emails.send(msg);
+        console.log(`Order confirmation email sent successfully to ${userEmail} (Store: ${storeName}, Order #${orderId})`);
     } catch (error) {
-        console.error('Failed to send order confirmation email:', error.response ? error.response.body.errors : error);
+        console.error('Failed to send order confirmation email:', error);
         throw error;
     }
 };
@@ -286,33 +281,36 @@ const sendOrderConfirmationEmail = async (userEmail, orderDetails) => {
  * Sends a one-time password (OTP) email for guest checkout verification.
  * @param {string} userEmail - Recipient's email.
  * @param {string} otp - The OTP code.
+ * @param {string} storeName - The name of the store.
  */
-const sendOTPEmail = async (userEmail, otp) => {
+const sendOTPEmail = async (userEmail, otp, storeName = 'החנות שלנו') => {
     const msg = {
         to: userEmail,
         from: process.env.SENDER_EMAIL,
-        subject: 'קוד אימות חד פעמי (OTP) - טופ טק',
+        subject: `קוד אימות חד פעמי (OTP) - ${storeName}`,
         html: `
-            <div dir="rtl" style="text-align: right; font-family: Arial, sans-serif; max-width: 600px; margin: auto;">
-                <h2 style="color: #007bff;">אימות הזמנה כאורח</h2>
-                <p>השתמש בקוד האימות החד-פעמי הבא כדי להשלים את ההזמנה שלך:</p>
-                <div style="background-color: #f0f0f0; padding: 15px; border-radius: 8px; text-align: center; margin: 20px 0;">
-                    <span style="font-size: 24px; font-weight: bold; color: #333;">${otp}</span>
+            <div dir="rtl" style="text-align: right; font-family: Arial, sans-serif; max-width: 600px; margin: auto; border: 1px solid #e2e8f0; padding: 20px; border-radius: 8px;">
+                <h2 style="color: #2563eb; border-bottom: 2px solid #f1f5f9; padding-bottom: 10px;">אימות הזמנה כאורח</h2>
+                <p style="font-size: 15px; color: #334155; line-height: 1.6;">הנך מבצע רכישה כאורח בחנות <strong>${storeName}</strong>. השתמש בקוד החד-פעמי הבא על מנת לאמת ולאשר סופית את העסקה:</p>
+                
+                <div style="background-color: #f1f5f9; padding: 18px; border-radius: 8px; text-align: center; margin: 25px 0; border: 1px dashed #cbd5e1;">
+                    <span style="font-size: 28px; font-weight: bold; color: #1e293b; letter-spacing: 2px;">${otp}</span>
                 </div>
-                <p>קוד זה תקף ל-10 דקות בלבד. אנא חזור לעמוד הקופה והכנס אותו.</p>
-                <p>אם לא ביקשת קוד זה, אנא התעלם ממייל זה.</p>
+                
+                <p style="font-size: 13px; color: #ef4444; font-weight: 500;">שים לב: קוד זה תקף ל-10 דקות בלבד. אנא הזן אותו במסך הקופה על מנת להשלים את התהליך.</p>
+                <p style="font-size: 13px; color: #64748b;">אם לא ביקשת קוד זה, אנא התעלם ממייל זה.</p>
                 <br/>
-                <p>בברכה,</p>
-                <p>הצוות של טופ טק</p>
+                <p style="font-size: 14px; color: #64748b; border-top: 1px solid #f1f5f9; padding-top: 15px;">
+                    בברכה,<br/>
+                    צוות <strong>${storeName}</strong>
+                </p>
             </div>
         `,
     };
 
     try {
         const response = await sgMail.send(msg);
-        console.log('OTP email sent successfully to', userEmail);
-        console.log('SendGrid Response (Status Code 202):', response[0].statusCode);
-        console.log('SendGrid Response Body (Headers):', response[0].headers);
+        console.log(`OTP email sent successfully to ${userEmail} for store: ${storeName}`);
     } catch (error) {
         console.error('Failed to send OTP email:', error.response ? error.response.body.errors : error);
         throw new Error('Failed to send OTP email.');
@@ -323,5 +321,5 @@ module.exports = {
     sendRegistrationEmail,
     sendResetPasswordEmail,
     sendOrderConfirmationEmail,
-    sendOTPEmail
+    sendOTPEmail,
 };

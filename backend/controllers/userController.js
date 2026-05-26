@@ -20,9 +20,31 @@ const register = async (req, res) => {
         const newUser = new User({ username, email, password, phone, storeId: req.storeId });
         await newUser.save();
 
-        const token = jwt.sign({ id: newUser._id, storeId: req.storeId, username: newUser.username, email: newUser.email, phone: newUser.phone, isAdmin: newUser.isAdmin, isSuperAdmin: newUser.isSuperAdmin }, process.env.JWT_SECRET, { expiresIn: '1h' });
+        await newUser.populate('storeId');
+        const storeName = newUser.storeId?.name || 'החנות שלנו';
 
-        res.status(201).json({ token });
+        const token = jwt.sign(
+            {
+                id: newUser._id,
+                storeId: req.storeId,
+                username: newUser.username,
+                email: newUser.email,
+                phone: newUser.phone,
+                isAdmin: newUser.isAdmin,
+                isSuperAdmin: newUser.isSuperAdmin
+            },
+            process.env.JWT_SECRET,
+            { expiresIn: '1h' }
+        );
+
+        try {
+            await sendRegistrationEmail(newUser.email, newUser.username, storeName);
+            console.log(`Registration email sent successfully for store: ${storeName}`);
+        } catch (emailErr) {
+            console.error('Failed to send registration email (non-blocking):', emailErr);
+        }
+
+        return res.status(201).json({ token });
 
     } catch (err) {
         if (err.code === 11000) {
@@ -31,15 +53,7 @@ const register = async (req, res) => {
             return res.status(400).json({ message: hebrewMessage });
         }
         console.error('Registration failed:', err);
-        res.status(400).json({ message: err.message });
-    }
-
-    try {
-        const { username, email } = req.body;
-        await sendRegistrationEmail(email, username);
-        console.log('Registration email sent successfully.');
-    } catch (emailErr) {
-        console.error('Failed to send registration email (non-blocking):', emailErr);
+        return res.status(400).json({ message: err.message });
     }
 };
 
@@ -81,14 +95,14 @@ const login = async (req, res) => {
     }
 
     const token = jwt.sign(
-        { 
-            id: user._id, 
-            storeId: user.isSuperAdmin ? (user.storeId || req.storeId) : req.storeId, 
-            username: user.username, 
-            email: user.email, 
-            phone: user.phone, 
-            isAdmin: user.isAdmin, 
-            isSuperAdmin: user.isSuperAdmin 
+        {
+            id: user._id,
+            storeId: user.isSuperAdmin ? (user.storeId || req.storeId) : req.storeId,
+            username: user.username,
+            email: user.email,
+            phone: user.phone,
+            isAdmin: user.isAdmin,
+            isSuperAdmin: user.isSuperAdmin
         },
         process.env.JWT_SECRET,
         { expiresIn: '7d' }
@@ -104,19 +118,31 @@ const login = async (req, res) => {
  * @param {Object} res - Express response object.
  */
 const forgotPassword = async (req, res) => {
-    const { email } = req.body;
+    try {
+        const { email } = req.body;
+        const user = await User.findOne({ email, storeId: req.storeId }).populate('storeId');
+        if (!user) {
+            return res.status(404).json({ message: 'לא נמצא חשבון תואם למייל הזה' });
+        }
 
-    const user = await User.findOne({ email, storeId: req.storeId });
-    if (!user) {
-        return res.status(200).json({ message: 'If a user with that email exists, a reset link has been sent.' });
+        const secret = process.env.JWT_SECRET + user.password;
+        const token = jwt.sign({ id: user._id }, secret, { expiresIn: '1h' });
+
+        const storeSlug = user.storeId?.slug;
+        const storeName = user.storeId?.name || 'החנות שלנו';
+        const resetUrl = `${process.env.FRONTEND_URL}/store/${storeSlug}/reset-password?token=${token}&id=${user._id}`;
+        await sendResetPasswordEmail(user.email, resetUrl, storeName);
+
+        return res.status(200).json({ message: 'קישור לאיפוס סיסמה נשלח לכתובת המייל שלך. אנא בדוק את תיבת הדואר הנכנס. (יש לבדוק בתיקיית ספאם)' });
+
+    } catch (error) {
+        if (error.response && error.response.body) {
+            console.error('Resend Detailed Error:', JSON.stringify(error.response.body, null, 2));
+        } else {
+            console.error('Error in forgotPassword:', error);
+        }
+        return res.status(500).json({ message: 'שגיאת שרת פנימית בתהליך איפוס הסיסמה.' });
     }
-
-    const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET, { expiresIn: '1h' });
-    const resetUrl = `${process.env.FRONTEND_URL}/reset-password?token=${token}`;
-
-    await sendResetPasswordEmail(user.email, resetUrl);
-
-    res.status(200).json({ message: 'Password reset email sent. Check your inbox.' });
 };
 
 /**
@@ -127,17 +153,28 @@ const forgotPassword = async (req, res) => {
 const resetPassword = async (req, res) => {
     const { token, newPassword } = req.body;
 
-    const decoded = jwt.verify(token, process.env.JWT_SECRET);
-    const user = await User.findById(decoded.id);
+    try {
+        const decodedPayload = jwt.decode(token);
+        if (!decodedPayload || !decodedPayload.id) {
+            return res.status(400).json({ message: 'טוקן לא תקין או פג תוקף.' });
+        }
 
-    if (!user) {
-        return res.status(400).json({ message: 'Invalid or expired token.' });
+        const user = await User.findById(decodedPayload.id);
+        if (!user) {
+            return res.status(400).json({ message: 'המשתמש לא נמצא.' });
+        }
+
+        const secret = process.env.JWT_SECRET + user.password;
+        jwt.verify(token, secret);
+
+        user.password = newPassword;
+        await user.save();
+
+        res.status(200).json({ message: 'הסיסמה אופסה בהצלחה.' });
+    } catch (err) {
+        console.error("Reset password verification failed:", err);
+        return res.status(400).json({ message: 'הקישור לאיפוס סיסמה פג תוקף או שאינו תקין.' });
     }
-
-    user.password = newPassword;
-    await user.save();
-
-    res.status(200).json({ message: 'Password has been reset successfully.' });
 };
 
 /**
