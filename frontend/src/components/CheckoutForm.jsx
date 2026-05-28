@@ -1,24 +1,8 @@
 import { useState, useEffect } from 'react';
 import useStoreNavigate from '../hooks/useStoreNavigate';
-import { useStripe, useElements, CardElement } from '@stripe/react-stripe-js';
 import axios from 'axios';
 import { useAuth } from '../AuthContext';
 import { useStore } from '../StoreContext';
-
-const CARD_ELEMENT_OPTIONS = {
-    style: {
-        base: {
-            fontSize: '16px',
-            color: '#424770',
-            '::placeholder': {
-                color: '#aab7c4',
-            },
-        },
-        invalid: {
-            color: '#9e2146',
-        },
-    },
-};
 
 /**
  * CheckoutForm Component.
@@ -34,9 +18,6 @@ const CheckoutForm = ({ cartItems, showNotification, onOrderComplete, guestToken
     const navigate = useStoreNavigate();
     const { user, isGuest, getToken, logout } = useAuth();
     const { store } = useStore();
-
-    const stripe = useStripe();
-    const elements = useElements();
 
     const [formData, setFormData] = useState({
         fullName: !isGuest ? user?.username : '',
@@ -161,32 +142,23 @@ const CheckoutForm = ({ cartItems, showNotification, onOrderComplete, guestToken
         const totalPrice = totalToDisplay;
         let paymentToken = null;
 
-        if (formData.paymentMethod === 'credit-card') {
-            if (!stripe || !elements) {
-                setPaymentError("מערכת התשלומים אינה מוכנה עדיין.");
-                setIsProcessing(false);
-                return;
-            }
-
-            const cardElement = elements.getElement(CardElement);
-
-            const { error, token } = await stripe.createToken(cardElement);
-
-            if (error) {
-                setPaymentError(error.message);
-                setIsProcessing(false);
-                return;
-            }
-            paymentToken = token.id;
-        }
 
         const orderData = {
-            orderItems: cartItems.map(item => ({
-                product: item.product._id,
-                variant: item.variant ? item.variant._id : null,
-                quantity: item.quantity,
-                selectedOptions: item.selectedOptions || []
-            })),
+            orderItems: cartItems.map(item => {
+                const regularPrice = item.variant?.price ?? item.product?.price ?? 0;
+                const salePrice = item.variant?.salePrice;
+                const isOnSale = item.variant?.isOnSale;
+                const itemPrice = isOnSale && salePrice && salePrice > 0 ? salePrice : regularPrice;
+                const optionsTotal = item.optionsTotal || 0;
+
+                return {
+                    product: item.product._id,
+                    variant: item.variant ? item.variant._id : null,
+                    quantity: item.quantity,
+                    price: itemPrice + optionsTotal,
+                    selectedOptions: item.selectedOptions || []
+                };
+            }),
             shippingAddress: {
                 fullName: formData.fullName,
                 street: formData.street,
@@ -198,35 +170,51 @@ const CheckoutForm = ({ cartItems, showNotification, onOrderComplete, guestToken
             shippingPrice: shippingCost,
             paymentMethod: formData.paymentMethod,
             totalPrice: totalPrice,
-            paymentToken: paymentToken,
+            paymentToken: null,
         };
+        try {
+            const result = await onOrderComplete(orderData, authToken);
 
-        const result = await onOrderComplete(orderData, authToken);
+            if (result.success) {
+                const serverData = result.data;
 
-        if (result.success) {
-            showNotification('הזמנה בוצעה בהצלחה', 'success');
+                if (formData.paymentMethod === 'credit-card' && serverData.forwardToPayment) {
+                    setIsProcessing(false);
+                    if (isGuest && authToken) {
+                        localStorage.setItem('guestTokenForOrder', authToken);
+                    }
+                    if (store?.slug) {
+                        localStorage.setItem('currentStoreSlug', store.slug);
+                    }
+                    window.location.href = serverData.paymentUrl;
+                    return;
+                }
 
-            const isGuest = !!guestToken;
-            const orderId = result.orderId;
+                setIsProcessing(false);
+                showNotification('הזמנה בוצעה בהצלחה', 'success');
 
+                if (onOrderComplete) {
+                    onOrderComplete(serverData._id);
+                }
 
-            navigate(`/order-confirmation/${orderId}`, {
-                state: { guestToken: authToken }
-            });
-            if (isGuest) {
-                logout();
+                navigate(`/order-confirmation/${serverData._id}`);
+            } else {
+                setIsProcessing(false);
             }
 
-        } else {
-            showNotification(result.message || 'הזמנה נכשלה. נסה שוב.', 'error');
+        } catch (error) {
+            setIsProcessing(false);
+            const errorMessage = error.response?.data?.message || error.message || 'שגיאה בעיבוד ההזמנה';
+            setPaymentError(errorMessage);
+            showNotification(errorMessage, 'error');
         }
 
-        setIsProcessing(false);
+
     };
 
     const isFormIncomplete = !formData.fullName || !formData.street || !formData.city || !formData.phone || !formData.email || !formData.paymentMethod || !formData.shippingMethod;
 
-    const isDisabled = isFormIncomplete || isProcessing || (formData.paymentMethod === 'credit-card' && !stripe);
+    const isDisabled = isFormIncomplete || isProcessing;
 
     return (
         <div className="w-full mx-auto py-12" dir="rtl">
@@ -342,19 +330,19 @@ const CheckoutForm = ({ cartItems, showNotification, onOrderComplete, guestToken
                                 <select name="paymentMethod" value={formData.paymentMethod} onChange={handleChange}
                                     className="w-full p-3 bg-surface-container border-none rounded-xl focus:ring-2 focus:ring-primary transition-all outline-none font-medium appearance-none">
                                     <option value="">בחר שיטת תשלום...</option>
-                                    <option value="credit-card">💳 כרטיס אשראי (Stripe)</option>
+                                    <option value="credit-card">💳 כרטיס אשראי</option>
                                     <option value="cash">💵 מזומן (תשלום במקום)</option>
                                 </select>
                             </div>
 
-                            {formData.paymentMethod === 'credit-card' && (
+                            {/* {formData.paymentMethod === 'credit-card' && (
                                 <div className="p-4 bg-surface-container rounded-xl border border-gray-200">
                                     <label className="block text-xs font-bold text-gray-500 uppercase mb-3 mr-1">פרטי כרטיס אשראי</label>
                                     <div className="bg-white p-3 rounded-lg border border-gray-100">
                                         <CardElement options={CARD_ELEMENT_OPTIONS} />
                                     </div>
                                 </div>
-                            )}
+                            )} */}
 
                             {paymentError && (
                                 <div className="p-3 bg-red-50 text-red-500 text-sm rounded-xl text-center font-medium border border-red-100">

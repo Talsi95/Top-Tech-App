@@ -6,7 +6,7 @@ const asyncHandler = require('../middleware/asyncHandler');
 // @access  Public
 const getStoreBySlug = asyncHandler(async (req, res) => {
     const store = await Store.findOne({ slug: req.params.slug });
-    
+
     if (store) {
         res.json(store);
     } else {
@@ -21,7 +21,7 @@ const getStoreBySlug = asyncHandler(async (req, res) => {
 const updateStore = asyncHandler(async (req, res) => {
     // req.storeId from storeResolver
     const store = await Store.findById(req.storeId);
-    
+
     if (store) {
         store.name = req.body.name || store.name;
         store.businessInfo = req.body.businessInfo || store.businessInfo;
@@ -31,7 +31,7 @@ const updateStore = asyncHandler(async (req, res) => {
         store.homePageConfig = req.body.homePageConfig || store.homePageConfig;
         store.gallery = req.body.gallery || store.gallery;
         store.shippingOptions = req.body.shippingOptions !== undefined ? req.body.shippingOptions : store.shippingOptions;
-
+        store.paymentSettings = req.body.paymentSettings || store.paymentSettings;
         const updatedStore = await store.save();
         res.json(updatedStore);
     } else {

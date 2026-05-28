@@ -35,14 +35,14 @@ const CheckoutPage = ({ cartItems, showNotification, onOrderComplete }) => {
 
 
 
-    if (!cartItems || cartItems.length === 0) {
-        return (
-            <div className="text-center p-12 mt-10 bg-white rounded-lg shadow-lg">
-                <h1 className="text-3xl font-bold text-gray-800 mb-4">העגלה שלך ריקה</h1>
-                <p className="text-gray-600">אנא הוסף מוצרים לעגלה לפני המעבר לקופה.</p>
-            </div>
-        );
-    }
+    // if (!cartItems || cartItems.length === 0) {
+    //     return (
+    //         <div className="text-center p-12 mt-10 bg-white rounded-lg shadow-lg">
+    //             <h1 className="text-3xl font-bold text-gray-800 mb-4">העגלה שלך ריקה</h1>
+    //             <p className="text-gray-600">אנא הוסף מוצרים לעגלה לפני המעבר לקופה.</p>
+    //         </div>
+    //     );
+    // }
 
     const guestToken = localStorage.getItem('guestToken');
 

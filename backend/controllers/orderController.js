@@ -1,7 +1,9 @@
 const Order = require('../models/order');
 const Product = require('../models/product');
+const mongoose = require('mongoose');
 const { sendOrderConfirmationEmail } = require('../services/emailService');
 const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
+const axios = require('axios');
 
 /**
  * Rolls back stock levels for items in a failed order.
@@ -25,8 +27,6 @@ const rollbackStock = async (orderItems) => {
     }
     console.log("Stock rollback complete.");
 };
-
-
 /**
  * Creates a new order, handles payment (via Stripe), and updates stock levels.
  * Supports registered users and guest orders (via token or OTP).
@@ -141,32 +141,10 @@ const createOrder = async (req, res) => {
             Object.values(productMap).map(p => p.save())
         );
 
-
-        if (paymentMethod === 'credit-card' && paymentToken) {
-            const charge = await stripe.charges.create({
-                amount: amountInCents,
-                currency: 'ils',
-                source: paymentToken,
-                description: `Order from ${userId ? 'user' : 'guest'} ${userId || finalEmail}`,
-                metadata: {
-                    user_id: userId || 'Guest',
-                    order_total: totalPrice.toFixed(2)
-                }
-            });
-
-            isPaid = true;
-            paymentResult = {
-                id: charge.id,
-                status: charge.status,
-                update_time: charge.created,
-                email_address: finalEmail || 'N/A'
-            };
-
-        } else if (paymentMethod === 'credit-card' && !paymentToken) {
-            throw new Error("Missing payment token for credit card transaction.");
-        }
+        const orderId = new mongoose.Types.ObjectId();
 
         const order = new Order({
+            _id: orderId,
             storeId: req.storeId,
             user: userId,
             isGuestOrder: isGuestOrder,
@@ -185,6 +163,54 @@ const createOrder = async (req, res) => {
             paidAt: isPaid ? Date.now() : null,
             paymentResult: paymentResult
         });
+
+        if (paymentMethod === 'credit-card') {
+            const paymentSettings = req.store?.paymentSettings;
+            const { username, password, apiKey } = paymentSettings?.hyp || {};
+
+            if (!username || !password || !apiKey) {
+                throw new Error("פרטי מסוף ה-Hyp של החנות חסרים או לא הוגדרו כראוי במערכת.");
+            }
+
+            const hypApiUrl = 'https://pay.hyp.co.il/p/';
+            const storeSlug = req.store.slug || 'default';
+
+            const successUrl = `${req.headers.origin}/store/${storeSlug}/order-confirmation/${orderId}?status=success&CCode=0`;
+            const failureUrl = `${req.headers.origin}/store/${storeSlug}/checkout?status=failed&orderId=${orderId}`;
+
+            const payload = {
+                action: 'APISign',
+                What: 'SIGN',
+                Sign: 'True',
+                Masof: '0086218126',
+                KEY: apiKey,
+                PassP: password,
+                Amount: totalPrice.toString(),
+                Order: orderId.toString(),
+                Coin: '1',
+                PageLang: 'HEB',
+                UTF8: 'True',
+                success_url: successUrl,
+                error_url: failureUrl
+            };
+
+            const params = new URLSearchParams(payload);
+            const hypResponse = await axios.get(`${hypApiUrl}?${params.toString()}`);
+            const responseData = hypResponse.data;
+
+            if (responseData && responseData.includes('signature=')) {
+                const paymentPageUrl = `${hypApiUrl}?${responseData}`;
+
+                await order.save();
+
+                return res.status(201).json({
+                    forwardToPayment: true,
+                    paymentUrl: paymentPageUrl
+                });
+            } else {
+                throw new Error(`שרת הסליקה דחה את הפקת החתימה. תגובה: ${responseData}`);
+            }
+        }
 
         const createdOrder = await order.save();
 
@@ -206,14 +232,16 @@ const createOrder = async (req, res) => {
     } catch (err) {
         const shouldCheckStock = req.store?.features?.showStock !== false;
 
-        if (shouldCheckStock && (paymentMethod === 'credit-card' && err.type === 'StripeCardError' || err.type === 'StripeInvalidRequestError' || err.message.includes('token'))) {
-            console.log("Payment failed. Initiating stock rollback.");
-            await rollbackStock(orderItems);
+        const currentPaymentMethod = req.body?.paymentMethod;
+
+        if (shouldCheckStock && currentPaymentMethod === 'credit-card') {
+            console.log("Payment flow failed or interrupted. Initiating stock rollback.");
+            if (req.body?.orderItems) await rollbackStock(req.body.orderItems);
         } else if (err.message.includes('stock') || err.message.includes('not found')) {
             console.log("Validation failure. No rollback needed.");
         }
 
-        const statusCode = (err.message.includes('stock') || err.message.includes('not found') || err.message.includes('token') || err.type) ? 400 : 500;
+        const statusCode = (err.message.includes('stock') || err.message.includes('not found') || err.message.includes('token') || err.type || err.isAxiosError) ? 400 : 500;
 
         console.error(`Order processing failed: ${err.message}`);
         res.status(statusCode).json({ message: err.message });
@@ -232,8 +260,16 @@ const getAllOrders = async (req, res) => {
         const limit = parseInt(req.query.limit) || 20;
         const skip = (page - 1) * limit;
 
-        const totalOrders = await Order.countDocuments({ storeId: req.storeId });
-        const orders = await Order.find({ storeId: req.storeId })
+        const query = {
+            storeId: req.storeId,
+            $or: [
+                { paymentMethod: { $ne: 'credit-card' } },
+                { isPaid: true }
+            ]
+        };
+
+        const totalOrders = await Order.countDocuments(query);
+        const orders = await Order.find(query)
             .populate('user', 'username email')
             .populate({
                 path: 'orderItems.product',
@@ -285,10 +321,10 @@ const getAllOrders = async (req, res) => {
 const guestOrder = async (req, res) => {
     try {
         const orderId = req.params.orderId;
+        const { status, CCode } = req.query;
 
         const order = await Order.findOne({ _id: orderId, storeId: req.storeId })
-            .populate('orderItems.product', 'name price imageUrl variants')
-            .lean();
+            .populate('orderItems.product', 'name price imageUrl variants');
 
         if (!order) {
             return res.status(404).json({ message: 'הזמנה לא נמצאה.' });
@@ -300,6 +336,23 @@ const guestOrder = async (req, res) => {
         if (isGuest) {
             if (!order.guestToken || order.guestToken !== tokenFromHeader) {
                 return res.status(403).json({ message: 'אין הרשאה לצפות בהזמנה זו.' });
+            }
+        }
+
+        if (order.paymentMethod === 'credit-card' && !order.isPaid && status === 'success' && CCode === '0') {
+            order.isPaid = true;
+            order.paidAt = Date.now();
+            order.isUnseen = true;
+
+            await order.save();
+
+            if (order.shippingAddress?.email) {
+                try {
+                    const populatedOrder = await Order.findById(order._id).populate('orderItems.product');
+                    await sendOrderConfirmationEmail(order.shippingAddress.email, populatedOrder.toObject(), req.store);
+                } catch (e) {
+                    console.error("Email failed", e.message);
+                }
             }
         }
 
@@ -318,7 +371,16 @@ const guestOrder = async (req, res) => {
  */
 const getNewOrders = async (req, res) => {
 
-    const orders = await Order.find({ isUnseen: true, storeId: req.storeId })
+    const query = {
+        storeId: req.storeId,
+        isUnseen: true,
+        $or: [
+            { paymentMethod: { $ne: 'credit-card' } },
+            { isPaid: true }
+        ]
+    };
+
+    const orders = await Order.find(query)
         .populate('user', 'username email')
         .populate({
             path: 'orderItems.product',

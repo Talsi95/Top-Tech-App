@@ -25,6 +25,21 @@ const storeSchema = new Schema({
         tiktok: { type: String, default: '' },
         companyNumber: { type: String, default: '' },
     },
+    paymentSettings: {
+        provider: {
+            type: String,
+            enum: ['stripe', 'hyp', 'none'],
+            default: 'none'
+        },
+        hyp: {
+            dirName: { type: String, default: '' },
+            username: { type: String, default: '' },
+            password: { type: String, default: '' },
+            apiKey: { type: String, default: '' },
+            isSandbox: { type: Boolean, default: true }
+        },
+        stripeKey: { type: String, default: '' } // משאירים למקרה שתצטרך בעתיד
+    },
     design: {
         primaryColor: { type: String, default: '#4f46e5' }, // Default Indigo 600
         secondaryColor: { type: String, default: '#1f2937' }, // Default Gray 800

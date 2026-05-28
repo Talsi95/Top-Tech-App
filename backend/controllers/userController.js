@@ -187,11 +187,17 @@ const profile = async (req, res) => {
         if (req.user.isGuest) {
             const guestEmail = req.user.email;
 
-            const orders = await Order.find({
+            const query = {
                 "shippingAddress.email": guestEmail,
                 isGuestOrder: true,
-                storeId: req.storeId
-            }).populate('orderItems.product');
+                storeId: req.storeId,
+                $or: [
+                    { paymentMethod: { $ne: 'credit-card' } },
+                    { isPaid: true }
+                ]
+            };
+
+            const orders = await Order.find(query).populate('orderItems.product');
 
             return res.json({
                 username: 'אורח',
@@ -207,7 +213,16 @@ const profile = async (req, res) => {
             return res.status(404).json({ message: 'User not found' });
         }
 
-        const orders = await Order.find({ user: req.user.id, storeId: req.storeId })
+        const query = {
+            user: req.user.id,
+            storeId: req.storeId,
+            $or: [
+                { paymentMethod: { $ne: 'credit-card' } },
+                { isPaid: true }
+            ]
+        };
+
+        const orders = await Order.find(query)
             .populate({
                 path: 'orderItems.product',
                 model: 'Product',

@@ -12,7 +12,7 @@ const useCart = (isAuthenticated, getToken, showNotification) => {
   const { store } = useStore();
   const storeSlug = store?.slug || 'default';
   const cartStorageKey = `cartItems_${storeSlug}`;
-  
+
   const [cartItems, setCartItems] = useState([]);
 
   const isGuestUser = useCallback(() => {
@@ -153,9 +153,9 @@ const useCart = (isAuthenticated, getToken, showNotification) => {
       if (isItemInCart) {
         newCart = prevItems.map((item) =>
           item.product &&
-          item.product._id === product._id &&
-          item.variant?._id === variant._id &&
-          (item.optionsKey || '[]') === optionsKey
+            item.product._id === product._id &&
+            item.variant?._id === variant._id &&
+            (item.optionsKey || '[]') === optionsKey
             ? { ...item, quantity: item.quantity + 1 }
             : item
         );
@@ -227,15 +227,24 @@ const useCart = (isAuthenticated, getToken, showNotification) => {
       const response = await axios.post(`${__API_URL__}/orders`, orderData, {
         headers: { Authorization: `Bearer ${tokenToUse}` },
       });
-      setCartItems([]);
-      await saveCart([]);
-      return { success: true, orderId: response.data._id };
+
+      if (!response.data.forwardToPayment) {
+        setCartItems([]);
+        await saveCart([]);
+      }
+
+      return { success: true, data: response.data };
     } catch (error) {
       const errorMessage = error.response ? error.response.data.message : error.message;
       showNotification(`שגיאה: ${errorMessage}`, 'error');
       return { success: false, message: errorMessage };
     }
   }, [getToken, saveCart, showNotification]);
+
+  const clearCart = useCallback(async () => {
+    setCartItems([]);
+    await saveCart([]);
+  }, [saveCart]);
 
   // Derived state for the UI.
   const cartItemsCount = cartItems.reduce((total, item) => total + item.quantity, 0);
@@ -262,7 +271,8 @@ const useCart = (isAuthenticated, getToken, showNotification) => {
     handleCreateOrder,
     cartItemsCount,
     totalPrice,
-    saveCart
+    saveCart,
+    clearCart
   };
 };
 

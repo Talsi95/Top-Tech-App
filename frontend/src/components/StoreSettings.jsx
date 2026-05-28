@@ -18,7 +18,19 @@ const StoreSettings = ({ showNotification }) => {
 
     useEffect(() => {
         if (store) {
-            setFormData({ ...store });
+            setFormData({
+                ...store,
+                paymentSettings: {
+                    provider: store.paymentSettings?.provider || 'none',
+                    hyp: {
+                        dirName: store.paymentSettings?.hyp?.dirName || '',
+                        username: store.paymentSettings?.hyp?.username || '',
+                        password: store.paymentSettings?.hyp?.password || '',
+                        apiKey: store.paymentSettings?.hyp?.apiKey || '',
+                        isSandbox: store.paymentSettings?.hyp?.isSandbox !== false
+                    }
+                }
+            });
             const url = store.homePageConfig?.mediaUrls?.[0] || '';
             setHeroVideoMode(url.includes('cloudinary.com') ? 'file' : 'link');
         }
@@ -36,6 +48,34 @@ const StoreSettings = ({ showNotification }) => {
 
     const handleFeatureChange = (field, value) => {
         handleNestedChange('features', field, value);
+    };
+
+    const handlePaymentSettingsChange = (field, value, isHypField = false) => {
+        setFormData(prev => {
+            const currentSettings = prev.paymentSettings || { provider: 'none', hyp: {} };
+            const currentHyp = currentSettings.hyp || { dirName: '', username: '', password: '', apiKey: '', isSandbox: true };
+
+            if (isHypField) {
+                return {
+                    ...prev,
+                    paymentSettings: {
+                        ...currentSettings,
+                        hyp: {
+                            ...currentHyp,
+                            [field]: value
+                        }
+                    }
+                };
+            }
+
+            return {
+                ...prev,
+                paymentSettings: {
+                    ...currentSettings,
+                    [field]: value
+                }
+            };
+        });
     };
 
     const handleHeroVideoFileChange = async (e) => {
@@ -652,6 +692,99 @@ const StoreSettings = ({ showNotification }) => {
                         })
                     )}
                 </div>
+            </div>
+
+            {/* הגדרות סליקה ותשלומים */}
+            <div className="p-6 bg-white rounded-3xl border border-gray-100 shadow-sm space-y-6">
+                <div className="flex items-center gap-3 border-b border-gray-50 pb-4">
+                    <div className="p-2.5 bg-green-50 text-green-600 rounded-xl">
+                        <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" />
+                        </svg>
+                    </div>
+                    <div>
+                        <h3 className="text-xl font-black text-gray-800">הגדרות סליקה ותשלומים</h3>
+                        <p className="text-sm text-gray-400">בחר ספק סליקה והזן את מפתחות ה-API של החנות</p>
+                    </div>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div className="flex flex-col gap-2">
+                        <label className="text-sm font-bold text-gray-600">ספק סליקה פעיל</label>
+                        <select
+                            value={formData.paymentSettings?.provider || 'none'}
+                            onChange={(e) => handlePaymentSettingsChange('provider', e.target.value)}
+                            className="p-4 bg-gray-50 rounded-2xl border-none focus:ring-2 focus:ring-primary font-medium"
+                        >
+                            <option value="none">ללא סליקה (מזומן / איסוף בלבד)</option>
+                            <option value="hyp">Hyp (הייפ / Comax / YaPay)</option>
+                            <option value="stripe">Stripe</option>
+                        </select>
+                    </div>
+                </div>
+
+                {/* שדות ספציפיים עבור HYP */}
+                {formData.paymentSettings?.provider === 'hyp' && (
+                    <div className="p-5 bg-gray-50 rounded-2xl border border-gray-100 space-y-4 animate-fadeIn">
+                        <h4 className="font-bold text-gray-700 mb-2">פרטי מסוף Hyp (סביבת בדיקות/פרודקשן)</h4>
+
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                            <div className="flex flex-col gap-2">
+                                <label className="text-xs font-bold text-gray-500">מתחם זיהוי (masof)</label>
+                                <input
+                                    type="text"
+                                    value={formData.paymentSettings?.hyp?.dirName || ''}
+                                    onChange={(e) => handlePaymentSettingsChange('dirName', e.target.value, true)}
+                                    placeholder="הזן מספר מסוף / מתחם"
+                                    className="p-3 bg-white rounded-xl border border-gray-200 focus:ring-2 focus:ring-primary font-medium"
+                                />
+                            </div>
+                            <div className="flex flex-col gap-2">
+                                <label className="text-xs font-bold text-gray-500">שם משתמש ל-API</label>
+                                <input
+                                    type="text"
+                                    value={formData.paymentSettings?.hyp?.username || ''}
+                                    onChange={(e) => handlePaymentSettingsChange('username', e.target.value, true)}
+                                    placeholder="הזן שם משתמש"
+                                    className="p-3 bg-white rounded-xl border border-gray-200 focus:ring-2 focus:ring-primary font-medium"
+                                />
+                            </div>
+                            <div className="flex flex-col gap-2">
+                                <label className="text-xs font-bold text-gray-500">סיסמה ל-API</label>
+                                <input
+                                    type="password"
+                                    value={formData.paymentSettings?.hyp?.password || ''}
+                                    onChange={(e) => handlePaymentSettingsChange('password', e.target.value, true)}
+                                    placeholder="הזן סיסמה"
+                                    className="p-3 bg-white rounded-xl border border-gray-200 focus:ring-2 focus:ring-primary font-medium"
+                                />
+                            </div>
+                            <div className="flex flex-col gap-2">
+                                <label className="text-xs font-bold text-gray-500">API Key</label>
+                                <input
+                                    type="text"
+                                    value={formData.paymentSettings?.hyp?.apiKey || ''}
+                                    onChange={(e) => handlePaymentSettingsChange('apiKey', e.target.value, true)}
+                                    placeholder="הזן API Key"
+                                    className="p-3 bg-white rounded-xl border border-gray-200 focus:ring-2 focus:ring-primary font-medium"
+                                />
+                            </div>
+                        </div>
+
+                        <div className="flex items-center gap-3 pt-2">
+                            <input
+                                type="checkbox"
+                                id="isSandbox"
+                                checked={formData.paymentSettings?.hyp?.isSandbox ?? true}
+                                onChange={(e) => handlePaymentSettingsChange('isSandbox', e.target.checked, true)}
+                                className="h-5 w-5 text-primary focus:ring-primary border-gray-300 rounded"
+                            />
+                            <label htmlFor="isSandbox" className="text-sm font-bold text-gray-600 cursor-pointer">
+                                מצב בדיקות (Sandbox) - סמן ב-V כל עוד החנות בהרצה או בטסטים
+                            </label>
+                        </div>
+                    </div>
+                )}
             </div>
 
             {/* Shipping Options Management */}

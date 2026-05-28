@@ -11,7 +11,7 @@ import StoreLink from '../components/StoreLink';
  * OrderConfirmationPage Component.
  * A premium success receipt view with consistent design system tokens and beautiful animations.
  */
-const OrderConfirmationPage = ({ showNotification }) => {
+const OrderConfirmationPage = ({ showNotification, clearCart }) => {
     const { orderId } = useParams();
     const location = useLocation();
     const { getToken, isGuest } = useAuth();
@@ -31,10 +31,18 @@ const OrderConfirmationPage = ({ showNotification }) => {
         }
 
         try {
+            const searchParams = new URLSearchParams(location.search);
+            const status = searchParams.get('status');
+            const cCode = searchParams.get('CCode');
+
             const response = await axios.get(`${__API_URL__}/orders/${orderId}`, {
                 headers: {
                     Authorization: `Bearer ${token}`,
                 },
+                params: {
+                    status,
+                    CCode: cCode
+                }
             });
             setOrder(response.data);
             localStorage.setItem('guestTokenForOrder', token);
@@ -46,13 +54,35 @@ const OrderConfirmationPage = ({ showNotification }) => {
             setLoading(false);
         }
     };
-
     useEffect(() => {
         if (orderId) {
             fetchOrder(authToken);
         }
-        return () => localStorage.removeItem('guestTokenForOrder');
-    }, [orderId, authToken]);
+
+        const searchParams = new URLSearchParams(location.search);
+        const status = searchParams.get('status');
+        const cCode = searchParams.get('CCode');
+
+        if (status === 'success' && cCode === '0') {
+            Object.keys(localStorage).forEach(key => {
+                if (key.startsWith('cartItems_')) {
+                    localStorage.removeItem(key);
+                }
+            });
+            if (clearCart) {
+                clearCart();
+            }
+            localStorage.removeItem('guestTokenForOrder');
+            localStorage.removeItem('currentStoreSlug');
+        }
+    }, [orderId, authToken, location.search]);
+
+    // useEffect(() => {
+    //     if (orderId) {
+    //         fetchOrder(authToken);
+    //     }
+    //     return () => localStorage.removeItem('guestTokenForOrder');
+    // }, [orderId, authToken]);
 
 
     if (loading) return <Loader text="טוען פרטי הזמנה" />;
@@ -90,7 +120,7 @@ const OrderConfirmationPage = ({ showNotification }) => {
     return (
         <div className="min-h-screen bg-gray-50/50 py-16 px-6" dir="rtl">
             <div className="max-w-3xl mx-auto bg-white rounded-[3rem] border border-gray-100 p-8 md:p-12 shadow-2xl shadow-gray-200/50 animate-in fade-in zoom-in-95 duration-500">
-                
+
                 {/* Success Banner */}
                 <div className="text-center mb-12 space-y-3">
                     <div className="w-20 h-20 bg-green-50 text-green-500 rounded-full flex items-center justify-center mx-auto shadow-lg shadow-green-500/10 animate-bounce duration-[1500ms]">
@@ -101,7 +131,7 @@ const OrderConfirmationPage = ({ showNotification }) => {
                 </div>
 
                 <div className="space-y-8">
-                    
+
                     {/* Order Reference Box */}
                     <div className="bg-gray-50/60 rounded-3xl p-6 border border-gray-100 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
                         <div>
@@ -129,7 +159,7 @@ const OrderConfirmationPage = ({ showNotification }) => {
                             <MapPin className="text-primary" size={18} />
                             <span>פרטי אספקה ומשלוח</span>
                         </h3>
-                        
+
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-6 text-sm">
                             <div className="space-y-2">
                                 <div className="flex items-center gap-2 text-gray-500">
@@ -163,9 +193,9 @@ const OrderConfirmationPage = ({ showNotification }) => {
                                 <div className="text-gray-800 font-medium pr-5 space-y-0.5">
                                     <p>{
                                         order.shippingMethod === 'home-delivery' ? 'משלוח מהיר עד הבית' :
-                                        order.shippingMethod === 'pickup-point' ? 'משלוח לנקודת איסוף (קרוב לבית)' :
-                                        order.shippingMethod === 'pickup-business' ? 'איסוף עצמי מבית העסק' :
-                                        order.shippingMethod || 'לא נבחר'
+                                            order.shippingMethod === 'pickup-point' ? 'משלוח לנקודת איסוף (קרוב לבית)' :
+                                                order.shippingMethod === 'pickup-business' ? 'איסוף עצמי מבית העסק' :
+                                                    order.shippingMethod || 'לא נבחר'
                                     }</p>
                                     <p className="text-xs text-gray-400">דמי משלוח: ₪{order.shippingPrice?.toFixed(2) || '0.00'}</p>
                                 </div>
@@ -179,7 +209,7 @@ const OrderConfirmationPage = ({ showNotification }) => {
                             <Receipt className="text-gray-400" size={18} />
                             <span>פירוט פריטי הקנייה</span>
                         </h3>
-                        
+
                         <div className="divide-y divide-gray-50">
                             {order.orderItems.map((item, index) => {
                                 const attributes = item.attributes;
@@ -190,7 +220,7 @@ const OrderConfirmationPage = ({ showNotification }) => {
                                 const itemImage = (() => {
                                     const variantId = item.variant?._id || item.variant;
                                     const variantObj = item.product?.variants?.find(v => (v._id || v.id).toString() === variantId?.toString());
-                                    
+
                                     if (variantObj) {
                                         if (variantObj.imageUrls && variantObj.imageUrls.length > 0) return variantObj.imageUrls[0];
                                         if (variantObj.imageUrl) return variantObj.imageUrl;

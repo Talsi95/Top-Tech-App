@@ -13,6 +13,7 @@ import { useStore } from './StoreContext';
 import ScrollToTop from './components/ScrollToTop';
 import { AccessibilityMenu } from './components/AccessibilityMenu';
 import { AccessibilityProvider } from './AccessibilityContext';
+import PaymentSuccess from './components/PaymentSuccess';
 
 // Hooks
 import useCart from './hooks/useCart';
@@ -76,7 +77,7 @@ const App = () => {
     handleCreateOrder,
     cartItemsCount,
     totalPrice,
-    setCartItems
+    clearCart
   } = useCart(isAuthenticated, getToken, showNotification);
 
   const {
@@ -170,7 +171,8 @@ const App = () => {
                 <Route path="admin" element={<AdminDashboard showNotification={showNotification} />} />
                 <Route path="product-form/:id" element={<ProductFormPage showNotification={showNotification} />} />
                 <Route path="product-form" element={<ProductFormPage showNotification={showNotification} />} />
-                <Route path="order-confirmation/:orderId" element={<OrderConfirmationPage showNotification={showNotification} />} />
+                <Route path="/payment-success" element={<PaymentSuccess />} />
+                <Route path="order-confirmation/:orderId" element={<OrderConfirmationPage showNotification={showNotification} clearCart={clearCart} />} />
                 <Route path="admin/update-variant/:id" element={<UpdateVariantForm />} />
                 <Route path="products" element={<ProductsPage getToken={getToken} showNotification={showNotification} />} />
                 <Route path="repair-lab" element={<RepairLab />} />
