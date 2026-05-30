@@ -90,25 +90,64 @@ const useCart = (isAuthenticated, getToken, showNotification) => {
     }
 
     if (!isAuthenticated || isGuestUser()) {
-      setCartItems(localCart);
+      if (localCart.length > 0) {
+        try {
+          const response = await axios.post(`${__API_URL__}/cart/sync`, { cartItems: localCart });
+          const syncedCart = response.data.map(mapDbCartItem);
+          setCartItems(syncedCart);
+          localStorage.setItem(cartStorageKey, JSON.stringify(syncedCart));
+        } catch (err) {
+          console.error("Failed to sync guest cart:", err);
+          setCartItems(localCart.map(mapDbCartItem));
+        }
+      } else {
+        setCartItems([]);
+      }
       return;
     }
 
     try {
       const token = getToken();
       if (!token) {
-        setCartItems(localCart);
+        if (localCart.length > 0) {
+          try {
+            const response = await axios.post(`${__API_URL__}/cart/sync`, { cartItems: localCart });
+            const syncedCart = response.data.map(mapDbCartItem);
+            setCartItems(syncedCart);
+            localStorage.setItem(cartStorageKey, JSON.stringify(syncedCart));
+          } catch (err) {
+            setCartItems(localCart.map(mapDbCartItem));
+          }
+        } else {
+          setCartItems([]);
+        }
         return;
       }
       const response = await axios.get(`${__API_URL__}/cart`, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
-      const dbCart = response.data.filter(item => item.product).map(mapDbCartItem); // Ensure no null products from DB and format them
+      const dbCart = response.data.filter(item => item.product).map(mapDbCartItem);
 
       if (localCart.length > 0) {
         if (dbCart.length === 0 || dbCart.length < localCart.length) {
-          await saveCart(localCart);
-          setCartItems(localCart);
+          const simplifiedCart = localCart.map(item => ({
+            product: item.product._id,
+            variant: item.variant ? item.variant._id : null,
+            selectedOptions: item.selectedOptions || [],
+            quantity: item.quantity
+          }));
+          const updateResponse = await axios.post(`${__API_URL__}/cart`,
+            { cartItems: simplifiedCart },
+            {
+              headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${token}`
+              }
+            }
+          );
+          const validatedDbCart = updateResponse.data.filter(item => item.product).map(mapDbCartItem);
+          setCartItems(validatedDbCart);
+          localStorage.removeItem(cartStorageKey);
         } else {
           setCartItems(dbCart);
           localStorage.removeItem(cartStorageKey);
@@ -118,9 +157,18 @@ const useCart = (isAuthenticated, getToken, showNotification) => {
       }
     } catch (err) {
       console.error("Failed to load cart from DB:", err.response ? err.response.data : err.message);
-      setCartItems(localCart);
+      if (localCart.length > 0) {
+        try {
+          const response = await axios.post(`${__API_URL__}/cart/sync`, { cartItems: localCart });
+          setCartItems(response.data.map(mapDbCartItem));
+        } catch (e) {
+          setCartItems(localCart.map(mapDbCartItem));
+        }
+      } else {
+        setCartItems([]);
+      }
     }
-  }, [isAuthenticated, getToken, saveCart, cartStorageKey, isGuestUser, mapDbCartItem]);
+  }, [isAuthenticated, getToken, cartStorageKey, isGuestUser, mapDbCartItem]);
 
   // Initial load of the cart.
   useEffect(() => {

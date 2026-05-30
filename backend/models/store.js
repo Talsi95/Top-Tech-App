@@ -1,4 +1,5 @@
 const mongoose = require('mongoose');
+const { encrypt, decrypt } = require('../utils/cryptoHelper');
 const Schema = mongoose.Schema;
 
 const storeSchema = new Schema({
@@ -38,11 +39,11 @@ const storeSchema = new Schema({
             apiKey: { type: String, default: '' },
             isSandbox: { type: Boolean, default: true }
         },
-        stripeKey: { type: String, default: '' } // משאירים למקרה שתצטרך בעתיד
+        stripeKey: { type: String, default: '' }
     },
     design: {
-        primaryColor: { type: String, default: '#4f46e5' }, // Default Indigo 600
-        secondaryColor: { type: String, default: '#1f2937' }, // Default Gray 800
+        primaryColor: { type: String, default: '#4f46e5' },
+        secondaryColor: { type: String, default: '#1f2937' },
         logoUrl: { type: String, default: '' },
         faviconUrl: { type: String, default: '' }
     },
@@ -88,6 +89,27 @@ const storeSchema = new Schema({
 }, {
     timestamps: true
 });
+
+storeSchema.pre('save', function (next) {
+    const store = this;
+
+    if (store.isModified('paymentSettings.hyp.password') && store.paymentSettings.hyp.password) {
+        store.paymentSettings.hyp.password = encrypt(store.paymentSettings.hyp.password);
+    }
+
+    if (store.isModified('paymentSettings.hyp.apiKey') && store.paymentSettings.hyp.apiKey) {
+        store.paymentSettings.hyp.apiKey = encrypt(store.paymentSettings.hyp.apiKey);
+    }
+
+    next();
+});
+
+storeSchema.methods.getDecryptedHypCredentials = function () {
+    return {
+        password: decrypt(this.paymentSettings.hyp.password),
+        apiKey: decrypt(this.paymentSettings.hyp.apiKey)
+    };
+};
 
 const Store = mongoose.model('Store', storeSchema);
 

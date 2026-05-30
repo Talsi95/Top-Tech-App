@@ -91,27 +91,50 @@ const createOrder = async (req, res) => {
         }, {});
 
         const orderItemsWithPrice = [];
+        let calculatedSubtotal = 0;
 
         for (const item of orderItems) {
             const product = productMap[item.product];
 
             if (!product) {
-                throw new Error(`Product not found: ${item.product}`);
+                throw new Error(`המוצר לא נמצא במערכת: ${item.product}`);
             }
 
             const variant = product.variants.find(v => v._id?.toString() === item.variant);
 
             if (!variant) {
-                throw new Error(`Variant not found for product: ${product.name}`);
+                throw new Error(`הוריאציה לא נמצאה עבור המוצר: ${product.name}`);
             }
 
             if (shouldCheckStock && variant.stock < item.quantity) {
-                throw new Error(`Not enough stock for ${product.name}, requested: ${item.quantity}, available: ${variant.stock}`);
+                throw new Error(`אין מספיק מלאי עבור המוצר ${product.name}. מלאי זמין: ${variant.stock}`);
             }
 
-            const unitPrice = (variant.isOnSale && variant.salePrice && variant.salePrice > 0)
+            // Recalculate base price of the variant
+            const dbUnitPrice = (variant.isOnSale && variant.salePrice && variant.salePrice > 0)
                 ? variant.salePrice
                 : variant.price;
+
+            // Recalculate option price additions from the DB
+            let dbOptionsTotal = 0;
+            if (item.selectedOptions && Array.isArray(item.selectedOptions)) {
+                for (const selectedOpt of item.selectedOptions) {
+                    const dbOpt = product.options.find(o => o.name === selectedOpt.name);
+                    if (dbOpt) {
+                        const dbChoice = dbOpt.choices.find(c => c.name === selectedOpt.choice);
+                        if (dbChoice) {
+                            dbOptionsTotal += (dbChoice.priceAddition || 0);
+                        }
+                    }
+                }
+            }
+
+            const dbItemTotalPrice = dbUnitPrice + dbOptionsTotal;
+
+            // Verify if the price sent by client matches the DB price
+            if (Math.abs(item.price - dbItemTotalPrice) > 0.01) {
+                throw new Error(`המחיר של המוצר "${product.name}" השתנה. אנא עדכן את העגלה ונסה שנית.`);
+            }
 
             // Extract variant attributes (excluding standard system fields)
             const standardFields = ['price', 'stock', 'imageUrl', 'imageUrls', 'isOnSale', 'salePrice', '_id', 'id', 'attributes', '__v'];
@@ -133,8 +156,38 @@ const createOrder = async (req, res) => {
                 attributes: attributes,
                 selectedOptions: item.selectedOptions || [],
                 quantity: item.quantity,
-                price: unitPrice
+                price: dbItemTotalPrice // Save correct full price (base + options)
             });
+
+            calculatedSubtotal += dbItemTotalPrice * item.quantity;
+        }
+
+        // Validate shipping price
+        let dbShippingPrice = 0;
+        if (req.store?.shippingOptions && req.store.shippingOptions.length > 0) {
+            const selectedOpt = req.store.shippingOptions.find(opt => opt.name === shippingMethod);
+            dbShippingPrice = selectedOpt ? selectedOpt.price : (req.store.shippingOptions[0]?.price || 0);
+        } else {
+            switch (shippingMethod) {
+                case 'home-delivery':
+                    dbShippingPrice = 29;
+                    break;
+                case 'pickup-point':
+                    dbShippingPrice = 15;
+                    break;
+                default:
+                    dbShippingPrice = 0;
+            }
+        }
+
+        if (Math.abs(shippingPrice - dbShippingPrice) > 0.01) {
+            throw new Error('עלות המשלוח אינה תואמת להגדרות החנות העדכניות. אנא נסה שוב.');
+        }
+
+        // Verify overall total price
+        const calculatedTotal = calculatedSubtotal + dbShippingPrice;
+        if (Math.abs(totalPrice - calculatedTotal) > 0.01) {
+            throw new Error('סכום ההזמנה אינו תואם למחיר העדכני של המוצרים. אנא רענן את העגלה ונסה שוב.');
         }
 
         await Promise.all(
@@ -166,9 +219,11 @@ const createOrder = async (req, res) => {
 
         if (paymentMethod === 'credit-card') {
             const paymentSettings = req.store?.paymentSettings;
-            const { username, password, apiKey } = paymentSettings?.hyp || {};
+            const { dirName, username } = paymentSettings?.hyp || {};
 
-            if (!username || !password || !apiKey) {
+            const { password, apiKey } = req.store.getDecryptedHypCredentials();
+
+            if (!dirName || !username || !password || !apiKey) {
                 throw new Error("פרטי מסוף ה-Hyp של החנות חסרים או לא הוגדרו כראוי במערכת.");
             }
 
@@ -182,7 +237,7 @@ const createOrder = async (req, res) => {
                 action: 'APISign',
                 What: 'SIGN',
                 Sign: 'True',
-                Masof: '0086218126',
+                Masof: dirName,
                 KEY: apiKey,
                 PassP: password,
                 Amount: totalPrice.toString(),

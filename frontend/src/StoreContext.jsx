@@ -28,6 +28,11 @@ export const StoreProvider = ({ children, initialData = {} }) => {
     const isStoreRoute = pathParts[1] === 'store';
     const slug = isStoreRoute ? pathParts[2] : null;
 
+    // Set global Axios interceptor/header immediately on client
+    if (typeof window !== 'undefined' && slug) {
+        axios.defaults.headers.common['x-store-slug'] = slug;
+    }
+
     useEffect(() => {
         setIsMounted(true);
     }, []);
@@ -104,7 +109,11 @@ export const StoreProvider = ({ children, initialData = {} }) => {
         const fetchCategories = async () => {
             setIsLoadingCategories(true);
             try {
-                const { data } = await axios.get(`${__API_URL__}/categories`);
+                const headers = {};
+                if (slug) {
+                    headers['x-store-slug'] = slug;
+                }
+                const { data } = await axios.get(`${__API_URL__}/categories`, { headers });
                 setCategories(data);
             } catch (err) {
                 console.error("Error fetching categories:", err);

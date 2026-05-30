@@ -37,15 +37,15 @@ const PlatformLanding = () => {
             {/* Top Header Bar */}
             <header className="sticky top-0 z-50 backdrop-blur-md bg-white/75 border-b border-gray-100 px-6 py-4 shadow-sm">
                 <div className="max-w-7xl mx-auto flex justify-between items-center">
-                    {/* <div className="flex items-center gap-3">
+                    <div className="flex items-center gap-3">
                         <div className="p-2 bg-indigo-600 text-white rounded-xl">
                             <Store className="w-6 h-6" />
                         </div>
                         <span className="text-xl font-black tracking-tight text-gray-900 font-montserrat">PowerDev Platform</span>
-                    </div> */}
-                    <div className="flex items-center transition-transform hover:scale-102">
-                        <Logo className="h-14 w-auto" />
                     </div>
+                    {/* <div className="flex items-center transition-transform hover:scale-102">
+                        <Logo className="h-14 w-auto" />
+                    </div> */}
                     <button
                         onClick={() => navigate('/super-admin')}
                         className="inline-flex items-center gap-2 px-4 py-2 border border-gray-200 hover:border-indigo-600 rounded-xl text-sm font-semibold text-gray-600 hover:text-indigo-600 bg-white shadow-sm hover:shadow active:scale-95 transition-all cursor-pointer"
