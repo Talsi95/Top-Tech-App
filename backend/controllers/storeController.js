@@ -1,5 +1,6 @@
 const Store = require('../models/store');
 const asyncHandler = require('../middleware/asyncHandler');
+const { generateLegalDocument, DEFAULT_TERMS, DEFAULT_PRIVACY } = require('../utils/legalTemplates');
 
 // @desc    Get store by slug
 // @route   GET /api/stores/:slug
@@ -8,7 +9,25 @@ const getStoreBySlug = asyncHandler(async (req, res) => {
     const store = await Store.findOne({ slug: req.params.slug });
 
     if (store) {
-        res.json(store);
+        const storeObj = store.toObject();
+
+        if (!storeObj.legal) {
+            storeObj.legal = {
+                termsOfService: '',
+                privacyPolicy: '',
+                useDefaultPrivacy: true,
+                useDefaultTerms: true
+            };
+        }
+
+        if (storeObj.legal.useDefaultTerms !== false || !storeObj.legal.termsOfService || storeObj.legal.termsOfService.trim() === '') {
+            storeObj.legal.termsOfService = generateLegalDocument(DEFAULT_TERMS, storeObj);
+        }
+        if (storeObj.legal.useDefaultPrivacy !== false || !storeObj.legal.privacyPolicy || storeObj.legal.privacyPolicy.trim() === '') {
+            storeObj.legal.privacyPolicy = generateLegalDocument(DEFAULT_PRIVACY, storeObj);
+        }
+
+        res.json(storeObj);
     } else {
         res.status(404);
         throw new Error('Store not found');
@@ -24,7 +43,9 @@ const updateStore = asyncHandler(async (req, res) => {
 
     if (store) {
         store.name = req.body.name || store.name;
+        store.customDomain = req.body.customDomain || store.customDomain;
         store.businessInfo = req.body.businessInfo || store.businessInfo;
+        store.legal = req.body.legal || store.legal;
         store.design = req.body.design || store.design;
         store.labels = req.body.labels || store.labels;
         store.features = req.body.features || store.features;
@@ -32,6 +53,8 @@ const updateStore = asyncHandler(async (req, res) => {
         store.gallery = req.body.gallery || store.gallery;
         store.shippingOptions = req.body.shippingOptions !== undefined ? req.body.shippingOptions : store.shippingOptions;
         store.paymentSettings = req.body.paymentSettings || store.paymentSettings;
+        store.invoiceSettings = req.body.invoiceSettings || store.invoiceSettings;
+        store.integrations = req.body.integrations || store.integrations;
         const updatedStore = await store.save();
         res.json(updatedStore);
     } else {
@@ -67,6 +90,13 @@ const createStore = asyncHandler(async (req, res) => {
         design: {
             primaryColor: '#0058be',
             secondaryColor: '#f8f9fb'
+        },
+        legal: {
+            termsOfService: '',
+            privacyPolicy: '',
+            useDefaultPrivacy: true,
+            useDefaultTerms: true,
+            showCookieBanner: true
         }
     });
 

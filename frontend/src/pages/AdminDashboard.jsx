@@ -3,7 +3,7 @@ import { useState, useEffect } from 'react';
 import { useAuth } from '../AuthContext';
 import { useStore } from '../StoreContext';
 import {  useLocation  } from 'react-router-dom';;
-import { Package, Users, ShoppingBag, Grid, Wrench, FileText, ChevronLeft, Settings, BookOpen } from 'lucide-react';
+import { Package, Users, ShoppingBag, Grid, Wrench, FileText, ChevronLeft, Settings, BookOpen, Tag } from 'lucide-react';
 import ProductFormPage from '../pages/ProductFormPage';
 import UserList from '../components/UserList';
 import AllOrdersList from '../components/AllOrdersList';
@@ -13,6 +13,7 @@ import RepairTypeManagement from '../components/RepairTypeManagement';
 import InventoryManagement from '../components/InventoryManagement';
 import StoreSettings from '../components/StoreSettings';
 import ArticleManagement from '../components/ArticleManagement';
+import CouponsList from '../components/CouponsList';
 
 /**
  * AdminDashboard Component.
@@ -44,6 +45,7 @@ const AdminDashboard = ({ showNotification }) => {
             case 'users': return <UserList showNotification={showNotification} />;
             case 'orders': return <AllOrdersList showNotification={showNotification} />;
             case 'categories': return <CategoryManagement showNotification={showNotification} />;
+            case 'coupons': return <CouponsList showNotification={showNotification} />;
             case 'repairs': return <RepairManagement showNotification={showNotification} />;
             case 'repairTypes': return <RepairTypeManagement showNotification={showNotification} />;
             case 'inventory': return <InventoryManagement showNotification={showNotification} />;
@@ -58,6 +60,7 @@ const AdminDashboard = ({ showNotification }) => {
         { id: 'users', label: 'לקוחות', icon: Users },
         { id: 'orders', label: 'הזמנות', icon: ShoppingBag },
         { id: 'categories', label: 'קטגוריות', icon: Grid },
+        { id: 'coupons', label: 'קופונים', icon: Tag },
         { id: 'inventory', label: 'מלאי', icon: Package },
         ...(store?.features?.hasRepairLab ? [
             { id: 'repairs', label: 'תיקונים', icon: Wrench },

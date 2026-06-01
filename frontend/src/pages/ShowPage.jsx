@@ -511,7 +511,7 @@ const ShowPage = ({ onAddToCart }) => {
                         </div>
                     </div>
 
-                    {selectedVariant && store?.features?.hasCart && (
+                    {selectedVariant && (
                         <div className="mb-8">
                             {(() => {
                                 const optionsTotal = Object.values(selectedOptions).reduce((sum, opt) => sum + (opt.priceAddition || 0), 0);

@@ -29,16 +29,23 @@ const CheckoutForm = ({ cartItems, showNotification, onOrderComplete, guestToken
         shippingMethod: ''
     });
 
+    const [couponCode, setCouponCode] = useState('');
+    const [appliedCoupon, setAppliedCoupon] = useState(null);
+    const [isApplyingCoupon, setIsApplyingCoupon] = useState(false);
+    const [couponError, setCouponError] = useState(null);
+
     useEffect(() => {
         if (store?.shippingOptions && store.shippingOptions.length > 0) {
             setFormData(prev => ({
                 ...prev,
-                shippingMethod: prev.shippingMethod || store.shippingOptions[0].name
+                shippingMethod: prev.shippingMethod || store.shippingOptions[0].name,
+                paymentMethod: store.features?.hasCashPayment === false ? 'credit-card' : prev.paymentMethod
             }));
         } else if (store) {
             setFormData(prev => ({
                 ...prev,
-                shippingMethod: prev.shippingMethod || 'pickup-business'
+                shippingMethod: prev.shippingMethod || 'pickup-business',
+                paymentMethod: store.features?.hasCashPayment === false ? 'credit-card' : prev.paymentMethod
             }));
         }
     }, [store]);
@@ -77,6 +84,52 @@ const CheckoutForm = ({ cartItems, showNotification, onOrderComplete, guestToken
         fetchUserData();
     }, [user, isGuest]);
 
+    const handleApplyCoupon = async (e) => {
+        e.preventDefault();
+        if (!couponCode.trim()) return;
+
+        setIsApplyingCoupon(true);
+        setCouponError(null);
+
+        try {
+            const token = getToken();
+            const formattedCartItems = cartItems.map(item => ({
+                productId: item.product._id,
+                variantId: item.variant?._id || null,
+                quantity: item.quantity
+            }));
+
+            const response = await axios.post(`${__API_URL__}/checkout/apply-coupon`, {
+                cartItems: formattedCartItems,
+                couponCode: couponCode
+            }, {
+                headers: token ? { Authorization: `Bearer ${token}` } : {}
+            });
+
+            if (response.data.success) {
+                setAppliedCoupon({
+                    code: couponCode.toUpperCase(),
+                    totalDiscount: response.data.totalDiscount
+                });
+                showNotification('הקופון הוחל בהצלחה!', 'success');
+            }
+        } catch (error) {
+            setAppliedCoupon(null);
+            const errorMessage = error.response?.data?.message || 'קוד קופון לא תקין או פג תוקף';
+            setCouponError(errorMessage);
+            showNotification(errorMessage, 'error');
+        } finally {
+            setIsApplyingCoupon(false);
+        }
+    };
+
+    const handleRemoveCoupon = () => {
+        setAppliedCoupon(null);
+        setCouponCode('');
+        setCouponError(null);
+        showNotification('הקופון הוסר', 'info');
+    };
+
     const calculateTotal = () => {
         return cartItems.reduce((acc, item) => {
             const regularPrice = item.variant?.price ?? item.product?.price ?? 0;
@@ -112,7 +165,8 @@ const CheckoutForm = ({ cartItems, showNotification, onOrderComplete, guestToken
 
     const shippingCost = getShippingCost();
     const subtotal = calculateTotal();
-    const totalToDisplay = subtotal + shippingCost;
+    const discountAmount = appliedCoupon ? appliedCoupon.totalDiscount : 0;
+    const totalToDisplay = Math.max(0, subtotal - discountAmount + shippingCost);
 
     const handleChange = (e) => {
         const { name, value } = e.target;
@@ -170,6 +224,7 @@ const CheckoutForm = ({ cartItems, showNotification, onOrderComplete, guestToken
             shippingPrice: shippingCost,
             paymentMethod: formData.paymentMethod,
             totalPrice: totalPrice,
+            couponCode: appliedCoupon ? appliedCoupon.code : null,
             paymentToken: null,
         };
         try {
@@ -192,10 +247,6 @@ const CheckoutForm = ({ cartItems, showNotification, onOrderComplete, guestToken
 
                 setIsProcessing(false);
                 showNotification('הזמנה בוצעה בהצלחה', 'success');
-
-                if (onOrderComplete) {
-                    onOrderComplete(serverData._id);
-                }
 
                 navigate(`/order-confirmation/${serverData._id}`);
             } else {
@@ -327,12 +378,18 @@ const CheckoutForm = ({ cartItems, showNotification, onOrderComplete, guestToken
                         <div className="space-y-6 mb-8">
                             <div className="space-y-2">
                                 <label className="text-sm font-semibold text-gray-700">בחר שיטת תשלום</label>
-                                <select name="paymentMethod" value={formData.paymentMethod} onChange={handleChange}
-                                    className="w-full p-3 bg-surface-container border-none rounded-xl focus:ring-2 focus:ring-primary transition-all outline-none font-medium appearance-none">
-                                    <option value="">בחר שיטת תשלום...</option>
-                                    <option value="credit-card">💳 כרטיס אשראי</option>
-                                    <option value="cash">💵 מזומן (תשלום במקום)</option>
-                                </select>
+                                {store?.features?.hasCashPayment === false ? (
+                                    <div className="w-full p-3 bg-surface-container rounded-xl font-bold text-gray-900 flex items-center gap-2">
+                                        💳 כרטיס אשראי
+                                    </div>
+                                ) : (
+                                    <select name="paymentMethod" value={formData.paymentMethod} onChange={handleChange}
+                                        className="w-full p-3 bg-surface-container border-none rounded-xl focus:ring-2 focus:ring-primary transition-all outline-none font-medium appearance-none">
+                                        <option value="">בחר שיטת תשלום...</option>
+                                        <option value="credit-card">💳 כרטיס אשראי</option>
+                                        <option value="cash">💵 מזומן (תשלום במקום)</option>
+                                    </select>
+                                )}
                             </div>
 
                             {/* {formData.paymentMethod === 'credit-card' && (
@@ -343,6 +400,46 @@ const CheckoutForm = ({ cartItems, showNotification, onOrderComplete, guestToken
                                     </div>
                                 </div>
                             )} */}
+
+                            <div className="space-y-2 pt-2 border-t border-gray-100">
+                                <label className="text-sm font-semibold text-gray-700">יש לך קוד קופון?</label>
+                                <div className="flex gap-2">
+                                    <input
+                                        type="text"
+                                        placeholder="הזן קוד קופון"
+                                        value={couponCode}
+                                        onChange={(e) => setCouponCode(e.target.value)}
+                                        disabled={!!appliedCoupon || isApplyingCoupon}
+                                        className="flex-1 p-3 bg-surface-container border-none rounded-xl focus:ring-2 focus:ring-primary transition-all outline-none uppercase font-bold text-center tracking-wider disabled:opacity-60"
+                                    />
+                                    {appliedCoupon ? (
+                                        <button
+                                            type="button"
+                                            onClick={handleRemoveCoupon}
+                                            className="px-4 bg-red-50 text-red-500 rounded-xl font-bold border border-red-200 hover:bg-red-100 transition-all"
+                                        >
+                                            ביטול
+                                        </button>
+                                    ) : (
+                                        <button
+                                            type="button"
+                                            onClick={handleApplyCoupon}
+                                            disabled={!couponCode.trim() || isApplyingCoupon}
+                                            className="px-5 bg-gray-900 text-white rounded-xl font-bold hover:bg-gray-800 transition-all disabled:bg-gray-200 disabled:text-gray-400"
+                                        >
+                                            {isApplyingCoupon ? 'בודק...' : 'החל'}
+                                        </button>
+                                    )}
+                                </div>
+                                {couponError && (
+                                    <p className="text-xs font-semibold text-red-500 mr-1 mt-1">{couponError}</p>
+                                )}
+                                {appliedCoupon && (
+                                    <p className="text-xs font-semibold text-green-600 mr-1 mt-1">
+                                        קופון <strong>{appliedCoupon.code}</strong> הוחל בהצלחה!
+                                    </p>
+                                )}
+                            </div>
 
                             {paymentError && (
                                 <div className="p-3 bg-red-50 text-red-500 text-sm rounded-xl text-center font-medium border border-red-100">
@@ -360,6 +457,12 @@ const CheckoutForm = ({ cartItems, showNotification, onOrderComplete, guestToken
                                 <span>דמי משלוח</span>
                                 <span className="font-semibold">₪{shippingCost.toFixed(2)}</span>
                             </div>
+                            {appliedCoupon && discountAmount > 0 && (
+                                <div className="flex justify-between text-green-600">
+                                    <span className="font-semibold">הנחת קופון ({appliedCoupon.code})</span>
+                                    <span className="font-bold">- ₪{discountAmount.toFixed(2)}</span>
+                                </div>
+                            )}
                             <div className="flex justify-between items-center pt-4 border-t border-gray-100">
                                 <span className="text-xl font-extrabold text-gray-900">סה״כ לתשלום</span>
                                 <span className="text-2xl font-black text-primary">₪{totalToDisplay.toFixed(2)}</span>

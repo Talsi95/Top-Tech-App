@@ -26,10 +26,21 @@ const storeSchema = new Schema({
         tiktok: { type: String, default: '' },
         companyNumber: { type: String, default: '' },
     },
+    legal: {
+        termsOfService: { type: String, default: "" },
+        privacyPolicy: { type: String, default: "" },
+        useDefaultPrivacy: { type: Boolean, default: true },
+        useDefaultTerms: { type: Boolean, default: true },
+        showCookieBanner: { type: Boolean, default: true }
+    },
+    integrations: {
+        googleAnalyticsId: { type: String, default: '' },
+        facebookPixelId: { type: String, default: '' },
+    },
     paymentSettings: {
         provider: {
             type: String,
-            enum: ['stripe', 'hyp', 'none'],
+            enum: ['hyp', 'verifone', 'none'],
             default: 'none'
         },
         hyp: {
@@ -37,9 +48,29 @@ const storeSchema = new Schema({
             username: { type: String, default: '' },
             password: { type: String, default: '' },
             apiKey: { type: String, default: '' },
+            autoInvoice: { type: Boolean, default: false },
             isSandbox: { type: Boolean, default: true }
         },
-        stripeKey: { type: String, default: '' }
+        verifone: {
+            username: { type: String },
+            password: { type: String },
+            entityId: { type: String },
+            paymentContractId: { type: String }
+        }
+    },
+    invoiceSettings: {
+        provider: {
+            type: String,
+            enum: ['icount', 'green-invoice', 'none'],
+            default: 'none'
+        },
+        icount: {
+            iCountToken: { type: String, default: '' }
+        },
+        greenInvoice: {
+            apiKey: { type: String, default: '' },
+            apiSecret: { type: String, default: '' }
+        }
     },
     design: {
         primaryColor: { type: String, default: '#4f46e5' },
@@ -65,7 +96,8 @@ const storeSchema = new Schema({
         cartDrawer: { type: Boolean, default: true },
         useSubCategories: { type: Boolean, default: true },
         showStock: { type: Boolean, default: true },
-        hasArticles: { type: Boolean, default: false }
+        hasArticles: { type: Boolean, default: false },
+        hasCashPayment: { type: Boolean, default: true }
     },
     homePageConfig: {
         heroType: {
@@ -90,24 +122,63 @@ const storeSchema = new Schema({
     timestamps: true
 });
 
-storeSchema.pre('save', function (next) {
+
+storeSchema.pre('save', async function (next) {
     const store = this;
 
-    if (store.isModified('paymentSettings.hyp.password') && store.paymentSettings.hyp.password) {
-        store.paymentSettings.hyp.password = encrypt(store.paymentSettings.hyp.password);
+    if (store.isNew) {
+        if (store.paymentSettings?.hyp?.password) {
+            store.paymentSettings.hyp.password = encrypt(store.paymentSettings.hyp.password);
+        }
+        if (store.paymentSettings?.hyp?.apiKey) {
+            store.paymentSettings.hyp.apiKey = encrypt(store.paymentSettings.hyp.apiKey);
+        }
+        if (store.invoiceSettings?.icount?.iCountToken) {
+            store.invoiceSettings.icount.iCountToken = encrypt(store.invoiceSettings.icount.iCountToken);
+        }
+        return next();
     }
 
-    if (store.isModified('paymentSettings.hyp.apiKey') && store.paymentSettings.hyp.apiKey) {
-        store.paymentSettings.hyp.apiKey = encrypt(store.paymentSettings.hyp.apiKey);
-    }
+    try {
+        const originalStore = await store.constructor.findById(store._id);
 
-    next();
+        if (originalStore) {
+            // --- Hyp Password ---
+            if (store.paymentSettings?.hyp?.password !== originalStore.paymentSettings?.hyp?.password) {
+                if (store.paymentSettings?.hyp?.password) {
+                    store.paymentSettings.hyp.password = encrypt(store.paymentSettings.hyp.password);
+                }
+            }
+
+            // --- Hyp API Key ---
+            if (store.paymentSettings?.hyp?.apiKey !== originalStore.paymentSettings?.hyp?.apiKey) {
+                if (store.paymentSettings?.hyp?.apiKey) {
+                    store.paymentSettings.hyp.apiKey = encrypt(store.paymentSettings.hyp.apiKey);
+                }
+            }
+
+            // --- iCount Token ---
+            if (store.invoiceSettings?.icount?.iCountToken !== originalStore.invoiceSettings?.icount?.iCountToken) {
+                if (store.invoiceSettings?.icount?.iCountToken) {
+                    store.invoiceSettings.icount.iCountToken = encrypt(store.invoiceSettings.icount.iCountToken);
+                }
+            }
+        }
+        next();
+    } catch (err) {
+        next(err);
+    }
 });
 
 storeSchema.methods.getDecryptedHypCredentials = function () {
     return {
         password: decrypt(this.paymentSettings.hyp.password),
         apiKey: decrypt(this.paymentSettings.hyp.apiKey)
+    };
+};
+storeSchema.methods.getDecryptedInvoiceCredentials = function () {
+    return {
+        iCountToken: this.invoiceSettings?.icount?.iCountToken ? decrypt(this.invoiceSettings.icount.iCountToken) : ''
     };
 };
 

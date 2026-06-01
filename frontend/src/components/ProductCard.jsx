@@ -79,27 +79,27 @@ const ProductCard = ({ product, filters = {} }) => {
 
                 {/* Price & Action Section */}
                 <div className="mt-auto flex items-center justify-between gap-4">
-                    {store?.features?.hasCart && (
-                        <div className="flex flex-col">
-                            {showStartingAt ? (
-                                <>
-                                    <span className="text-[10px] text-gray-400 font-bold uppercase tracking-wider mb-1">החל מ-</span>
-                                    <span className="text-2xl font-black text-primary">₪{minPrice.toFixed(2)}</span>
-                                </>
-                            ) : (
-                                primaryVariant.price && (
-                                    primaryVariant.salePrice ? (
-                                        <>
-                                            <span className="line-through text-gray-300 text-xs font-medium mb-1">₪{primaryVariant.price.toFixed(2)}</span>
-                                            <span className="text-2xl font-black text-red-500">₪{primaryVariant.salePrice.toFixed(2)}</span>
-                                        </>
-                                    ) : (
-                                        <span className="text-2xl font-black text-gray-900">₪{primaryVariant.price.toFixed(2)}</span>
-                                    )
+                    {/* {store?.features?.hasCart && ( */}
+                    <div className="flex flex-col">
+                        {showStartingAt ? (
+                            <>
+                                <span className="text-[10px] text-gray-400 font-bold uppercase tracking-wider mb-1">החל מ-</span>
+                                <span className="text-2xl font-black text-primary">₪{minPrice.toFixed(2)}</span>
+                            </>
+                        ) : (
+                            primaryVariant.price && (
+                                primaryVariant.salePrice ? (
+                                    <>
+                                        <span className="line-through text-gray-300 text-xs font-medium mb-1">₪{primaryVariant.price.toFixed(2)}</span>
+                                        <span className="text-2xl font-black text-red-500">₪{primaryVariant.salePrice.toFixed(2)}</span>
+                                    </>
+                                ) : (
+                                    <span className="text-2xl font-black text-gray-900">₪{primaryVariant.price.toFixed(2)}</span>
                                 )
-                            )}
-                        </div>
-                    )}
+                            )
+                        )}
+                    </div>
+                    {/* // )} */}
 
                     {store?.features?.hasCart ? (
                         <div className={`${isFullWidth ? "w-14 h-14" : "w-12 h-12"} bg-surface-container rounded-xl flex items-center justify-center text-gray-400 group-hover:bg-primary group-hover:text-white group-hover:rotate-[360deg] transition-all duration-700`}>

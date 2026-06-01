@@ -69,7 +69,7 @@ const RegisterPage = ({ showNotification }) => {
                                 <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest mr-4">שם מלא</label>
                                 <div className="relative group">
                                     <User className="absolute right-5 top-1/2 -translate-y-1/2 text-gray-400 group-focus-within:text-primary transition-colors" size={18} />
-                                    <input 
+                                    <input
                                         type="text" required value={username} onChange={(e) => setUsername(e.target.value)}
                                         placeholder="ישראל ישראלי"
                                         className="w-full bg-gray-50 border border-gray-100 focus:border-primary focus:bg-white rounded-2xl py-4 pr-12 pl-4 outline-none font-bold text-gray-900 transition-all placeholder:text-gray-300"
@@ -80,7 +80,7 @@ const RegisterPage = ({ showNotification }) => {
                                 <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest mr-4">טלפון</label>
                                 <div className="relative group">
                                     <Phone className="absolute right-5 top-1/2 -translate-y-1/2 text-gray-400 group-focus-within:text-primary transition-colors" size={18} />
-                                    <input 
+                                    <input
                                         type="tel" required value={phone} onChange={(e) => setPhone(e.target.value)}
                                         placeholder="05X-XXXXXXX"
                                         className="w-full bg-gray-50 border border-gray-100 focus:border-primary focus:bg-white rounded-2xl py-4 pr-12 pl-4 outline-none font-bold text-gray-900 transition-all placeholder:text-gray-300"
@@ -93,7 +93,7 @@ const RegisterPage = ({ showNotification }) => {
                             <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest mr-4">כתובת אימייל</label>
                             <div className="relative group">
                                 <Mail className="absolute right-5 top-1/2 -translate-y-1/2 text-gray-400 group-focus-within:text-primary transition-colors" size={18} />
-                                <input 
+                                <input
                                     type="email" required value={email} onChange={(e) => setEmail(e.target.value)}
                                     placeholder="your@email.com"
                                     className="w-full bg-gray-50 border border-gray-100 focus:border-primary focus:bg-white rounded-2xl py-4 pr-12 pl-6 outline-none font-bold text-gray-900 transition-all placeholder:text-gray-300"
@@ -105,7 +105,7 @@ const RegisterPage = ({ showNotification }) => {
                             <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest mr-4">סיסמה</label>
                             <div className="relative group">
                                 <Lock className="absolute right-5 top-1/2 -translate-y-1/2 text-gray-400 group-focus-within:text-primary transition-colors" size={18} />
-                                <input 
+                                <input
                                     type="password" required value={password} onChange={(e) => setPassword(e.target.value)}
                                     placeholder="לפחות 6 תווים"
                                     className="w-full bg-gray-50 border border-gray-100 focus:border-primary focus:bg-white rounded-2xl py-4 pr-12 pl-6 outline-none font-bold text-gray-900 transition-all placeholder:text-gray-300"
@@ -118,11 +118,11 @@ const RegisterPage = ({ showNotification }) => {
                                 <ShieldCheck size={16} className="text-primary" />
                             </div>
                             <p className="text-[11px] text-gray-400 font-medium leading-relaxed">
-                                בלחיצה על כפתור ההרשמה אני מאשר את <a href="#" className="text-primary font-bold hover:underline">תנאי השימוש</a> ו<a href="#" className="text-primary font-bold hover:underline">מדיניות הפרטיות</a> של האתר.
+                                בלחיצה על כפתור ההרשמה אני מאשר את <StoreLink to="/terms" className="text-primary font-bold hover:underline">תנאי השימוש</StoreLink> ו<StoreLink to="/privacy" className="text-primary font-bold hover:underline">מדיניות הפרטיות</StoreLink> של האתר.
                             </p>
                         </div>
 
-                        <button 
+                        <button
                             type="submit" disabled={isLoading}
                             className="w-full py-5 bg-gray-900 text-white rounded-2xl font-black text-lg shadow-xl hover:bg-black active:scale-[0.98] transition-all flex items-center justify-center gap-3 disabled:bg-gray-200 disabled:text-gray-400"
                         >

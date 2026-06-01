@@ -50,7 +50,9 @@ const repairRoutes = require('./routes/repairRoutes');
 const repairTypeRoutes = require('./routes/repairTypeRoutes');
 const articlesRoutes = require('./routes/articles');
 const storeResolver = require('./middleware/storeResolver');
-const storeRoutes = require('./routes/stores'); // We will create this
+const storeRoutes = require('./routes/stores');
+const checkoutRoutes = require('./routes/checkoutRoutes');
+const couponRoutes = require('./routes/couponRoutes');
 
 app.use('/api/products', storeResolver, productRoutes);
 app.use('/api/auth', storeResolver, userRoutes);
@@ -62,16 +64,25 @@ app.use('/api/repairs', storeResolver, repairRoutes);
 app.use('/api/repair-types', storeResolver, repairTypeRoutes);
 app.use('/api/articles', storeResolver, articlesRoutes);
 app.use('/api/stores', storeRoutes);
+app.use('/api/checkout', storeResolver, checkoutRoutes);
+app.use('/api/admin/coupons', storeResolver, couponRoutes);
 
 const { getSitemap } = require('./controllers/sitemapController');
 app.get('/store/:slug/sitemap.xml', getSitemap);
 
 // Static file hosting for the frontend production build.
-app.use(express.static(path.join(__dirname, 'dist/client')));
+app.use(express.static(path.join(__dirname, 'dist/client'), { index: false }));
 
 // SSR handler for all non-API requests
 const ssrHandler = require('./middleware/ssrHandler');
 app.get(/^\/(?!api).*/, ssrHandler);
+
+// Support for direct access to sitemap.xml (for custom domains in the future or clean redirects)
+app.get('/sitemap.xml', (req, res, next) => {
+    // if you have a mechanism to identify slug by domain, you can pass it dynamically to the controller
+    // meanwhile this ensures broader support
+    next();
+});
 
 app.use(errorHandler);
 

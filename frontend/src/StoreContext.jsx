@@ -26,7 +26,16 @@ export const StoreProvider = ({ children, initialData = {} }) => {
     // Extract slug from URL: /store/:slug/*
     const pathParts = location.pathname.split('/');
     const isStoreRoute = pathParts[1] === 'store';
-    const slug = isStoreRoute ? pathParts[2] : null;
+
+    // If it's not the main platform route, pull the slug from the existing store that has already passed hydration
+    const slug = isStoreRoute ? pathParts[2] : (store?.slug || null);
+
+    const isMainPlatform = typeof window !== 'undefined' &&
+        (window.location.host.includes('localhost') ||
+            window.location.host.includes('onrender.com') ||
+            window.location.host.includes('top-tech.co.il'));
+
+
 
     // Set global Axios interceptor/header immediately on client
     if (typeof window !== 'undefined' && slug) {
@@ -38,7 +47,7 @@ export const StoreProvider = ({ children, initialData = {} }) => {
     }, []);
 
     useEffect(() => {
-        if (typeof window === 'undefined') return; // Guard for SSR
+        if (typeof window === 'undefined') return;
         if (store) {
             document.title = store.name || 'Top Tech';
             if (store.design) {
@@ -68,6 +77,12 @@ export const StoreProvider = ({ children, initialData = {} }) => {
 
         if (!isStoreRoute) {
             setStore(null);
+            setLoading(false);
+            return;
+        }
+
+        if (!isMainPlatform && ssrStore) {
+            setStore(ssrStore);
             setLoading(false);
             return;
         }

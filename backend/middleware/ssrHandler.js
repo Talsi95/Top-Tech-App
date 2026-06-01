@@ -3,6 +3,7 @@ const path = require('path');
 const Store = require('../models/store');
 const Product = require('../models/product');
 const Article = require('../models/article');
+const serialize = require('serialize-javascript');
 
 let render = null;
 let template = null;
@@ -79,37 +80,44 @@ const ssrHandler = async (req, res, next) => {
         const articleSlugMatch = req.originalUrl.match(/\/articles\/([^/]+)/);
         const articleSlug = articleSlugMatch ? decodeURIComponent(articleSlugMatch[1]) : null;
 
+        let store = null;
+        const incomingHost = req.headers.host || '';
+        const isMainPlatform = incomingHost.includes('localhost') || incomingHost.includes('onrender.com') || incomingHost.includes('top-tech.co.il');
+
         if (storeSlug) {
-            const store = await Store.findOne({ slug: storeSlug });
-            if (store) {
-                initialData.store = store;
+            store = await Store.findOne({ slug: storeSlug });
+        } else if (!isMainPlatform) {
+            const cleanDomain = incomingHost.replace('www.', '').split(':')[0];
+            store = await Store.findOne({ customDomain: cleanDomain });
+        }
+        if (store) {
+            initialData.store = store;
 
-                // Load product details if matching route
-                if (productSlug) {
-                    const product = await Product.findOne({ storeId: store._id, slug: productSlug });
-                    if (product) {
-                        initialData.product = product;
-                    }
-                } else if (productId) {
-                    const mongoose = require('mongoose');
-                    let query = { storeId: store._id };
-                    if (mongoose.Types.ObjectId.isValid(productId)) {
-                        query.$or = [{ _id: productId }, { slug: productId }];
-                    } else {
-                        query.slug = productId;
-                    }
-                    const product = await Product.findOne(query);
-                    if (product) {
-                        initialData.product = product;
-                    }
+            // Load product details if matching route
+            if (productSlug) {
+                const product = await Product.findOne({ storeId: store._id, slug: productSlug });
+                if (product) {
+                    initialData.product = product;
                 }
+            } else if (productId) {
+                const mongoose = require('mongoose');
+                let query = { storeId: store._id };
+                if (mongoose.Types.ObjectId.isValid(productId)) {
+                    query.$or = [{ _id: productId }, { slug: productId }];
+                } else {
+                    query.slug = productId;
+                }
+                const product = await Product.findOne(query);
+                if (product) {
+                    initialData.product = product;
+                }
+            }
 
-                // Load article details if matching route
-                if (articleSlug) {
-                    const article = await Article.findOne({ storeId: store._id, slug: articleSlug });
-                    if (article) {
-                        initialData.article = article;
-                    }
+            // Load article details if matching route
+            if (articleSlug) {
+                const article = await Article.findOne({ storeId: store._id, slug: articleSlug });
+                if (article) {
+                    initialData.article = article;
                 }
             }
         }
@@ -128,8 +136,7 @@ const ssrHandler = async (req, res, next) => {
         ].filter(Boolean).join('\n') : '';
 
         // Inject initial preloaded data state
-        const stateScript = `<script>window.__INITIAL_DATA__ = ${JSON.stringify(initialData).replace(/</g, '\\u003c')};</script>`;
-
+        const stateScript = `<script>window.__INITIAL_DATA__ = ${serialize(initialData, { isJSON: true })};</script>`;
         // Replace placeholders in index.html template
         let renderedHtml = template
             .replace('<!--ssr-helmet-->', helmetString)

@@ -2,7 +2,7 @@ const Order = require('../models/order');
 const Product = require('../models/product');
 const mongoose = require('mongoose');
 const { sendOrderConfirmationEmail } = require('../services/emailService');
-const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
+const { sendInvoice } = require('../services/invoiceService');
 const axios = require('axios');
 
 /**
@@ -27,6 +27,31 @@ const rollbackStock = async (orderItems) => {
     }
     console.log("Stock rollback complete.");
 };
+
+/**
+ * Deducts stock levels for items in a successful order.
+ * @param {Array} orderItems - List of items in the order.
+ */
+const deductStock = async (orderItems) => {
+    console.log("Starting stock deduction...");
+    for (const item of orderItems) {
+        try {
+            const product = await Product.findById(item.product);
+            if (product) {
+                const variant = product.variants.find(v => v._id.toString() === item.variant);
+                if (variant) {
+                    variant.stock -= item.quantity;
+                    await product.save();
+                    console.log(`Deducted ${item.quantity} from product ${product.name} (variant ${item.variant}). New stock: ${variant.stock}`);
+                }
+            }
+        } catch (deductError) {
+            console.error(`ERROR DURING DEDUCTION for product ${item.product}: ${deductError.message}`);
+        }
+    }
+    console.log("Stock deduction complete.");
+};
+
 /**
  * Creates a new order, handles payment (via Stripe), and updates stock levels.
  * Supports registered users and guest orders (via token or OTP).
@@ -48,6 +73,10 @@ const createOrder = async (req, res) => {
 
     if (!orderItems || orderItems.length === 0) {
         return res.status(400).json({ message: 'No order items' });
+    }
+
+    if (paymentMethod === 'cash' && req.store?.features?.hasCashPayment === false) {
+        return res.status(400).json({ message: 'תשלום במזומן אינו מאופשר בחנות זו. אנא בחר שיטת תשלום אחרת.' });
     }
 
     let isPaid = false;
@@ -146,7 +175,7 @@ const createOrder = async (req, res) => {
                 }
             });
 
-            if (shouldCheckStock) {
+            if (shouldCheckStock && paymentMethod !== 'credit-card') {
                 variant.stock -= item.quantity;
             }
 
@@ -190,9 +219,11 @@ const createOrder = async (req, res) => {
             throw new Error('סכום ההזמנה אינו תואם למחיר העדכני של המוצרים. אנא רענן את העגלה ונסה שוב.');
         }
 
-        await Promise.all(
-            Object.values(productMap).map(p => p.save())
-        );
+        if (paymentMethod !== 'credit-card') {
+            await Promise.all(
+                Object.values(productMap).map(p => p.save())
+            );
+        }
 
         const orderId = new mongoose.Types.ObjectId();
 
@@ -219,51 +250,138 @@ const createOrder = async (req, res) => {
 
         if (paymentMethod === 'credit-card') {
             const paymentSettings = req.store?.paymentSettings;
-            const { dirName, username } = paymentSettings?.hyp || {};
-
-            const { password, apiKey } = req.store.getDecryptedHypCredentials();
-
-            if (!dirName || !username || !password || !apiKey) {
-                throw new Error("פרטי מסוף ה-Hyp של החנות חסרים או לא הוגדרו כראוי במערכת.");
+            const activeProvider = paymentSettings?.provider;
+            if (!activeProvider || activeProvider === 'none') {
+                throw new Error("לא הוגדרה חברת סליקה פעילה עבור חנות זו.");
             }
+            if (activeProvider === 'hyp') {
+                const { dirName, username, autoInvoice } = paymentSettings?.hyp || {};
 
-            const hypApiUrl = 'https://pay.hyp.co.il/p/';
-            const storeSlug = req.store.slug || 'default';
+                const { password, apiKey } = req.store.getDecryptedHypCredentials();
 
-            const successUrl = `${req.headers.origin}/store/${storeSlug}/order-confirmation/${orderId}?status=success&CCode=0`;
-            const failureUrl = `${req.headers.origin}/store/${storeSlug}/checkout?status=failed&orderId=${orderId}`;
+                if (!dirName || !username || !password || !apiKey) {
+                    throw new Error("פרטי מסוף ה-Hyp של החנות חסרים או לא הוגדרו כראוי במערכת.");
+                }
 
-            const payload = {
-                action: 'APISign',
-                What: 'SIGN',
-                Sign: 'True',
-                Masof: dirName,
-                KEY: apiKey,
-                PassP: password,
-                Amount: totalPrice.toString(),
-                Order: orderId.toString(),
-                Coin: '1',
-                PageLang: 'HEB',
-                UTF8: 'True',
-                success_url: successUrl,
-                error_url: failureUrl
-            };
+                const hypApiUrl = 'https://pay.hyp.co.il/p/';
+                const storeSlug = req.store.slug || 'default';
 
-            const params = new URLSearchParams(payload);
-            const hypResponse = await axios.get(`${hypApiUrl}?${params.toString()}`);
-            const responseData = hypResponse.data;
+                // const successUrl = `${req.headers.origin}/store/${storeSlug}/order-confirmation/${orderId}?status=success&CCode=0`;
+                // const failureUrl = `${req.headers.origin}/store/${storeSlug}/checkout?status=failed&orderId=${orderId}`;
 
-            if (responseData && responseData.includes('signature=')) {
-                const paymentPageUrl = `${hypApiUrl}?${responseData}`;
+                const payload = {
+                    action: 'APISign',
+                    What: 'SIGN',
+                    Sign: 'True',
+                    Masof: dirName,
+                    KEY: apiKey,
+                    PassP: password,
+                    Amount: totalPrice.toString(),
+                    Order: orderId.toString(),
+                    Coin: '1',
+                    PageLang: 'HEB',
+                    UTF8: 'True',
+                    // success_url: successUrl,
+                    // error_url: failureUrl
+                };
+                if (autoInvoice === true) {
+                    const itemsForInvoice = orderItems.map(item => {
+                        const itemCode = '0';
+                        const productName = item.name || 'מוצר בחנות';
+                        const quantity = item.quantity;
+                        const priceIncludingVat = item.price;
+                        return `[${itemCode}~${productName}~${quantity}~${priceIncludingVat}]`;
+                    });
 
-                await order.save();
+                    if (shippingPrice > 0) {
+                        itemsForInvoice.push(`[0~דמי משלוח~1~${shippingPrice}]`);
+                    }
 
-                return res.status(201).json({
-                    forwardToPayment: true,
-                    paymentUrl: paymentPageUrl
-                });
-            } else {
-                throw new Error(`שרת הסליקה דחה את הפקת החתימה. תגובה: ${responseData}`);
+                    payload.Pritim = 'True';
+                    payload.heshDesc = itemsForInvoice.join('');
+                    payload.SendHesh = 'True';
+                    payload.email = finalEmail;
+                    payload['EZ.lang'] = 'he';
+                }
+
+                const params = new URLSearchParams(payload);
+                const hypResponse = await axios.get(`${hypApiUrl}?${params.toString()}`);
+                const responseData = hypResponse.data;
+
+                if (responseData && responseData.includes('signature=')) {
+                    const paymentPageUrl = `${hypApiUrl}?${responseData}`;
+
+                    await order.save();
+
+                    return res.status(201).json({
+                        forwardToPayment: true,
+                        paymentUrl: paymentPageUrl
+                    });
+                } else {
+                    throw new Error(`שרת הסליקה דחה את הפקת החתימה. תגובה: ${responseData}`);
+                }
+            }
+            if (activeProvider === 'verifone') {
+                const { username, password, entityId, paymentContractId } = paymentSettings.verifone || {};
+
+                if (!username || !password || !entityId || !paymentContractId) {
+                    throw new Error("פרטי מסוף ה-Verifone חסרים או לא הוגדרו כראוי בבסיס הנתונים.");
+                }
+
+                const verifoneApiUrl = 'https://emea.gsc.verifone.cloud/oidc/checkout-service/v2/checkout';
+                const storeSlug = req.store.slug || 'default';
+
+                const successUrl = `${req.headers.origin}/store/${storeSlug}/order-confirmation/${orderId}?status=success`;
+                const failureUrl = `${req.headers.origin}/store/${storeSlug}/checkout?status=failed&orderId=${orderId}`;
+
+                const authHeader = 'Basic ' + Buffer.from(`${username}:${password}`).toString('base64');
+
+                const payload = {
+                    entity_id: entityId,
+                    currency_code: 'ILS',
+                    amount: Math.round(totalPrice * 100),
+                    merchant_reference: orderId.toString(),
+                    return_url: successUrl,
+                    interaction_type: 'HPP',
+                    receipt_type: 'FULL_RECEIPT',
+                    configurations: {
+                        card: {
+                            mode: 'PAYMENT',
+                            payment_contract_id: paymentContractId,
+                            capture_now: true
+                        }
+                    }
+                };
+
+                try {
+                    const verifoneResponse = await axios.post(verifoneApiUrl, payload, {
+                        headers: {
+                            'Authorization': authHeader,
+                            'Content-Type': 'application/json'
+                        }
+                    });
+
+                    if (verifoneResponse.data && verifoneResponse.data.redirect_url) {
+
+                        order.paymentResult = {
+                            id: verifoneResponse.data.id || '',
+                            provider: 'verifone'
+                        };
+
+                        await order.save();
+
+                        return res.status(201).json({
+                            forwardToPayment: true,
+                            paymentUrl: verifoneResponse.data.redirect_url
+                        });
+                    } else {
+                        throw new Error("לא התקבל קישור הפניה (redirect_url) משרתי Verifone.");
+                    }
+
+                } catch (verifoneErr) {
+                    const errorDetails = verifoneErr.response?.data ? JSON.stringify(verifoneErr.response.data) : verifoneErr.message;
+                    throw new Error(`שגיאה בהפקת סשן תשלום מול Verifone: ${errorDetails}`);
+                }
             }
         }
 
@@ -289,8 +407,8 @@ const createOrder = async (req, res) => {
 
         const currentPaymentMethod = req.body?.paymentMethod;
 
-        if (shouldCheckStock && currentPaymentMethod === 'credit-card') {
-            console.log("Payment flow failed or interrupted. Initiating stock rollback.");
+        if (shouldCheckStock && currentPaymentMethod !== 'credit-card') {
+            console.log("Order processing failed. Initiating stock rollback for non-credit-card payment.");
             if (req.body?.orderItems) await rollbackStock(req.body.orderItems);
         } else if (err.message.includes('stock') || err.message.includes('not found')) {
             console.log("Validation failure. No rollback needed.");
@@ -373,7 +491,7 @@ const getAllOrders = async (req, res) => {
  * @param {Object} req - Express request object.
  * @param {Object} res - Express response object.
  */
-const guestOrder = async (req, res) => {
+const getOrderDetails = async (req, res) => {
     try {
         const orderId = req.params.orderId;
         const { status, CCode } = req.query;
@@ -394,16 +512,51 @@ const guestOrder = async (req, res) => {
             }
         }
 
-        if (order.paymentMethod === 'credit-card' && !order.isPaid && status === 'success' && CCode === '0') {
+        // if (order.paymentMethod === 'credit-card' && !order.isPaid && status === 'success' && CCode === '0')  {
+        //     order.isPaid = true;
+        //     order.paidAt = Date.now();
+        //     order.isUnseen = true;
+
+        //     await order.save();
+
+        //     if (order.shippingAddress?.email) {
+        //         try {
+        //             const populatedOrder = await Order.findById(order._id).populate('orderItems.product');
+        //             await sendOrderConfirmationEmail(order.shippingAddress.email, populatedOrder.toObject(), req.store);
+        //         } catch (e) {
+        //             console.error("Email failed", e.message);
+        //         }
+        //     }
+        // }
+
+        const activePaymentProvider = req.store?.paymentSettings?.provider;
+
+        const isHypPaid = activePaymentProvider === 'hyp' && status === 'success' && CCode === '0';
+        const isVerifonePaid = activePaymentProvider === 'verifone' && status === 'success';
+
+        if (order.paymentMethod === 'credit-card' && !order.isPaid && (isHypPaid || isVerifonePaid)) {
             order.isPaid = true;
             order.paidAt = Date.now();
             order.isUnseen = true;
+
+            const shouldCheckStock = req.store?.features?.showStock !== false;
+            if (shouldCheckStock) {
+                await deductStock(order.orderItems);
+            }
 
             await order.save();
 
             if (order.shippingAddress?.email) {
                 try {
                     const populatedOrder = await Order.findById(order._id).populate('orderItems.product');
+
+                    try {
+                        await sendInvoice(populatedOrder.toObject(), req.store);
+                        console.log(`[Invoice]: Document successfully generated for order ${order._id}`);
+                    } catch (invoiceErr) {
+                        console.error(`[Invoice system error] for order ${order._id}:`, invoiceErr.message);
+                    }
+
                     await sendOrderConfirmationEmail(order.shippingAddress.email, populatedOrder.toObject(), req.store);
                 } catch (e) {
                     console.error("Email failed", e.message);
@@ -528,9 +681,9 @@ const cancelOrder = async (req, res) => {
 
         const cancelledOrder = await order.save();
 
-        // Rollback stock levels if stock feature is active
+        // Rollback stock levels if stock feature is active and stock was decremented
         const shouldCheckStock = req.store?.features?.showStock !== false;
-        if (shouldCheckStock) {
+        if (shouldCheckStock && (order.paymentMethod !== 'credit-card' || order.isPaid)) {
             await rollbackStock(order.orderItems);
         }
 
@@ -563,7 +716,7 @@ module.exports = {
     createOrder,
     getAllOrders,
     getNewOrders,
-    guestOrder,
+    getOrderDetails,
     markOrderAsSeen,
     cancelOrder,
     updateOrderToDelivered

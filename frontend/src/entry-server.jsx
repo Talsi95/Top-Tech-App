@@ -20,14 +20,22 @@ import { useState } from 'react';
 export async function render(url, initialData = {}) {
     const helmetContext = {};
 
+    const isCustomDomain = !!initialData?.store && !url.startsWith('/store/');
+
     const html = ReactDOMServer.renderToString(
         <HelmetProvider context={helmetContext}>
             <StaticRouter location={url}>
                 <StoreProvider initialData={initialData}>
                     <AuthProvider>
                         <Routes>
-                            <Route path="/" element={<PlatformLanding />} />
-                            <Route path="/store/:slug/*" element={<App />} />
+                            {isCustomDomain ? (
+                                <Route path="/*" element={<App />} />
+                            ) : (
+                                <>
+                                    <Route path="/" element={<PlatformLanding />} />
+                                    <Route path="/store/:slug/*" element={<App />} />
+                                </>
+                            )}
                         </Routes>
                     </AuthProvider>
                 </StoreProvider>

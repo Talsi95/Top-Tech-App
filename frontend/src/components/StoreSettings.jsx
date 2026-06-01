@@ -27,8 +27,36 @@ const StoreSettings = ({ showNotification }) => {
                         username: store.paymentSettings?.hyp?.username || '',
                         password: store.paymentSettings?.hyp?.password || '',
                         apiKey: store.paymentSettings?.hyp?.apiKey || '',
+                        autoInvoice: store.paymentSettings?.hyp?.autoInvoice || false,
                         isSandbox: store.paymentSettings?.hyp?.isSandbox !== false
+                    },
+                    verifone: {
+                        username: store.paymentSettings?.verifone?.username || '',
+                        password: store.paymentSettings?.verifone?.password || '',
+                        entityId: store.paymentSettings?.verifone?.entityId || '',
+                        paymentContractId: store.paymentSettings?.verifone?.paymentContractId || ''
                     }
+                },
+                invoiceSettings: {
+                    provider: store.invoiceSettings?.provider || 'none',
+                    icount: {
+                        iCountToken: store.invoiceSettings?.icount?.iCountToken || ''
+                    },
+                    greenInvoice: {
+                        apiKey: store.invoiceSettings?.greenInvoice?.apiKey || '',
+                        apiSecret: store.invoiceSettings?.greenInvoice?.apiSecret || ''
+                    }
+                },
+                legal: {
+                    termsOfService: store.legal?.termsOfService || '',
+                    privacyPolicy: store.legal?.privacyPolicy || '',
+                    useDefaultPrivacy: store.legal?.useDefaultPrivacy !== false,
+                    useDefaultTerms: store.legal?.useDefaultTerms !== false,
+                    showCookieBanner: store.legal?.showCookieBanner !== false
+                },
+                integrations: {
+                    googleAnalyticsId: store.integrations?.googleAnalyticsId || '',
+                    facebookPixelId: store.integrations?.facebookPixelId || ''
                 }
             });
             const url = store.homePageConfig?.mediaUrls?.[0] || '';
@@ -168,6 +196,20 @@ const StoreSettings = ({ showNotification }) => {
                             className="w-full p-4 bg-white rounded-xl border border-gray-200 focus:border-primary outline-none transition-all"
                             required
                         />
+                    </div>
+                    <div>
+                        <label className="block text-sm font-bold text-gray-700 mb-2">דומיין אישי מותאם (אופציונלי)</label>
+                        <input
+                            type="text"
+                            value={formData.customDomain || ''}
+                            onChange={(e) => setFormData({ ...formData, customDomain: e.target.value.toLowerCase().trim() })}
+                            className="w-full p-4 bg-white rounded-xl border border-gray-200 focus:border-primary outline-none transition-all font-medium"
+                            placeholder="לדוגמה: yossi-shop.co.il"
+                            dir="ltr"
+                        />
+                        <p className="text-[10px] text-gray-400 mr-2 mt-1 text-right" dir="rtl">
+                            ℹ️ כדי שהחיבור יפעל, יש להגדיר ברשם הדומיינים שלך רשומת CNAME בשם <span className="font-mono bg-gray-200/60 px-1 rounded">www</span> המפנה אל שרת המערכת.
+                        </p>
                     </div>
                 </div>
             </div>
@@ -470,6 +512,12 @@ const StoreSettings = ({ showNotification }) => {
                     </label>
 
                     <label className="flex items-center cursor-pointer relative">
+                        <input type="checkbox" checked={formData.features?.hasCashPayment ?? true} onChange={(e) => handleFeatureChange('hasCashPayment', e.target.checked)} className="peer sr-only" />
+                        <div className="w-14 h-7 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-0.5 after:right-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-6 after:w-6 after:transition-all peer-checked:bg-primary"></div>
+                        <span className="mr-3 text-sm font-medium text-gray-900 pr-3">אפשר תשלום במזומן (Cash Payment)</span>
+                    </label>
+
+                    <label className="flex items-center cursor-pointer relative">
                         <input type="checkbox" checked={formData.features?.fullWidthCards ?? false} onChange={(e) => handleFeatureChange('fullWidthCards', e.target.checked)} className="peer sr-only" />
                         <div className="w-14 h-7 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-0.5 after:right-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-6 after:w-6 after:transition-all peer-checked:bg-primary"></div>
                         <span className="mr-3 text-sm font-medium text-gray-900 pr-3">כרטיסי מוצר ברוחב מלא (Mobile Edge-to-Edge)</span>
@@ -694,7 +742,7 @@ const StoreSettings = ({ showNotification }) => {
                 </div>
             </div>
 
-            {/* הגדרות סליקה ותשלומים */}
+            {/* Payment Provider Settings */}
             <div className="p-6 bg-white rounded-3xl border border-gray-100 shadow-sm space-y-6">
                 <div className="flex items-center gap-3 border-b border-gray-50 pb-4">
                     <div className="p-2.5 bg-green-50 text-green-600 rounded-xl">
@@ -718,12 +766,12 @@ const StoreSettings = ({ showNotification }) => {
                         >
                             <option value="none">ללא סליקה (מזומן / איסוף בלבד)</option>
                             <option value="hyp">Hyp (הייפ / Comax / YaPay)</option>
-                            <option value="stripe">Stripe</option>
+                            <option value="verifone">Verifone</option>
                         </select>
                     </div>
                 </div>
 
-                {/* שדות ספציפיים עבור HYP */}
+                {/* HYP payment provider settings */}
                 {formData.paymentSettings?.provider === 'hyp' && (
                     <div className="p-5 bg-gray-50 rounded-2xl border border-gray-100 space-y-4 animate-fadeIn">
                         <h4 className="font-bold text-gray-700 mb-2">פרטי מסוף Hyp (סביבת בדיקות/פרודקשן)</h4>
@@ -783,9 +831,169 @@ const StoreSettings = ({ showNotification }) => {
                                 מצב בדיקות (Sandbox) - סמן ב-V כל עוד החנות בהרצה או בטסטים
                             </label>
                         </div>
+                        <div className="flex items-center gap-3 pt-2">
+                            <input
+                                type="checkbox"
+                                id="autoInvoice"
+                                checked={formData.paymentSettings?.hyp?.autoInvoice ?? false}
+                                onChange={(e) => handlePaymentSettingsChange('autoInvoice', e.target.checked, true)}
+                                className="h-5 w-5 text-primary focus:ring-primary border-gray-300 rounded"
+                            />
+                            <label htmlFor="autoInvoice" className="text-sm font-bold text-gray-600 cursor-pointer">
+                                הפקת חשבונית אוטומטית לאחר סיום תשלום
+                            </label>
+                        </div>
                     </div>
                 )}
             </div>
+
+            {/* Verifone Payment Provider Settings */}
+            {formData.paymentSettings?.provider === 'verifone' && (
+                <div className="p-5 bg-gray-50 rounded-2xl border border-gray-100 space-y-4">
+                    <h4 className="font-bold text-gray-700">פרטי מסוף Verifone</h4>
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        <div>
+                            <label className="text-xs font-bold text-gray-500">שם משתמש</label>
+                            <input
+                                type="text"
+                                value={formData.paymentSettings.verifone?.username || ''}
+                                onChange={(e) => handlePaymentSettingsChange('username', e.target.value, true)}
+                                className="p-3 bg-white rounded-xl border border-gray-200 focus:ring-2 focus:ring-primary font-medium w-full"
+                            />
+                        </div>
+                        <div>
+                            <label className="text-xs font-bold text-gray-500">סיסמה</label>
+                            <input
+                                type="password"
+                                value={formData.paymentSettings.verifone?.password || ''}
+                                onChange={(e) => handlePaymentSettingsChange('password', e.target.value, true)}
+                                className="p-3 bg-white rounded-xl border border-gray-200 focus:ring-2 focus:ring-primary font-medium w-full"
+                            />
+                        </div>
+                        <div>
+                            <label className="text-xs font-bold text-gray-500">entityId</label>
+                            <input
+                                type="text"
+                                value={formData.paymentSettings.verifone?.entityId || ''}
+                                onChange={(e) => handlePaymentSettingsChange('entityId', e.target.value, true)}
+                                className="p-3 bg-white rounded-xl border border-gray-200 focus:ring-2 focus:ring-primary font-medium w-full"
+                            />
+                        </div>
+                        <div>
+                            <label className="text-xs font-bold text-gray-500">paymentContractId</label>
+                            <input
+                                type="text"
+                                value={formData.paymentSettings.verifone?.paymentContractId || ''}
+                                onChange={(e) => handlePaymentSettingsChange('paymentContractId', e.target.value, true)}
+                                className="p-3 bg-white rounded-xl border border-gray-200 focus:ring-2 focus:ring-primary font-medium w-full"
+                            />
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Digital Invoice Provider Settings */}
+            <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 space-y-6 mt-6">
+                <h3 className="text-xl font-bold text-gray-800 flex items-center gap-2">
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-primary" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                    </svg>
+                    מערכת חשבוניות דיגיטליות
+                </h3>
+
+                <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">בחר ספק חשבוניות</label>
+                    <select
+                        value={formData?.invoiceSettings?.provider || 'none'}
+                        onChange={(e) => setFormData({
+                            ...formData,
+                            invoiceSettings: {
+                                ...formData.invoiceSettings,
+                                provider: e.target.value
+                            }
+                        })}
+                        className="w-full p-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-primary focus:border-transparent outline-none bg-gray-50 transition-all"
+                    >
+                        <option value="none">ללא הפקת חשבוניות אוטומטית</option>
+                        <option value="icount">iCount</option>
+                        <option value="green-invoice">חשבונית ירוקה (Morning)</option>
+                    </select>
+                </div>
+
+                {/* iCount provider settings */}
+                {formData?.invoiceSettings?.provider === 'icount' && (
+                    <div className="p-4 bg-gray-50 rounded-xl space-y-4 border border-gray-100 animate-fadeIn">
+                        <h4 className="font-bold text-gray-700 text-sm">הגדרות חיבור לחשבון iCount</h4>
+                        <div>
+                            <label className="block text-xs text-gray-500 mb-1">iCount API Token (Bearer)</label>
+                            <input
+                                type="password"
+                                value={formData.invoiceSettings?.icount?.iCountToken || ''}
+                                onChange={(e) => setFormData({
+                                    ...formData,
+                                    invoiceSettings: {
+                                        ...formData.invoiceSettings,
+                                        icount: {
+                                            ...formData.invoiceSettings.icount,
+                                            iCountToken: e.target.value
+                                        }
+                                    }
+                                })}
+                                placeholder="הזן את ה-Token הארוך שנוצר במערכת iCount"
+                                className="w-full p-3 bg-white border border-gray-200 rounded-xl focus:ring-2 focus:ring-primary focus:border-transparent outline-none"
+                            />
+                        </div>
+                    </div>
+                )}
+
+                {/* Green Invoice provider settings */}
+                {formData?.invoiceSettings?.provider === 'green-invoice' && (
+                    <div className="p-4 bg-gray-50 rounded-xl space-y-4 border border-gray-100 animate-fadeIn">
+                        <h4 className="font-bold text-gray-700 text-sm">הגדרות חיבור לחשבונית ירוקה</h4>
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                            <div>
+                                <label className="block text-xs text-gray-500 mb-1">API Key</label>
+                                <input
+                                    type="text"
+                                    value={formData.invoiceSettings?.greenInvoice?.apiKey || ''}
+                                    onChange={(e) => setFormData({
+                                        ...formData,
+                                        invoiceSettings: {
+                                            ...formData.invoiceSettings,
+                                            greenInvoice: {
+                                                ...formData.invoiceSettings.greenInvoice,
+                                                apiKey: e.target.value
+                                            }
+                                        }
+                                    })}
+                                    placeholder="הזן API Key"
+                                    className="w-full p-3 bg-white border border-gray-200 rounded-xl focus:ring-2 focus:ring-primary focus:border-transparent outline-none"
+                                />
+                            </div>
+                            <div>
+                                <label className="block text-xs text-gray-500 mb-1">API Secret</label>
+                                <input
+                                    type="password"
+                                    value={formData.invoiceSettings?.greenInvoice?.apiSecret || ''}
+                                    onChange={(e) => setFormData({
+                                        ...formData,
+                                        invoiceSettings: {
+                                            ...formData.invoiceSettings,
+                                            greenInvoice: {
+                                                ...formData.invoiceSettings.greenInvoice,
+                                                apiSecret: e.target.value
+                                            }
+                                        }
+                                    })}
+                                    placeholder="הזן API Secret"
+                                    className="w-full p-3 bg-white border border-gray-200 rounded-xl focus:ring-2 focus:ring-primary focus:border-transparent outline-none"
+                                />
+                            </div>
+                        </div>
+                    </div>
+                )}
+            </div>
+
 
             {/* Shipping Options Management */}
             <div className="bg-gray-50 p-6 rounded-[2rem] border border-gray-100">
@@ -859,6 +1067,139 @@ const StoreSettings = ({ showNotification }) => {
                             </div>
                         ))
                     )}
+                </div>
+            </div>
+
+            {/* Integrations Section */}
+            <div className="bg-gray-50 p-6 rounded-[2rem] border border-gray-100 space-y-6 mt-6">
+                <div className="flex items-center gap-3 border-b border-gray-100 pb-4">
+                    <h3 className="text-xl font-black text-gray-800">חיבור כלי אנליזה ושיווק</h3>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                        <label className="block text-sm font-bold text-gray-700 mb-2">Google Analytics 4 (Measurement ID)</label>
+                        <input
+                            type="text"
+                            value={formData.integrations?.googleAnalyticsId || ''}
+                            onChange={(e) => handleNestedChange('integrations', 'googleAnalyticsId', e.target.value)}
+                            placeholder="לדוגמה: G-XXXXXXXXXX"
+                            className="w-full p-3 bg-white rounded-xl border border-gray-200 focus:border-primary outline-none text-sm"
+                        />
+                    </div>
+
+                    <div>
+                        <label className="block text-sm font-bold text-gray-700 mb-2">Facebook Pixel ID</label>
+                        <input
+                            type="text"
+                            value={formData.integrations?.facebookPixelId || ''}
+                            onChange={(e) => handleNestedChange('integrations', 'facebookPixelId', e.target.value)}
+                            placeholder="לדוגמה: 123456789012345"
+                            className="w-full p-3 bg-white rounded-xl border border-gray-200 focus:border-primary outline-none text-sm"
+                        />
+                    </div>
+                </div>
+            </div>
+
+            {/* Legal Documents Section */}
+            <div className="bg-gray-50 p-6 rounded-[2rem] border border-gray-100 space-y-6">
+                <div className="flex items-center gap-3 border-b border-gray-100 pb-4">
+                    <div className="p-2.5 bg-blue-50 text-primary rounded-xl">
+                        <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                        </svg>
+                    </div>
+                    <div>
+                        <h3 className="text-xl font-black text-gray-800">מסמכים משפטיים ומדיניות</h3>
+                        <p className="text-sm text-gray-400">נהל את תקנון האתר ומדיניות הפרטיות המוצגים ללקוחות</p>
+                    </div>
+                </div>
+
+                <div className="space-y-6">
+                    {/* Terms of Service */}
+                    <div className="space-y-4">
+                        <div className="flex items-center gap-3 bg-white p-4 rounded-xl border border-gray-100 shadow-sm">
+                            <input
+                                type="checkbox"
+                                id="useDefaultTerms"
+                                checked={formData.legal?.useDefaultTerms ?? true}
+                                onChange={(e) => handleNestedChange('legal', 'useDefaultTerms', e.target.checked)}
+                                className="h-5 w-5 text-primary focus:ring-primary border-gray-300 rounded cursor-pointer"
+                            />
+                            <label htmlFor="useDefaultTerms" className="text-sm font-bold text-gray-700 cursor-pointer select-none">
+                                השתמש בתקנון אתר ותנאי שימוש גנריים (מומלץ)
+                            </label>
+                        </div>
+                        <p className="text-xs text-gray-400 mr-2 leading-relaxed">
+                            ℹ️ כאשר אפשרות זו פעילה, המערכת תציג ללקוחות תקנון אתר תקני ומעודכן, המשלב אוטומטית את פרטי העסק המעודכנים שלך (שם החנות, טלפון, מייל, ח.פ).
+                        </p>
+
+                        {/* Conditional Custom Terms of Service */}
+                        {!(formData.legal?.useDefaultTerms ?? true) && (
+                            <div className="animate-in slide-in-from-top-4 duration-300 pt-2">
+                                <label className="block text-sm font-bold text-gray-700 mb-2">תקנון האתר ותנאי השימוש מותאם אישית</label>
+                                <textarea
+                                    value={formData.legal?.termsOfService || ''}
+                                    onChange={(e) => handleNestedChange('legal', 'termsOfService', e.target.value)}
+                                    placeholder="כתוב או הדבק כאן את תקנון האתר הספציפי של החנות..."
+                                    rows={6}
+                                    className="w-full p-4 bg-white rounded-xl border border-gray-200 focus:border-primary outline-none transition-all resize-y text-sm font-medium leading-relaxed"
+                                />
+                            </div>
+                        )}
+                    </div>
+
+                    <hr className="border-gray-200/60" />
+
+                    {/* Privacy Policy */}
+                    <div className="space-y-4">
+                        <div className="flex items-center gap-3 bg-white p-4 rounded-xl border border-gray-100 shadow-sm">
+                            <input
+                                type="checkbox"
+                                id="useDefaultPrivacy"
+                                checked={formData.legal?.useDefaultPrivacy ?? true}
+                                onChange={(e) => handleNestedChange('legal', 'useDefaultPrivacy', e.target.checked)}
+                                className="h-5 w-5 text-primary focus:ring-primary border-gray-300 rounded cursor-pointer"
+                            />
+                            <label htmlFor="useDefaultPrivacy" className="text-sm font-bold text-gray-700 cursor-pointer select-none">
+                                השתמש במדיניות פרטיות גנרית (מומלץ)
+                            </label>
+                        </div>
+                        <p className="text-xs text-gray-400 mr-2 leading-relaxed">
+                            ℹ️ כאשר אפשרות זו פעילה, המערכת תציג ללקוחות מדיניות פרטיות תקנית ומעודכנת, המשלבת אוטומטית את שם החנות שלך וכתובת האימייל ליצירת קשר.
+                        </p>
+
+                        {/* Conditional Custom Privacy Policy */}
+                        {!(formData.legal?.useDefaultPrivacy ?? true) && (
+                            <div className="animate-in slide-in-from-top-4 duration-300 pt-2">
+                                <label className="block text-sm font-bold text-gray-700 mb-2">מדיניות פרטיות מותאמת אישית</label>
+                                <textarea
+                                    value={formData.legal?.privacyPolicy || ''}
+                                    onChange={(e) => handleNestedChange('legal', 'privacyPolicy', e.target.value)}
+                                    placeholder="כתוב כאן מדיניות פרטיות ספציפית במידה ויש לך דרישות מיוחדות..."
+                                    rows={6}
+                                    className="w-full p-4 bg-white rounded-xl border border-gray-200 focus:border-primary outline-none transition-all resize-y text-sm font-medium leading-relaxed"
+                                />
+                            </div>
+                        )}
+                    </div>
+
+                    {/* Cookie Banner Settings */}
+                    <div className="flex items-center gap-3 bg-white p-4 rounded-xl border border-gray-100 shadow-sm">
+                        <input
+                            type="checkbox"
+                            id="showCookieBanner"
+                            checked={formData.legal?.showCookieBanner ?? true}
+                            onChange={(e) => handleNestedChange('legal', 'showCookieBanner', e.target.checked)}
+                            className="h-5 w-5 text-primary focus:ring-primary border-gray-300 rounded cursor-pointer"
+                        />
+                        <label htmlFor="showCookieBanner" className="text-sm font-bold text-gray-700 cursor-pointer select-none">
+                            הצג באנר אישור עוגיות (Cookie Consent) ללקוחות באתר
+                        </label>
+                    </div>
+                    <p className="text-xs text-gray-400 mr-2 leading-relaxed">
+                        ℹ️ מומלץ להשאיר אפשרות זו פעילה אם אתה משתמש בכלי מעקב ואנליזה (כמו Google Analytics או פייסבוק פיקסל) כדי לעמוד בתנאי הפרטיות הבינלאומיים.
+                    </p>
                 </div>
             </div>
 

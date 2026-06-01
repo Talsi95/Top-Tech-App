@@ -244,7 +244,7 @@ const CategoryManagement = ({ showNotification }) => {
                         </div>
 
                         <div className="space-y-3 border-t border-gray-50 pt-5">
-                            <label className="text-xs font-black text-gray-400 uppercase tracking-widest mr-2 block">שדות וריאנט חובה למוצרים</label>
+                            <label className="text-xs font-black text-gray-400 uppercase tracking-widest mr-2 block">שדות וריאנט למוצרים</label>
                             <div className="flex flex-wrap gap-2">
                                 {availableVariantFields.map(field => {
                                     const isSelected = newCategory.variantFields.includes(field);
@@ -256,8 +256,8 @@ const CategoryManagement = ({ showNotification }) => {
                                             type="button"
                                             onClick={() => handleVariantFieldToggle(field)}
                                             className={`flex items-center gap-1.5 px-4 py-2.5 rounded-xl border text-xs font-black transition-all ${isSelected
-                                                    ? 'bg-primary text-white border-primary shadow-md shadow-primary/10'
-                                                    : 'bg-gray-50 text-gray-600 border-gray-100 hover:bg-gray-100'
+                                                ? 'bg-primary text-white border-primary shadow-md shadow-primary/10'
+                                                : 'bg-gray-50 text-gray-600 border-gray-100 hover:bg-gray-100'
                                                 }`}
                                         >
                                             {isSelected && <Check size={14} />}
@@ -397,7 +397,7 @@ const CategoryManagement = ({ showNotification }) => {
                                             {/* Variant fields display */}
                                             {category.variantFields && category.variantFields.length > 0 && (
                                                 <div className="flex flex-wrap gap-1 items-center pt-0.5">
-                                                    <span className="text-[10px] font-black text-gray-400">שדות חובה:</span>
+                                                    <span className="text-[10px] font-black text-gray-400"> שדות בחירה:</span>
                                                     {category.variantFields.map((field, fIdx) => (
                                                         <span key={fIdx} className="text-[10px] bg-primary/5 text-primary px-2 py-0.5 rounded-md font-bold">
                                                             {field === 'color' ? 'צבע' : field === 'storage' ? 'נפח' : field === 'size' ? 'גודל' : field}

@@ -25,7 +25,7 @@ const PaymentSuccess = () => {
                     const storeSlug = localStorage.getItem('currentStoreSlug') || store?.slug || 'default';
 
                     const response = await axios.get(`${__API_URL__}/orders/${orderId}`, {
-                        headers: { 
+                        headers: {
                             Authorization: `Bearer ${token}`,
                             'x-store-slug': storeSlug
                         },

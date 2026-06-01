@@ -187,7 +187,7 @@ const searchProducts = async (req, res) => {
 const getProductById = async (req, res) => {
     const { id } = req.params;
     let query = { storeId: req.storeId };
-    
+
     const mongoose = require('mongoose');
     if (mongoose.Types.ObjectId.isValid(id)) {
         query.$or = [{ _id: id }, { slug: id }];
@@ -235,7 +235,7 @@ const validateProductVariants = async (productData, storeId) => {
 const createProduct = async (req, res) => {
     try {
         req.body.storeId = req.storeId;
-        await validateProductVariants(req.body, req.storeId);
+        // await validateProductVariants(req.body, req.storeId);
 
         const newProduct = await Product.create(req.body);
         res.status(201).json(newProduct);
@@ -252,7 +252,7 @@ const createProduct = async (req, res) => {
 const updateProduct = async (req, res) => {
     try {
         req.body.storeId = req.storeId;
-        await validateProductVariants(req.body, req.storeId);
+        // await validateProductVariants(req.body, req.storeId);
 
         const product = await Product.findOneAndUpdate(
             { _id: req.params.id, storeId: req.storeId },

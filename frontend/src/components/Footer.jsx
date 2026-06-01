@@ -103,7 +103,12 @@ const Footer = () => {
                             <li>יום ו': 09:00 - 14:00</li>
                             <li>שבת: סגור</li>
                         </ul>
-                        <StoreLink to="/accessibility" className="hover:underline transition-all">הצהרת נגישות</StoreLink>
+                        <div className="flex flex-col gap-2 pt-2 text-sm text-gray-400">
+                            <StoreLink to="/accessibility" className="hover:underline transition-all">הצהרת נגישות</StoreLink>
+                            <StoreLink to="/terms" className="hover:underline transition-all">תקנון האתר ותנאי השימוש</StoreLink>
+                            <StoreLink to="/privacy" className="hover:underline transition-all">מדיניות פרטיות</StoreLink>
+                        </div>
+                        {/* <StoreLink to="/accessibility" className="hover:underline transition-all">הצהרת נגישות</StoreLink> */}
                     </div>
                 </div>
 

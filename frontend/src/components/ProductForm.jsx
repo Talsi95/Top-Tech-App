@@ -166,15 +166,15 @@ const ProductForm = ({ showNotification, existingProduct, onUpdateSuccess, admin
             const parsedSalePrice = parseFloat(v.salePrice);
             const parsedStock = parseInt(v.stock, 10);
 
-            productRequiredFields.forEach(field => {
-                if (!v[field] || (typeof v[field] === 'string' && !v[field].trim())) {
-                    vErrors[field] = `${field === 'color' ? 'צבע' : field === 'storage' ? 'נפח' : field === 'size' ? 'גודל' : field} נדרש`;
-                }
-            });
+            // productRequiredFields.forEach(field => {
+            //     if (!v[field] || (typeof v[field] === 'string' && !v[field].trim())) {
+            //         vErrors[field] = `${field === 'color' ? 'צבע' : field === 'storage' ? 'נפח' : field === 'size' ? 'גודל' : field} נדרש`;
+            //     }
+            // });
 
             if (isNaN(parsedPrice) || parsedPrice <= 0) vErrors.price = 'מחיר חייב להיות מספר חיובי';
             if (showStock && (isNaN(parsedStock) || parsedStock < 0)) vErrors.stock = 'מלאי חייב להיות מספר חיובי או אפס';
-            
+
             const filteredImages = v.imageUrls.filter(url => url.trim() !== '');
             if (filteredImages.length === 0) vErrors.imageUrls = 'לפחות תמונה אחת נדרשת';
             if (v.isOnSale && (isNaN(parsedSalePrice) || parsedSalePrice <= 0 || parsedSalePrice >= parsedPrice)) {
@@ -265,7 +265,7 @@ const ProductForm = ({ showNotification, existingProduct, onUpdateSuccess, admin
 
     return (
         <div className="max-w-4xl mx-auto mb-16 animate-in fade-in duration-500" dir="rtl">
-            
+
             {/* Header */}
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-10 pb-6 border-b border-gray-100">
                 <div>
@@ -287,7 +287,7 @@ const ProductForm = ({ showNotification, existingProduct, onUpdateSuccess, admin
             </div>
 
             <form onSubmit={handleSubmit} className="space-y-8">
-                
+
                 {/* Section 1: Basic Info */}
                 <div className="bg-white rounded-[2rem] border border-gray-100 p-8 shadow-sm space-y-6">
                     <div className="flex items-center gap-3 pb-4 border-b border-gray-50">
@@ -300,14 +300,14 @@ const ProductForm = ({ showNotification, existingProduct, onUpdateSuccess, admin
                     <div className="space-y-5">
                         <div>
                             <label className="block text-sm font-bold text-gray-700 mb-1.5">שם המוצר</label>
-                            <input 
-                                className="w-full bg-gray-50/50 border border-gray-200 rounded-xl px-4 py-3 text-gray-800 placeholder-gray-400 focus:bg-white focus:border-primary focus:ring-4 focus:ring-primary/10 transition-all duration-300 outline-none" 
-                                type="text" 
-                                name="name" 
+                            <input
+                                className="w-full bg-gray-50/50 border border-gray-200 rounded-xl px-4 py-3 text-gray-800 placeholder-gray-400 focus:bg-white focus:border-primary focus:ring-4 focus:ring-primary/10 transition-all duration-300 outline-none"
+                                type="text"
+                                name="name"
                                 placeholder="לדוג׳: אייפון 15 פרו מקס"
-                                value={formData.name} 
-                                onChange={(e) => setFormData({ ...formData, name: e.target.value })} 
-                                required 
+                                value={formData.name}
+                                onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                                required
                             />
                             {validationErrors.name && (
                                 <p className="text-red-500 text-xs font-semibold mt-1.5 flex items-center gap-1">
@@ -319,13 +319,13 @@ const ProductForm = ({ showNotification, existingProduct, onUpdateSuccess, admin
 
                         <div>
                             <label className="block text-sm font-bold text-gray-700 mb-1.5">תיאור קצר</label>
-                            <textarea 
-                                className="w-full bg-gray-50/50 border border-gray-200 rounded-xl px-4 py-3 text-gray-800 placeholder-gray-400 focus:bg-white focus:border-primary focus:ring-4 focus:ring-primary/10 transition-all duration-300 outline-none min-h-[100px]" 
-                                name="description" 
+                            <textarea
+                                className="w-full bg-gray-50/50 border border-gray-200 rounded-xl px-4 py-3 text-gray-800 placeholder-gray-400 focus:bg-white focus:border-primary focus:ring-4 focus:ring-primary/10 transition-all duration-300 outline-none min-h-[100px]"
+                                name="description"
                                 placeholder="תיאור קצר ומזמין של המוצר שיוצג ללקוח..."
-                                value={formData.description} 
-                                onChange={(e) => setFormData({ ...formData, description: e.target.value })} 
-                                required 
+                                value={formData.description}
+                                onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                                required
                             />
                             {validationErrors.description && (
                                 <p className="text-red-500 text-xs font-semibold mt-1.5 flex items-center gap-1">
@@ -338,10 +338,10 @@ const ProductForm = ({ showNotification, existingProduct, onUpdateSuccess, admin
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                             <div>
                                 <label className="block text-sm font-bold text-gray-700 mb-1.5">קטגוריה ראשית</label>
-                                <select 
-                                    className="w-full bg-gray-50/50 border border-gray-200 rounded-xl px-4 py-3 text-gray-800 focus:bg-white focus:border-primary focus:ring-4 focus:ring-primary/10 transition-all duration-300 outline-none cursor-pointer" 
-                                    value={formData.category.main} 
-                                    onChange={handleMainChange} 
+                                <select
+                                    className="w-full bg-gray-50/50 border border-gray-200 rounded-xl px-4 py-3 text-gray-800 focus:bg-white focus:border-primary focus:ring-4 focus:ring-primary/10 transition-all duration-300 outline-none cursor-pointer"
+                                    value={formData.category.main}
+                                    onChange={handleMainChange}
                                     required
                                 >
                                     <option value="">בחר קטגוריה</option>
@@ -358,10 +358,10 @@ const ProductForm = ({ showNotification, existingProduct, onUpdateSuccess, admin
                             {formData.category.main && (
                                 <div>
                                     <label className="block text-sm font-bold text-gray-700 mb-1.5">תת-קטגוריה</label>
-                                    <select 
-                                        className="w-full bg-gray-50/50 border border-gray-200 rounded-xl px-4 py-3 text-gray-800 focus:bg-white focus:border-primary focus:ring-4 focus:ring-primary/10 transition-all duration-300 outline-none cursor-pointer" 
-                                        value={formData.category.sub} 
-                                        onChange={handleSubChange} 
+                                    <select
+                                        className="w-full bg-gray-50/50 border border-gray-200 rounded-xl px-4 py-3 text-gray-800 focus:bg-white focus:border-primary focus:ring-4 focus:ring-primary/10 transition-all duration-300 outline-none cursor-pointer"
+                                        value={formData.category.sub}
+                                        onChange={handleSubChange}
                                         required
                                     >
                                         <option value="">בחר תת-קטגוריה</option>
@@ -411,7 +411,7 @@ const ProductForm = ({ showNotification, existingProduct, onUpdateSuccess, admin
                                 </div>
 
                                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                                    
+
                                     {/* Category Specific Custom Fields */}
                                     {formData.category.main && (safeAdminVariantFields[formData.category.main] || []).map(field => (
                                         <div key={field}>
@@ -425,7 +425,6 @@ const ProductForm = ({ showNotification, existingProduct, onUpdateSuccess, admin
                                                 placeholder={field === 'color' ? 'שחור, כסף...' : field === 'storage' ? '128GB, 256GB...' : 'הזן ערך...'}
                                                 value={variant[field] || ''}
                                                 onChange={(e) => handleVariantChange(index, e)}
-                                                required
                                             />
                                             {validationErrors.variants && validationErrors.variants[index]?.[field] && (
                                                 <p className="text-red-500 text-xs font-semibold mt-1 flex items-center gap-1">
@@ -439,14 +438,14 @@ const ProductForm = ({ showNotification, existingProduct, onUpdateSuccess, admin
                                     {/* Price */}
                                     <div>
                                         <label className="block text-sm font-bold text-gray-700 mb-1.5">מחיר (₪)</label>
-                                        <input 
-                                            className="w-full bg-white border border-gray-200 rounded-xl px-4 py-2.5 text-gray-800 placeholder-gray-400 focus:border-primary focus:ring-4 focus:ring-primary/10 transition-all outline-none" 
-                                            type="number" 
-                                            name="price" 
+                                        <input
+                                            className="w-full bg-white border border-gray-200 rounded-xl px-4 py-2.5 text-gray-800 placeholder-gray-400 focus:border-primary focus:ring-4 focus:ring-primary/10 transition-all outline-none"
+                                            type="number"
+                                            name="price"
                                             placeholder="0.00"
-                                            value={variant.price} 
-                                            onChange={(e) => handleVariantChange(index, e)} 
-                                            required 
+                                            value={variant.price}
+                                            onChange={(e) => handleVariantChange(index, e)}
+                                            required
                                         />
                                         {validationErrors.variants && validationErrors.variants[index]?.price && (
                                             <p className="text-red-500 text-xs font-semibold mt-1 flex items-center gap-1">
@@ -460,14 +459,14 @@ const ProductForm = ({ showNotification, existingProduct, onUpdateSuccess, admin
                                     {showStock && (
                                         <div>
                                             <label className="block text-sm font-bold text-gray-700 mb-1.5">מלאי במחסן</label>
-                                            <input 
-                                                className="w-full bg-white border border-gray-200 rounded-xl px-4 py-2.5 text-gray-800 placeholder-gray-400 focus:border-primary focus:ring-4 focus:ring-primary/10 transition-all outline-none" 
-                                                type="number" 
-                                                name="stock" 
+                                            <input
+                                                className="w-full bg-white border border-gray-200 rounded-xl px-4 py-2.5 text-gray-800 placeholder-gray-400 focus:border-primary focus:ring-4 focus:ring-primary/10 transition-all outline-none"
+                                                type="number"
+                                                name="stock"
                                                 placeholder="כמות במלאי"
-                                                value={variant.stock} 
-                                                onChange={(e) => handleVariantChange(index, e)} 
-                                                required 
+                                                value={variant.stock}
+                                                onChange={(e) => handleVariantChange(index, e)}
+                                                required
                                             />
                                             {validationErrors.variants && validationErrors.variants[index]?.stock && (
                                                 <p className="text-red-500 text-xs font-semibold mt-1 flex items-center gap-1">
@@ -481,10 +480,10 @@ const ProductForm = ({ showNotification, existingProduct, onUpdateSuccess, admin
                                     {/* Is On Sale Toggle */}
                                     <div className="flex items-center gap-3 pt-6 col-span-1 md:col-span-3 border-t border-gray-100/50 mt-2">
                                         <label className="relative inline-flex items-center cursor-pointer">
-                                            <input 
-                                                type="checkbox" 
-                                                name="isOnSale" 
-                                                checked={variant.isOnSale} 
+                                            <input
+                                                type="checkbox"
+                                                name="isOnSale"
+                                                checked={variant.isOnSale}
                                                 onChange={(e) => handleVariantChange(index, e)}
                                                 className="sr-only peer"
                                             />
@@ -497,13 +496,13 @@ const ProductForm = ({ showNotification, existingProduct, onUpdateSuccess, admin
                                     {variant.isOnSale && (
                                         <div className="col-span-1 md:col-span-3 animate-in slide-in-from-top-2 duration-300">
                                             <label className="block text-sm font-bold text-gray-700 mb-1.5">מחיר מבצע (₪)</label>
-                                            <input 
-                                                className="w-full bg-white border border-gray-200 rounded-xl px-4 py-2.5 text-gray-800 placeholder-gray-400 focus:border-primary focus:ring-4 focus:ring-primary/10 transition-all outline-none" 
-                                                type="number" 
-                                                name="salePrice" 
+                                            <input
+                                                className="w-full bg-white border border-gray-200 rounded-xl px-4 py-2.5 text-gray-800 placeholder-gray-400 focus:border-primary focus:ring-4 focus:ring-primary/10 transition-all outline-none"
+                                                type="number"
+                                                name="salePrice"
                                                 placeholder="מחיר מבצע נמוך מהמחיר המקורי"
-                                                value={variant.salePrice} 
-                                                onChange={(e) => handleVariantChange(index, e)} 
+                                                value={variant.salePrice}
+                                                onChange={(e) => handleVariantChange(index, e)}
                                                 required={variant.isOnSale}
                                             />
                                             {validationErrors.variants && validationErrors.variants[index]?.salePrice && (
@@ -521,7 +520,7 @@ const ProductForm = ({ showNotification, existingProduct, onUpdateSuccess, admin
                                             <Image size={16} className="text-gray-400" />
                                             <span>גלריית תמונות לווריאציה זו</span>
                                         </label>
-                                        
+
                                         <div className="space-y-3">
                                             {variant.imageUrls.map((url, imgIndex) => (
                                                 <div key={imgIndex} className="flex gap-2 items-center">
@@ -659,9 +658,9 @@ const ProductForm = ({ showNotification, existingProduct, onUpdateSuccess, admin
                                                         />
                                                     </div>
                                                     {opt.choices.length > 1 && (
-                                                        <button 
-                                                            type="button" 
-                                                            onClick={() => removeChoice(oi, ci)} 
+                                                        <button
+                                                            type="button"
+                                                            onClick={() => removeChoice(oi, ci)}
                                                             className="text-gray-400 hover:text-red-500 p-1.5"
                                                         >
                                                             ✕
@@ -669,10 +668,10 @@ const ProductForm = ({ showNotification, existingProduct, onUpdateSuccess, admin
                                                     )}
                                                 </div>
                                             ))}
-                                            
-                                            <button 
-                                                type="button" 
-                                                onClick={() => addChoice(oi)} 
+
+                                            <button
+                                                type="button"
+                                                onClick={() => addChoice(oi)}
                                                 className="text-xs text-primary font-black hover:underline mt-2 inline-flex items-center gap-1"
                                             >
                                                 <Plus size={10} />
@@ -688,7 +687,7 @@ const ProductForm = ({ showNotification, existingProduct, onUpdateSuccess, admin
 
                 {/* Submit Action */}
                 <div className="pt-4">
-                    <button 
+                    <button
                         type="submit"
                         className="w-full bg-primary text-white rounded-2xl py-4 hover:scale-[1.02] active:scale-[0.98] transition-all font-black text-lg shadow-xl shadow-primary/20 flex items-center justify-center gap-2"
                     >

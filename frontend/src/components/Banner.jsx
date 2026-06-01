@@ -39,7 +39,7 @@ const Banner = () => {
                             >
                                 <div className="w-24 h-24 lg:w-28 lg:h-28 bg-white/20 backdrop-blur-xl rounded-3xl flex items-center justify-center p-4 border border-white/30 shadow-xl group-hover:bg-white transition-all duration-500">
                                     <img
-                                        src={category.imageUrl}
+                                        src={category.imageUrl || 'https://images.unsplash.com/photo-1511707171634-5f897ff02aa9?q=80&w=2000'}
                                         alt={category.name}
                                         className="w-full h-full object-contain transition-all duration-500"
                                     />

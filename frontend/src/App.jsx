@@ -1,7 +1,6 @@
 import { useState, useCallback, lazy, Suspense } from 'react';
 import { Routes, Route } from 'react-router-dom';
 import useStoreNavigate from './hooks/useStoreNavigate';
-import HomePage from './pages/HomePage';
 import CartDrawer from './components/CartDrawer';
 import Notification from './components/Notification';
 import Navbar from './components/Navbar';
@@ -12,12 +11,23 @@ import { useAuth } from './AuthContext';
 import { useStore } from './StoreContext';
 import ScrollToTop from './components/ScrollToTop';
 import { AccessibilityMenu } from './components/AccessibilityMenu';
-import { AccessibilityProvider } from './AccessibilityContext';
 import PaymentSuccess from './components/PaymentSuccess';
+import CookieBanner from './components/CookieBanner';
+
+import { AccessibilityProvider } from './AccessibilityContext';
+import AnalyticsManager from './AnalyticsManager';
 
 // Hooks
 import useCart from './hooks/useCart';
 import useAdminOrders from './hooks/useAdminOrders';
+
+// SEO Critical Pages - Normal Import for Faster SSR
+import HomePage from './pages/HomePage';
+import RepairLab from './pages/RepairLab';
+import ProductsPage from './pages/ProductsPage';
+import ShowPage from './pages/ShowPage';
+import ArticlesPage from './pages/ArticlesPage';
+import ArticleShowPage from './pages/ArticleShowPage';
 
 // Lazy loaded pages
 const ProductFormPage = lazy(() => import('./pages/ProductFormPage'));
@@ -25,8 +35,6 @@ const AdminDashboard = lazy(() => import('./pages/AdminDashboard'));
 const UserArea = lazy(() => import('./pages/UserArea'));
 const ProfileEditPage = lazy(() => import('./pages/ProfileEditPage'));
 const CheckoutPage = lazy(() => import('./pages/CheckoutPage'));
-const ShowPage = lazy(() => import('./pages/ShowPage'));
-const ProductsPage = lazy(() => import('./pages/ProductsPage'));
 const LoginPage = lazy(() => import('./pages/LoginPage'));
 const RegisterPage = lazy(() => import('./pages/RegisterPage'));
 const ForgotPassword = lazy(() => import('./pages/ForgotPassword'));
@@ -34,10 +42,8 @@ const ResetPassword = lazy(() => import('./pages/ResetPassword'));
 const GuestCheckoutPage = lazy(() => import('./pages/GuestCheckoutPage'));
 const OrderConfirmationPage = lazy(() => import('./pages/OrderConfirmationPage'));
 const UpdateVariantForm = lazy(() => import('./components/UpdateVariantForm'));
-const RepairLab = lazy(() => import('./pages/RepairLab'));
-const ArticlesPage = lazy(() => import('./pages/ArticlesPage'));
-const ArticleShowPage = lazy(() => import('./pages/ArticleShowPage'));
 const AccessibilityPage = lazy(() => import('./pages/AccessibilityPage'));
+const LegalPage = lazy(() => import('./pages/LegalPage'));
 
 
 /**
@@ -104,6 +110,7 @@ const App = () => {
     <AccessibilityProvider>
       <div className="bg-surface min-h-screen flex flex-col">
         <ScrollToTop />
+        <AnalyticsManager />
         <Navbar
           onLogout={handleLogout}
           onShowLogin={() => navigate('/login')}
@@ -143,6 +150,8 @@ const App = () => {
                     showNotification={showNotification}
                   />
                 } />
+                <Route path="/terms" element={<LegalPage type="termsOfService" />} />
+                <Route path="/privacy" element={<LegalPage type="privacyPolicy" />} />
                 <Route path="accessibility" element={<AccessibilityPage />} />
                 {store?.features?.hasUserAccounts && (
                   <>
@@ -195,6 +204,7 @@ const App = () => {
           </main>
         </div>
         <Notification message={notification.message} type={notification.type} onClose={() => setNotification({ message: '', type: '' })} />
+        <CookieBanner />
         <Footer />
         <AccessibilityMenu />
 

@@ -13,7 +13,7 @@ const categorySchema = new Schema({
     },
     variantFields: [{
         type: String,
-        required: true
+        required: false
     }],
     subcategories: [{
         name: { type: String, required: true }

@@ -33,15 +33,26 @@ const SuperAdminWrapper = () => {
 const rootElement = document.getElementById('root');
 const initialStoreData = typeof window !== 'undefined' ? window.__INITIAL_DATA__ : undefined;
 
+const isMainPlatform = typeof window !== 'undefined' &&
+  (window.location.host.includes('localhost') ||
+    window.location.host.includes('onrender.com') ||
+    window.location.host.includes('top-tech.co.il'));
+
 const AppTree = (
   <HelmetProvider>
     <BrowserRouter>
       <StoreProvider initialData={initialStoreData}>
         <AuthProvider>
           <Routes>
-            <Route path="/" element={<PlatformLanding />} />
-            <Route path="/super-admin" element={<SuperAdminWrapper />} />
-            <Route path="/store/:slug/*" element={<App />} />
+            {isMainPlatform ? (
+              <>
+                <Route path="/" element={<PlatformLanding />} />
+                <Route path="/super-admin" element={<SuperAdminWrapper />} />
+                <Route path="/store/:slug/*" element={<App />} />
+              </>
+            ) : (
+              <Route path="/*" element={<App />} />
+            )}
           </Routes>
         </AuthProvider>
       </StoreProvider>
