@@ -1,8 +1,9 @@
 const Order = require('../models/order');
 const Product = require('../models/product');
 const mongoose = require('mongoose');
-const { sendOrderConfirmationEmail } = require('../services/emailService');
+const { sendOrderConfirmationEmail, sendOrderReadyEmail } = require('../services/emailService');
 const { sendInvoice } = require('../services/invoiceService');
+const { sendOrderDeliveredSMS } = require('../services/smsService');
 const axios = require('axios');
 
 /**
@@ -112,7 +113,7 @@ const createOrder = async (req, res) => {
         const products = await Product.find({
             _id: { $in: uniqueProductIds },
             storeId: req.storeId
-        }).select('variants name');
+        }).select('variants name options');
 
         const productMap = products.reduce((acc, product) => {
             acc[product._id.toString()] = product;
@@ -264,10 +265,6 @@ const createOrder = async (req, res) => {
                 }
 
                 const hypApiUrl = 'https://pay.hyp.co.il/p/';
-                const storeSlug = req.store.slug || 'default';
-
-                // const successUrl = `${req.headers.origin}/store/${storeSlug}/order-confirmation/${orderId}?status=success&CCode=0`;
-                // const failureUrl = `${req.headers.origin}/store/${storeSlug}/checkout?status=failed&orderId=${orderId}`;
 
                 const payload = {
                     action: 'APISign',
@@ -280,9 +277,7 @@ const createOrder = async (req, res) => {
                     Order: orderId.toString(),
                     Coin: '1',
                     PageLang: 'HEB',
-                    UTF8: 'True',
-                    // success_url: successUrl,
-                    // error_url: failureUrl
+                    UTF8: 'True'
                 };
                 if (autoInvoice === true) {
                     const itemsForInvoice = orderItems.map(item => {
@@ -512,23 +507,6 @@ const getOrderDetails = async (req, res) => {
             }
         }
 
-        // if (order.paymentMethod === 'credit-card' && !order.isPaid && status === 'success' && CCode === '0')  {
-        //     order.isPaid = true;
-        //     order.paidAt = Date.now();
-        //     order.isUnseen = true;
-
-        //     await order.save();
-
-        //     if (order.shippingAddress?.email) {
-        //         try {
-        //             const populatedOrder = await Order.findById(order._id).populate('orderItems.product');
-        //             await sendOrderConfirmationEmail(order.shippingAddress.email, populatedOrder.toObject(), req.store);
-        //         } catch (e) {
-        //             console.error("Email failed", e.message);
-        //         }
-        //     }
-        // }
-
         const activePaymentProvider = req.store?.paymentSettings?.provider;
 
         const isHypPaid = activePaymentProvider === 'hyp' && status === 'success' && CCode === '0';
@@ -661,8 +639,16 @@ const cancelOrder = async (req, res) => {
     const order = await Order.findOne({ _id: req.params.id, storeId: req.storeId });
 
     if (order) {
-        // Check if the order belongs to the user
-        const isOwner = req.user._id && order.user && order.user.toString() === req.user._id.toString();
+        // Check if the order belongs to the user or guest
+        const isGuest = req.user?.isGuest === true;
+        const tokenFromHeader = req.user?.token;
+
+        let isOwner = false;
+        if (isGuest) {
+            isOwner = order.isGuestOrder && order.guestToken === tokenFromHeader;
+        } else {
+            isOwner = req.user?._id && order.user && order.user.toString() === req.user._id.toString();
+        }
 
         if (!isOwner) {
             return res.status(403).json({ message: 'אין הרשאה לבטל הזמנה זו.' });
@@ -699,13 +685,26 @@ const cancelOrder = async (req, res) => {
  * @param {Object} res - Express response object.
  */
 const updateOrderToDelivered = async (req, res) => {
-    const order = await Order.findOne({ _id: req.params.id, storeId: req.storeId });
+    const order = await Order.findOne({ _id: req.params.id, storeId: req.storeId }).populate('user', 'username email');
 
     if (order) {
+        if (order.isDelivered) {
+            return res.status(400).json({ message: 'ההזמנה כבר סומנה כנשלחה' });
+        }
         order.isDelivered = true;
         order.deliveredAt = Date.now();
 
         const updatedOrder = await order.save();
+
+        const customerEmail = updatedOrder.shippingAddress?.email || updatedOrder.user?.email;
+        if (customerEmail) {
+            try {
+                await sendOrderReadyEmail(customerEmail, updatedOrder.toObject(), req.store);
+            } catch (emailError) {
+                console.error(`Failed to send order ready email for order ${updatedOrder._id}:`, emailError.message);
+            }
+        }
+
         res.json(updatedOrder);
     } else {
         res.status(404).json({ message: 'הזמנה לא נמצאה' });

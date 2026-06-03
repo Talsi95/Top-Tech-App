@@ -72,6 +72,11 @@ const storeSchema = new Schema({
             apiSecret: { type: String, default: '' }
         }
     },
+    smsSettings: {
+        provider: { type: String, enum: ['sms4free', '019', 'none'], default: 'none' },
+        apiKey: { type: String, default: '' },
+        senderName: { type: String, default: '' }
+    },
     design: {
         primaryColor: { type: String, default: '#4f46e5' },
         secondaryColor: { type: String, default: '#1f2937' },

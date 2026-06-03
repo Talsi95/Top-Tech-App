@@ -249,23 +249,70 @@ const createProduct = async (req, res) => {
  * @param {Object} req - Express request object.
  * @param {Object} res - Express response object.
  */
+/**
+ * Updates an existing product after validating its variants.
+ * Automatically cleans up replaced or removed videos (both primary and gallery) from Cloudinary.
+ * @param {Object} req - Express request object.
+ * @param {Object} res - Express response object.
+ */
 const updateProduct = async (req, res) => {
     try {
         req.body.storeId = req.storeId;
         // await validateProductVariants(req.body, req.storeId);
 
-        const product = await Product.findOneAndUpdate(
+        const oldProduct = await Product.findOne({ _id: req.params.id, storeId: req.storeId });
+
+        if (!oldProduct) {
+            return res.status(404).json({ message: 'Product not found' });
+        }
+
+        const extractPublicIdFromUrl = (url) => {
+            if (!url || !url.includes('cloudinary.com')) return null;
+            const parts = url.split(/\/upload\/(?:v\d+\/)?/);
+            if (parts.length < 2) return null;
+            return parts[1].replace(/\.[^/.]+$/, "");
+        };
+
+        const oldVideoUrl = oldProduct.video?.url;
+        const newVideoUrl = req.body.video?.url;
+
+        if (oldVideoUrl && oldVideoUrl.includes('cloudinary.com') && oldVideoUrl !== newVideoUrl) {
+            const oldPublicId = extractPublicIdFromUrl(oldVideoUrl);
+            if (oldPublicId) {
+                deleteVideoFromCloudinary(oldPublicId).catch(err =>
+                    console.error('Failed to delete orphaned primary video during product update:', err)
+                );
+            }
+        }
+
+        const oldVideos = oldProduct.videos || [];
+        const newVideos = req.body.videos || [];
+
+        const deletedVideos = oldVideos.filter(oldVid =>
+            oldVid.url &&
+            (oldVid.type === 'cloudinary' || oldVid.url.includes('cloudinary.com')) &&
+            !newVideos.some(newVid => newVid.url === oldVid.url)
+        );
+
+        deletedVideos.forEach(vid => {
+            const publicId = extractPublicIdFromUrl(vid.url);
+            if (publicId) {
+                deleteVideoFromCloudinary(publicId).catch(err =>
+                    console.error('Failed to delete orphaned gallery video during product update:', err)
+                );
+            }
+        });
+
+        const updatedProduct = await Product.findOneAndUpdate(
             { _id: req.params.id, storeId: req.storeId },
             req.body,
             { new: true, runValidators: true }
         );
 
-        if (!product) {
-            return res.status(404).json({ message: 'Product not found' });
-        }
+        res.status(200).json(updatedProduct);
 
-        res.status(200).json(product);
     } catch (error) {
+        console.error("Error updating product:", error);
         res.status(400).json({ message: error.message });
     }
 };
@@ -303,11 +350,56 @@ const updateProductVariant = async (req, res) => {
  * @param {Object} res - Express response object.
  */
 const deleteProduct = async (req, res) => {
-    const product = await Product.findOneAndDelete({ _id: req.params.id, storeId: req.storeId });
-    if (!product) {
-        return res.status(404).json({ message: 'Product not found' });
+    try {
+        const product = await Product.findOne({ _id: req.params.id, storeId: req.storeId });
+
+        if (!product) {
+            return res.status(404).json({ message: 'Product not found' });
+        }
+
+        const extractPublicIdFromUrl = (url) => {
+            if (!url || !url.includes('cloudinary.com')) return null;
+            const parts = url.split(/\/upload\/(?:v\d+\/)?/);
+            if (parts.length < 2) return null;
+            return parts[1].replace(/\.[^/.]+$/, "");
+        };
+
+        const publicIdsToDelete = [];
+
+        if (product.video && product.video.type === 'cloudinary' && product.video.url) {
+            const publicId = extractPublicIdFromUrl(product.video.url);
+            if (publicId) publicIdsToDelete.push(publicId);
+        }
+
+        if (product.videos && Array.isArray(product.videos)) {
+            product.videos.forEach(vid => {
+                const isCloudinary = vid.type === 'cloudinary' || (vid.url && vid.url.includes('cloudinary.com'));
+                if (isCloudinary && vid.url) {
+                    const publicId = extractPublicIdFromUrl(vid.url);
+                    if (publicId) publicIdsToDelete.push(publicId);
+                }
+            });
+        }
+
+        if (publicIdsToDelete.length > 0) {
+            await Promise.all(
+                publicIdsToDelete.map(async (publicId) => {
+                    try {
+                        await deleteVideoFromCloudinary(publicId);
+                    } catch (cloudinaryErr) {
+                        console.error(`Failed to delete video (${publicId}) from Cloudinary:`, cloudinaryErr);
+                    }
+                })
+            );
+        }
+
+        await Product.deleteOne({ _id: product._id });
+
+        res.status(200).json({ message: 'Product and associated videos deleted successfully' });
+    } catch (error) {
+        console.error("Error deleting product and videos:", error);
+        res.status(500).json({ message: 'Failed to delete product' });
     }
-    res.status(200).json({ message: 'Product deleted successfully' });
 };
 
 /**
@@ -333,11 +425,25 @@ const uploadVideo = async (req, res) => {
             });
         }
 
-        const result = await cloudinary.uploader.upload(req.file.path, {
-            resource_type: 'video',
-            upload_preset: process.env.CLOUDINARY_UPLOAD_PRESET,
-            folder: 'product_videos'
+        const result = await new Promise((resolve, reject) => {
+            cloudinary.uploader.upload_large(
+                req.file.path,
+                {
+                    resource_type: 'video',
+                    upload_preset: process.env.CLOUDINARY_UPLOAD_PRESET,
+                    folder: 'product_videos',
+                    chunk_size: 6000000
+                },
+                (error, uploadResult) => {
+                    if (error) {
+                        return reject(error);
+                    }
+                    resolve(uploadResult);
+                }
+            );
         });
+
+        console.log("--- CLOUDINARY RAW RESULT ---", result);
 
         // Delete temporary file from server disk
         const fs = require('fs');
@@ -347,11 +453,27 @@ const uploadVideo = async (req, res) => {
 
         res.status(200).json({
             url: result.secure_url,
+            public_id: result.public_id,
             message: 'Video uploaded successfully to Cloudinary.'
         });
     } catch (error) {
         console.error('Cloudinary backend upload error:', error);
         res.status(500).json({ message: 'Failed to upload video to Cloudinary: ' + error.message });
+    }
+};
+const deleteVideoFromCloudinary = async (publicId) => {
+    try {
+        if (!publicId) return;
+
+        const result = await cloudinary.uploader.destroy(publicId, {
+            resource_type: 'video'
+        });
+
+        console.log('Cloudinary delete result:', result);
+        return result;
+    } catch (error) {
+        console.error('Failed to delete video from Cloudinary:', error);
+        throw error;
     }
 };
 
@@ -364,5 +486,6 @@ module.exports = {
     updateProduct,
     updateProductVariant,
     deleteProduct,
-    uploadVideo
+    uploadVideo,
+    deleteVideoFromCloudinary
 };

@@ -142,7 +142,8 @@ const CheckoutForm = ({ cartItems, showNotification, onOrderComplete, guestToken
                     : regularPrice;
 
             if (typeof priceToUse === 'number' && typeof item.quantity === 'number') {
-                return acc + priceToUse * item.quantity;
+                const optionsTotal = item.optionsTotal || 0;
+                return acc + (priceToUse + optionsTotal) * item.quantity;
             }
             return acc;
         }, 0);

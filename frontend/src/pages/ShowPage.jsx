@@ -2,7 +2,7 @@ import { useEffect, useState, useCallback, useRef } from 'react';
 import { useParams, useNavigate, Link, useLocation } from 'react-router-dom';
 import { Helmet } from 'react-helmet-async';
 import axios from 'axios';
-import { ShoppingCart, Plus, Save, Trash2, ChevronLeft, ChevronRight, CheckCircle, Info, Video, Image as ImageIcon, Cpu, Import } from 'lucide-react';
+import { ShoppingCart, Plus, Save, Trash2, ChevronLeft, ChevronRight, CheckCircle, Info, Video, Image as ImageIcon, Cpu, Import, Phone } from 'lucide-react';
 import { FaWhatsapp } from 'react-icons/fa';
 import { useAuth } from '../AuthContext';
 import { useStore } from '../StoreContext';
@@ -11,26 +11,46 @@ import ConfirmationModal from '../components/ConfirmationModal';
 import ProductCard from '../components/ProductCard';
 import useStoreNavigate from '../hooks/useStoreNavigate';
 import StoreLink from '../components/StoreLink';
-import { transformCloudinaryUrl } from '../utils/cloudinary';
+import { transformCloudinaryUrl, uploadVideoToCloudinary } from '../utils/cloudinary';
 
 /**
  * VideoItem Component.
  */
-const VideoItem = ({ video, index, isAdmin, onDelete }) => {
+const VideoItem = ({ video, index, isAdmin, onDelete, isFullWidth }) => {
     const [isVisible, setIsVisible] = useState(false);
+    const containerRef = useRef(null);
     const videoRef = useRef(null);
+
+    const extractYouTubeId = (url) => {
+        if (!url) return null;
+        const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|\&v=|shorts\/)([^#\&\?]*).*/;
+        const match = url.match(regExp);
+        return (match && match[2].length === 11) ? match[2] : null;
+    };
 
     useEffect(() => {
         const observer = new IntersectionObserver(
             ([entry]) => setIsVisible(entry.isIntersecting),
-            { threshold: 0.5 }
+            { threshold: 0.3 }
         );
-        if (videoRef.current) observer.observe(videoRef.current);
-        return () => { if (videoRef.current) observer.unobserve(videoRef.current); };
+        if (containerRef.current) observer.observe(containerRef.current);
+        return () => { if (containerRef.current) observer.unobserve(containerRef.current); };
     }, []);
 
+    useEffect(() => {
+        if (!videoRef.current) return;
+
+        if (isVisible) {
+            videoRef.current.play().catch(err => console.log("Autoplay prevented:", err));
+        } else {
+            videoRef.current.pause();
+        }
+    }, [isVisible]);
+
     const isCloudinary = video.type === 'cloudinary' || (video.url && video.url.includes('cloudinary.com'));
-    const videoId = !isCloudinary && video.url ? (video.url.split('v=')[1]?.split('&')[0]) : null;
+    const videoId = !isCloudinary ? extractYouTubeId(video.url) : null;
+    const isShorts = video.url && (video.url.includes('shorts/') || video.isVertical);
+    const hasText = !!(video.title || video.description);
 
     let embedUrl = videoId ? `https://www.youtube.com/embed/${videoId}?mute=1&rel=0&controls=0&disablekb=1&iv_load_policy=3&modestbranding=1` : video.url;
     if (isVisible && videoId) embedUrl += embedUrl.includes('?') ? '&autoplay=1' : '?autoplay=1';
@@ -38,16 +58,40 @@ const VideoItem = ({ video, index, isAdmin, onDelete }) => {
     const optimizedVideoUrl = isCloudinary ? transformCloudinaryUrl(video.url) : video.url;
 
     return (
-        <div ref={videoRef} className="group relative flex flex-col bg-white rounded-[2.5rem] shadow-[0_20px_50px_-12px_rgba(0,0,0,0.05)] border border-gray-50 overflow-hidden transition-all duration-500 hover:shadow-2xl">
-            <div className="relative aspect-video w-full bg-black overflow-hidden">
+        <div className={`group relative flex flex-col bg-white overflow-hidden transition-all duration-500 hover:shadow-2xl ${isFullWidth ? 'rounded-none border-x-0 shadow-none md:rounded-[2.5rem] md:border md:border-gray-50 md:shadow-[0_20px_50px_-12px_rgba(0,0,0,0.05)]' : 'rounded-[2.5rem] border border-gray-50 shadow-[0_20px_50px_-12px_rgba(0,0,0,0.05)]'}`}>
+            <div ref={containerRef} className={`relative w-full bg-black flex items-center justify-center overflow-hidden ${isShorts ? 'aspect-[9/16]' : 'aspect-video'} ${hasText ? 'md:aspect-video' : 'md:aspect-auto md:flex-grow md:h-full'} ${isFullWidth ? 'p-0' : 'p-4'}`}>
+                {isShorts && videoId && (
+                    <div
+                        className="absolute inset-0 bg-cover bg-center filter blur-3xl opacity-40 scale-125 transition-opacity duration-700 pointer-events-none"
+                        style={{ backgroundImage: `url(https://img.youtube.com/vi/${videoId}/0.jpg)` }}
+                    />
+                )}
+                {isShorts && <div className="absolute inset-0 bg-gradient-to-b from-black/20 via-transparent to-black/40 pointer-events-none z-0" />}
                 {isVisible && (
                     isCloudinary ? (
-                        <video src={optimizedVideoUrl} controls preload="none" playsInline className="absolute top-0 left-0 w-full h-full object-cover" />
-                    ) : videoId ? (
-                        <iframe src={embedUrl} title={video.title} frameBorder="0" allow="accelerometer; autoplay; encrypted-media; gyroscope; picture-in-picture" className="absolute top-0 left-0 w-full h-full pointer-events-none" />
-                    ) : (
-                        <video src={video.url} autoPlay muted loop playsInline className="absolute top-0 left-0 w-full h-full object-cover pointer-events-none" />
-                    )
+                        <video
+                            ref={videoRef}
+                            src={optimizedVideoUrl}
+                            muted
+                            loop
+                            playsInline
+                            className={`${isFullWidth || isShorts ? 'w-full h-full object-cover' : 'max-h-full max-w-full object-contain'} absolute top-0 left-0`} />) : videoId ?
+                        isVisible && (
+                            <iframe src={embedUrl}
+                                title={video.title}
+                                frameBorder="0"
+                                allow="accelerometer;
+                            autoplay;
+                            encrypted-media;
+                            gyroscope;
+                            picture-in-picture"
+                                className={isShorts
+                                    ? "absolute inset-0 w-full h-full pointer-events-none md:relative md:h-full md:aspect-[9/16] md:max-w-full md:mx-auto md:object-cover md:z-10 md:shadow-2xl md:rounded-2xl"
+                                    : "absolute top-0 left-0 w-full h-full pointer-events-none"
+                                }
+                            />
+                        ) : (
+                            <video src={video.url} autoPlay muted loop playsInline className={`${isFullWidth || isShorts ? 'w-full h-full object-cover' : 'max-h-full max-w-full object-contain'} absolute top-0 left-0 pointer-events-none`} />)
                 )}
                 {!isVisible && <div className="absolute inset-0 flex items-center justify-center bg-gray-900/10 backdrop-blur-xl text-gray-400">טוען סקירה...</div>}
                 {isAdmin && (
@@ -56,10 +100,10 @@ const VideoItem = ({ video, index, isAdmin, onDelete }) => {
                     </button>
                 )}
             </div>
-            {(video.title || isCloudinary) && (
+            {video.title && (
                 <div className="p-8 flex justify-between items-center bg-white/80 backdrop-blur-md">
                     <h4 className="text-2xl font-black text-gray-900 tracking-tighter">
-                        {video.title || (isCloudinary ? "סרטון סקירת מוצר" : "סקירת מוצר")}
+                        {video.title}
                     </h4>
                 </div>
             )}
@@ -100,7 +144,9 @@ const ShowPage = ({ onAddToCart }) => {
     const [primaryVideoUrl, setPrimaryVideoUrl] = useState('');
     const [primaryVideoTitle, setPrimaryVideoTitle] = useState('');
     const [primaryVideoDescription, setPrimaryVideoDescription] = useState('');
+    const [primaryVideoPublicId, setPrimaryVideoPublicId] = useState('');
     const [isUploadingVideo, setIsUploadingVideo] = useState(false);
+    const [uploadProgress, setUploadProgress] = useState(0);
     const [newSpecs, setNewSpecs] = useState([{ key: '', value: '' }]);
     const [isAddingImages, setIsAddingImages] = useState(false);
     const [isAddingVideos, setIsAddingVideos] = useState(false);
@@ -146,6 +192,7 @@ const ShowPage = ({ onAddToCart }) => {
                     setPrimaryVideoUrl(product.video?.url || '');
                     setPrimaryVideoTitle(product.video?.title || '');
                     setPrimaryVideoDescription(product.video?.description || '');
+                    setPrimaryVideoPublicId(product.video?.public_id || '');
                     setLoading(false);
                 }
 
@@ -180,6 +227,7 @@ const ShowPage = ({ onAddToCart }) => {
                     setPrimaryVideoUrl(data.video?.url || '');
                     setPrimaryVideoTitle(data.video?.title || '');
                     setPrimaryVideoDescription(data.video?.description || '');
+                    setPrimaryVideoPublicId(product.video?.public_id || '');
 
                     const filteredRelated = relatedRes.data.products
                         .filter(p => p._id !== data._id)
@@ -201,6 +249,7 @@ const ShowPage = ({ onAddToCart }) => {
                     setPrimaryVideoUrl(data.video?.url || '');
                     setPrimaryVideoTitle(data.video?.title || '');
                     setPrimaryVideoDescription(data.video?.description || '');
+                    setPrimaryVideoPublicId(product.video?.public_id || '');
 
                     const relatedRes = await axios.get(`${__API_URL__}/products?category=${encodeURIComponent(data.category)}&limit=10`);
                     const filteredRelated = relatedRes.data.products
@@ -270,28 +319,64 @@ const ShowPage = ({ onAddToCart }) => {
     const handleVideoUpload = async (file) => {
         if (!file) return;
         setIsUploadingVideo(true);
-        const formData = new FormData();
-        formData.append('video', file);
+        setError('');
+        setUploadProgress(0);
+
         try {
-            const res = await axios.post(`${__API_URL__}/products/upload-video`, formData, {
-                headers: {
-                    'Content-Type': 'multipart/form-data',
-                    'Authorization': `Bearer ${getToken()}`
-                }
+            const { secure_url, public_id } = await uploadVideoToCloudinary(file, (percent) => {
+                setUploadProgress(percent);
+                console.log(`העלאה בתהליך: ${percent}%`);
             });
-            if (res.data && res.data.url) {
-                setPrimaryVideoUrl(res.data.url);
-                setPrimaryVideoType('cloudinary');
-            } else {
-                setError('Failed to upload video');
-            }
+
+            await axios.put(
+                `${__API_URL__}/products/${product?._id}`,
+                {
+                    videos: [...(product.videos || []), { url: secure_url, public_id: public_id, type: 'cloudinary' }]
+
+                },
+                { headers: { 'Authorization': `Bearer ${getToken()}` } }
+            );
+
+            setPrimaryVideoUrl(secure_url);
+            setPrimaryVideoPublicId(public_id);
+            setPrimaryVideoType('cloudinary');
+
         } catch (err) {
-            console.error('Upload failed:', err);
-            setError(err.response?.data?.message || 'שגיאה בהעלאת הסרטון.');
+            console.error('Direct upload process failed:', err);
+            setError(err.response?.data?.message || 'שגיאה בתהליך העלאת הסרטון.');
         } finally {
             setIsUploadingVideo(false);
         }
     };
+
+    // const handleVideoUpload = async (file) => {
+    //     if (!file) return;
+    //     setIsUploadingVideo(true);
+    //     const formData = new FormData();
+    //     formData.append('video', file);
+    //     try {
+    //         const res = await axios.post(`${__API_URL__}/products/upload-video`, formData, {
+    //             headers: {
+    //                 'Content-Type': 'multipart/form-data',
+    //                 'Authorization': `Bearer ${getToken()}`
+    //             }
+    //         });
+
+    //         console.log("Response from server:", res.data);
+    //         if (res.data && res.data.secure_url) {
+    //             setPrimaryVideoUrl(res.data.secure_url);
+    //             setPrimaryVideoPublicId(res.data.public_id || '');
+    //             setPrimaryVideoType('cloudinary');
+    //         } else {
+    //             setError('Failed to upload video');
+    //         }
+    //     } catch (err) {
+    //         console.error('Upload failed:', err);
+    //         setError(err.response?.data?.message || 'שגיאה בהעלאת הסרטון.');
+    //     } finally {
+    //         setIsUploadingVideo(false);
+    //     }
+    // };
 
     const handleSaveNewContent = async () => {
         if (!isAdmin || isSaving) return;
@@ -300,12 +385,6 @@ const ShowPage = ({ onAddToCart }) => {
             ...product,
             additionalImages: [...(product.additionalImages || []), ...newImages.filter(img => img.url.trim() !== '')],
             videos: [...(product.videos || []), ...newVideos.filter(vid => vid.url.trim() !== '')],
-            video: {
-                type: primaryVideoType,
-                url: primaryVideoUrl,
-                title: primaryVideoTitle,
-                description: primaryVideoDescription
-            },
             technicalSpecs: [...(product.technicalSpecs || []), ...newSpecs.filter(spec => spec.key.trim() !== '')],
             longDescription: isEditingDescription ? editedDescription : product.longDescription
         };
@@ -313,7 +392,7 @@ const ShowPage = ({ onAddToCart }) => {
             await axios.put(`${__API_URL__}/products/${product._id}`, updatedProduct, { headers: { Authorization: `Bearer ${getToken()}` } });
             setProduct(updatedProduct);
             setNewImages([{ url: '', description: '' }]);
-            setNewVideos([{ url: '', title: '', description: '' }]);
+            setNewVideos([{ url: '', title: '', description: '', type: 'link' }]);
             setNewSpecs([{ key: '', value: '' }]);
             setIsAddingImages(false); setIsAddingVideos(false); setIsAddingSpecs(false); setIsEditingDescription(false);
         } catch (error) { setError('Failed to save content.'); }
@@ -543,6 +622,34 @@ const ShowPage = ({ onAddToCart }) => {
                         </div>
                     )}
 
+                    {(store?.features?.hasCart && (store?.businessInfo?.whatsapp || store?.businessInfo?.phone)) && (
+                        <div className="mb-6 p-4 bg-gray-50/70 rounded-2xl border border-gray-100/80 flex flex-col sm:flex-row items-center justify-between gap-4 animate-in fade-in duration-300">
+                            <span className="text-sm font-bold text-gray-600">יש לכם שאלה על מוצר זה?</span>
+                            <div className="flex items-center gap-2.5 w-full sm:w-auto">
+                                {store?.businessInfo?.whatsapp && (
+                                    <a
+                                        href={`https://wa.me/${store?.businessInfo?.whatsapp}?text=${encodeURIComponent(`היי, יש לי שאלה לגבי המוצר: ${product.name}${selectedVariant ? ` (${variantFields.map(f => `${f}: ${selectedVariant[f]}`).join(', ')})` : ''}`)}`}
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        className="flex-1 sm:flex-initial flex items-center justify-center gap-2 px-4 py-2 bg-white hover:bg-[#25D366]/5 border border-gray-200 hover:border-[#25D366] text-[#25D366] rounded-xl text-sm font-black transition-all shadow-sm"
+                                    >
+                                        <FaWhatsapp size={18} />
+                                        <span>ווטסאפ</span>
+                                    </a>
+                                )}
+                                {store?.businessInfo?.phone && (
+                                    <a
+                                        href={`tel:${store?.businessInfo?.phone}`}
+                                        className="flex-1 sm:flex-initial flex items-center justify-center gap-2 px-4 py-2 bg-white hover:bg-gray-50 border border-gray-200 text-gray-800 rounded-xl text-sm font-black transition-all shadow-sm"
+                                    >
+                                        <Phone size={15} className="text-gray-500" />
+                                        <span>שיחה</span>
+                                    </a>
+                                )}
+                            </div>
+                        </div>
+                    )}
+
                     {store?.features?.hasCart ? (
                         <button
                             onClick={() => {
@@ -663,8 +770,8 @@ const ShowPage = ({ onAddToCart }) => {
 
                 {/* Review Section — only render if there's actual content, or admin who can add */}
                 {(product.video?.url || product.videos?.length > 0 || product.additionalImages?.length > 0 || isAdmin) && (
-                    <div className="bg-white p-8 lg:p-16 rounded-[3.5rem] shadow-sm border border-gray-50">
-                        <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 mb-12">
+                    <div className={`bg-white transition-all duration-500 ${isFullWidth ? '-mx-6 px-0 py-6 rounded-none border-x-0 shadow-none md:mx-0 md:px-8 md:py-8 md:rounded-[3.5rem] md:border md:border-gray-50 md:shadow-sm' : 'rounded-[3.5rem] border border-gray-50 shadow-sm p-8 lg:p-16'}`}>
+                        <div className={`flex flex-col md:flex-row md:items-center justify-between gap-6 mb-12 ${isFullWidth ? 'px-6 md:px-0' : ''}`}>
                             <div className="flex items-center gap-4">
                                 <div className="w-12 h-12 bg-primary/10 rounded-2xl flex items-center justify-center text-primary"><Video size={24} /></div>
                                 <h2 className="text-4xl font-black text-gray-900 tracking-tighter">סקירה מלאה</h2>
@@ -685,9 +792,9 @@ const ShowPage = ({ onAddToCart }) => {
 
                         {/* Inline Admin Forms for Media */}
                         {isAdmin && (isAddingVideos || isAddingImages) && (
-                            <div className="mb-12 p-8 bg-gray-50 rounded-[2.5rem] border border-gray-100 animate-in fade-in zoom-in-95 duration-500">
+                            <div className={`grid grid-cols-1 ${isFullWidth ? 'grid-cols-1 gap-12' : 'md:grid-cols-2 gap-12'}`}>
                                 <div className="flex justify-between items-center mb-6">
-                                    <h3 className="text-xl font-black">{isAddingVideos ? 'ניהול סרטון מוצר ראשי' : 'הוספת תמונות לסקירה'}</h3>
+                                    <h3 className="text-xl font-black">{isAddingVideos ? 'הוספת סרטונים לסקירה' : 'הוספת תמונות לסקירה'}</h3>
                                     {isAddingImages && (
                                         <button
                                             onClick={() => setNewImages([...newImages, { url: '', description: '' }])}
@@ -697,76 +804,99 @@ const ShowPage = ({ onAddToCart }) => {
                                             <span>הוסף שורה נוספת</span>
                                         </button>
                                     )}
+                                    {isAddingVideos && (
+                                        <button
+                                            onClick={() => setNewVideos([...newVideos, { url: '', title: '', description: '', type: 'link' }])}
+                                            className="p-3 bg-white text-primary rounded-xl border border-primary/20 hover:bg-primary/5 transition-all flex items-center gap-2 font-bold"
+                                        >
+                                            <Plus size={18} />
+                                            <span>הוסף שורה נוספת</span>
+                                        </button>
+                                    )}
                                 </div>
                                 <div className="space-y-6">
-                                    {isAddingVideos && (
-                                        <div className="flex flex-col gap-6 p-6 bg-white rounded-3xl border border-gray-100 shadow-sm">
-                                            <div className="flex flex-col gap-2">
-                                                <p className="text-sm text-gray-500 font-medium">בחר כיצד ברצונך להוסיף את הסרטון הראשי שיוצג בראש דף המוצר:</p>
-                                            </div>
-
-                                            {/* Toggle options */}
-                                            <div className="flex gap-4">
+                                    {isAddingVideos && newVideos.map((vid, idx) => (
+                                        <div key={idx} className="flex flex-col gap-4 p-6 bg-white rounded-3xl border border-gray-100 shadow-sm relative group">
+                                            {newVideos.length > 1 && (
                                                 <button
-                                                    type="button"
-                                                    onClick={() => setPrimaryVideoType('link')}
-                                                    className={`flex-1 py-4 rounded-2xl font-black text-sm transition-all border ${primaryVideoType === 'link'
-                                                        ? 'bg-primary text-white border-primary shadow-lg shadow-primary/20 scale-[1.02]'
-                                                        : 'bg-gray-50 text-gray-600 border-gray-100 hover:bg-gray-100'
-                                                        }`}
+                                                    onClick={() => setNewVideos(newVideos.filter((_, i) => i !== idx))}
+                                                    className="absolute -left-2 -top-2 w-8 h-8 bg-white shadow-lg text-red-400 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all hover:text-red-500 z-10"
                                                 >
-                                                    הדבקת קישור לסרטון (YouTube/Vimeo)
+                                                    <Trash2 size={14} />
                                                 </button>
-                                                <button
-                                                    type="button"
-                                                    onClick={() => setPrimaryVideoType('cloudinary')}
-                                                    className={`flex-1 py-4 rounded-2xl font-black text-sm transition-all border ${primaryVideoType === 'cloudinary'
-                                                        ? 'bg-primary text-white border-primary shadow-lg shadow-primary/20 scale-[1.02]'
-                                                        : 'bg-gray-50 text-gray-600 border-gray-100 hover:bg-gray-100'
-                                                        }`}
-                                                >
-                                                    העלאת קובץ סרטון מהמכשיר
-                                                </button>
-                                            </div>
-
-                                            {/* Option A: Paste Link */}
-                                            {primaryVideoType === 'link' && (
-                                                <div className="flex flex-col gap-2 animate-in fade-in slide-in-from-top-4 duration-300">
-                                                    <label className="text-sm font-bold text-gray-700">קישור לסרטון חיצוני (YouTube/Vimeo):</label>
-                                                    <input
-                                                        type="text"
-                                                        placeholder="הדבק כאן את כתובת ה-URL של הסרטון..."
-                                                        value={primaryVideoUrl}
-                                                        onChange={e => setPrimaryVideoUrl(e.target.value)}
-                                                        className="p-4 bg-gray-50 rounded-xl outline-none focus:bg-white focus:ring-2 focus:ring-primary/20 font-bold transition-all border border-gray-100"
-                                                    />
-                                                </div>
                                             )}
 
-                                            {/* Option B: Upload File */}
-                                            {primaryVideoType === 'cloudinary' && (
-                                                <div className="flex flex-col gap-4 animate-in fade-in slide-in-from-top-4 duration-300">
-                                                    <label className="text-sm font-bold text-gray-700">קובץ סרטון (MP4, MOV, WebM):</label>
+                                            {/* Row header */}
+                                            <p className="text-xs font-black text-gray-400 uppercase tracking-widest">סרטון {idx + 1}</p>
 
-                                                    {primaryVideoUrl ? (
+                                            {/* Toggle link / upload */}
+                                            <div className="flex gap-3">
+                                                <button
+                                                    type="button"
+                                                    onClick={() => {
+                                                        const updated = [...newVideos];
+                                                        updated[idx] = { ...updated[idx], type: 'link', url: '' };
+                                                        setNewVideos(updated);
+                                                    }}
+                                                    className={`flex-1 py-3 rounded-2xl font-black text-sm transition-all border ${(!vid.type || vid.type === 'link')
+                                                        ? 'bg-primary text-white border-primary shadow-lg shadow-primary/20'
+                                                        : 'bg-gray-50 text-gray-600 border-gray-100 hover:bg-gray-100'
+                                                        }`}
+                                                >
+                                                    הדבקת קישור (YouTube/Vimeo)
+                                                </button>
+                                                <button
+                                                    type="button"
+                                                    onClick={() => {
+                                                        const updated = [...newVideos];
+                                                        updated[idx] = { ...updated[idx], type: 'cloudinary', url: '' };
+                                                        setNewVideos(updated);
+                                                    }}
+                                                    className={`flex-1 py-3 rounded-2xl font-black text-sm transition-all border ${vid.type === 'cloudinary'
+                                                        ? 'bg-primary text-white border-primary shadow-lg shadow-primary/20'
+                                                        : 'bg-gray-50 text-gray-600 border-gray-100 hover:bg-gray-100'
+                                                        }`}
+                                                >
+                                                    העלאת קובץ מהמכשיר
+                                                </button>
+                                            </div>
+
+                                            {/* Link input */}
+                                            {(!vid.type || vid.type === 'link') && (
+                                                <input
+                                                    type="text"
+                                                    placeholder="הדבק כאן את כתובת ה-URL של הסרטון..."
+                                                    value={vid.url}
+                                                    onChange={e => {
+                                                        const updated = [...newVideos];
+                                                        updated[idx] = { ...updated[idx], url: e.target.value };
+                                                        setNewVideos(updated);
+                                                    }}
+                                                    className="p-4 bg-gray-50 rounded-xl outline-none focus:bg-white focus:ring-2 focus:ring-primary/20 font-bold transition-all border border-gray-100 animate-in fade-in duration-200"
+                                                />
+                                            )}
+
+                                            {/* File upload */}
+                                            {vid.type === 'cloudinary' && (
+                                                <div className="animate-in fade-in duration-200">
+                                                    {vid.url ? (
                                                         <div className="flex items-center justify-between p-4 bg-green-50 border border-green-100 rounded-2xl text-green-800">
                                                             <div className="flex items-center gap-3">
                                                                 <div className="w-8 h-8 rounded-full bg-green-100 flex items-center justify-center text-green-600">
                                                                     <CheckCircle size={16} />
                                                                 </div>
-                                                                <div className="flex flex-col">
-                                                                    <span className="font-bold text-sm">הסרטון הועלה בהצלחה!</span>
-                                                                    <span className="text-xs text-green-700 font-medium truncate max-w-[250px] md:max-w-md">
-                                                                        {primaryVideoUrl}
-                                                                    </span>
-                                                                </div>
+                                                                <span className="font-bold text-sm">הסרטון הועלה בהצלחה!</span>
                                                             </div>
                                                             <button
                                                                 type="button"
-                                                                onClick={() => setPrimaryVideoUrl('')}
-                                                                className="px-4 py-2 bg-white hover:bg-red-50 text-red-500 hover:text-red-600 border border-red-100 rounded-xl text-xs font-bold transition-all"
+                                                                onClick={() => {
+                                                                    const updated = [...newVideos];
+                                                                    updated[idx] = { ...updated[idx], url: '' };
+                                                                    setNewVideos(updated);
+                                                                }}
+                                                                className="px-4 py-2 bg-white hover:bg-red-50 text-red-500 border border-red-100 rounded-xl text-xs font-bold transition-all"
                                                             >
-                                                                הסר סרטון
+                                                                הסר
                                                             </button>
                                                         </div>
                                                     ) : isUploadingVideo ? (
@@ -775,50 +905,73 @@ const ShowPage = ({ onAddToCart }) => {
                                                                 <div className="absolute inset-0 border-4 border-gray-100 rounded-full"></div>
                                                                 <div className="absolute inset-0 border-4 border-primary border-t-transparent rounded-full animate-spin"></div>
                                                             </div>
-                                                            <span className="text-sm font-bold text-gray-500 animate-pulse">מעלה סרטון לשרת ומבצע אופטימיזציה דינמית...</span>
+                                                            <span className="text-sm font-bold text-gray-500 animate-pulse">מעלה סרטון...</span>
+                                                            {uploadProgress > 0 && (
+                                                                <div className="w-full bg-gray-200 rounded-full h-2">
+                                                                    <div className="bg-primary h-2 rounded-full transition-all duration-100" style={{ width: `${uploadProgress}%` }}></div>
+                                                                </div>
+                                                            )}
                                                         </div>
                                                     ) : (
                                                         <div className="relative group/dropzone flex flex-col items-center justify-center p-8 bg-gray-50 border-2 border-dashed border-gray-200 rounded-3xl hover:bg-gray-100/50 hover:border-primary/40 transition-all cursor-pointer">
                                                             <input
                                                                 type="file"
                                                                 accept="video/mp4,video/quicktime,video/webm"
-                                                                onChange={e => handleVideoUpload(e.target.files[0])}
+                                                                onChange={async e => {
+                                                                    const file = e.target.files[0];
+                                                                    if (!file) return;
+                                                                    setIsUploadingVideo(true);
+                                                                    setUploadProgress(0);
+                                                                    try {
+                                                                        const { secure_url, public_id } = await uploadVideoToCloudinary(file, p => setUploadProgress(p));
+                                                                        const updated = [...newVideos];
+                                                                        updated[idx] = { ...updated[idx], url: secure_url, public_id, type: 'cloudinary' };
+                                                                        setNewVideos(updated);
+                                                                    } catch (err) {
+                                                                        setError('שגיאה בהעלאת הסרטון.');
+                                                                    } finally {
+                                                                        setIsUploadingVideo(false);
+                                                                    }
+                                                                }}
                                                                 className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
                                                             />
                                                             <div className="w-12 h-12 bg-primary/10 rounded-2xl flex items-center justify-center text-primary mb-4 group-hover/dropzone:scale-110 transition-transform">
                                                                 <Plus size={24} />
                                                             </div>
                                                             <span className="text-sm font-black text-gray-700 mb-1">לחץ להעלאת קובץ סרטון</span>
-                                                            <span className="text-xs text-gray-400 font-bold">או גרור את הקובץ לכאן (תומך ב-MP4, MOV, WebM)</span>
+                                                            <span className="text-xs text-gray-400 font-bold">MP4, MOV, WebM</span>
                                                         </div>
                                                     )}
                                                 </div>
                                             )}
-                                            {/* Restored optional title and description fields */}
-                                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-6 pt-6 border-t border-gray-100 text-right">
-                                                <div className="flex flex-col gap-2">
-                                                    <label className="text-sm font-bold text-gray-700">כותרת הסרטון (אופציונלי):</label>
-                                                    <input
-                                                        type="text"
-                                                        placeholder="הזן כותרת לסרטון..."
-                                                        value={primaryVideoTitle}
-                                                        onChange={e => setPrimaryVideoTitle(e.target.value)}
-                                                        className="p-4 bg-gray-50 rounded-xl outline-none focus:bg-white focus:ring-2 focus:ring-primary/20 font-bold transition-all border border-gray-100 text-right"
-                                                    />
-                                                </div>
-                                                <div className="flex flex-col gap-2">
-                                                    <label className="text-sm font-bold text-gray-700">תיאור הסרטון (אופציונלי):</label>
-                                                    <input
-                                                        type="text"
-                                                        placeholder="הזן תיאור קצר לסרטון..."
-                                                        value={primaryVideoDescription}
-                                                        onChange={e => setPrimaryVideoDescription(e.target.value)}
-                                                        className="p-4 bg-gray-50 rounded-xl outline-none focus:bg-white focus:ring-2 focus:ring-primary/20 font-bold transition-all border border-gray-100 text-right"
-                                                    />
-                                                </div>
+
+                                            {/* Title & Description */}
+                                            <div className="grid grid-cols-1 md:grid-cols-2 gap-3 pt-4 border-t border-gray-100 text-right">
+                                                <input
+                                                    type="text"
+                                                    placeholder="כותרת הסרטון (אופציונלי)"
+                                                    value={vid.title}
+                                                    onChange={e => {
+                                                        const updated = [...newVideos];
+                                                        updated[idx] = { ...updated[idx], title: e.target.value };
+                                                        setNewVideos(updated);
+                                                    }}
+                                                    className="p-4 bg-gray-50 rounded-xl outline-none focus:bg-white focus:ring-2 focus:ring-primary/20 font-bold transition-all border border-gray-100 text-right"
+                                                />
+                                                <input
+                                                    type="text"
+                                                    placeholder="תיאור קצר (אופציונלי)"
+                                                    value={vid.description}
+                                                    onChange={e => {
+                                                        const updated = [...newVideos];
+                                                        updated[idx] = { ...updated[idx], description: e.target.value };
+                                                        setNewVideos(updated);
+                                                    }}
+                                                    className="p-4 bg-gray-50 rounded-xl outline-none focus:bg-white focus:ring-2 focus:ring-primary/20 font-bold transition-all border border-gray-100 text-right"
+                                                />
                                             </div>
                                         </div>
-                                    )}
+                                    ))}
                                     {isAddingImages && newImages.map((img, idx) => (
                                         <div key={idx} className="grid grid-cols-1 md:grid-cols-2 gap-4 p-4 bg-white rounded-2xl border border-gray-50 relative group">
                                             <input placeholder="URL התמונה" value={img.url} onChange={e => { const i = [...newImages]; i[idx].url = e.target.value; setNewImages(i); }} className="p-4 bg-gray-50 rounded-xl outline-none focus:bg-white focus:ring-2 focus:ring-primary/20 font-bold transition-all" />
@@ -846,9 +999,10 @@ const ShowPage = ({ onAddToCart }) => {
                                     video={{
                                         url: product.video.url,
                                         type: product.video.type || 'link',
-                                        title: 'סרטון סקירת מוצר ראשי',
-                                        description: 'סרטון סקירה שהועלה על ידי בעל החנות'
+                                        title: product.video.title || 'סרטון סקירת מוצר ראשי',
+                                        description: product.video.description || 'סרטון סקירה שהועלה על ידי בעל החנות'
                                     }}
+                                    isFullWidth={isFullWidth}
                                     isAdmin={isAdmin}
                                     onDelete={() => openConfirm(
                                         'מחיקת סרטון ראשי',
@@ -856,10 +1010,14 @@ const ShowPage = ({ onAddToCart }) => {
                                         async () => {
                                             const updated = {
                                                 ...product,
-                                                video: { type: 'link', url: '' }
+                                                video: { type: 'link', url: '', public_id: '' }
                                             };
                                             await axios.put(`${__API_URL__}/products/${product._id}`, updated, { headers: { Authorization: `Bearer ${getToken()}` } });
                                             setProduct(updated);
+                                            setPrimaryVideoUrl('');
+                                            setPrimaryVideoPublicId('');
+                                            setPrimaryVideoTitle('');
+                                            setPrimaryVideoDescription('');
                                         }
                                     )}
                                 />
@@ -869,6 +1027,7 @@ const ShowPage = ({ onAddToCart }) => {
                                     key={i}
                                     video={vid}
                                     index={i}
+                                    isFullWidth={isFullWidth}
                                     isAdmin={isAdmin}
                                     onDelete={() => openConfirm(
                                         'מחיקת סרטון',
@@ -882,9 +1041,13 @@ const ShowPage = ({ onAddToCart }) => {
                                 />
                             ))}
                             {product.additionalImages?.map((img, i) => (
-                                <div key={i} className="group relative rounded-[2.5rem] overflow-hidden border border-gray-50 shadow-sm hover:shadow-2xl transition-all duration-500 flex flex-col bg-white">
-                                    <div className="relative overflow-hidden aspect-video">
-                                        <img src={img.url} alt="Review" className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700" />
+                                <div key={i} className={`group relative overflow-hidden transition-all duration-500 flex flex-col bg-white ${isFullWidth ? 'rounded-none border-x-0 shadow-none md:rounded-[2.5rem] md:border md:border-gray-50 md:shadow-sm' : 'rounded-[2.5rem] border border-gray-50 shadow-sm hover:shadow-2xl'}`}>
+                                    <div className={`relative overflow-hidden aspect-video bg-gray-50/50 flex items-center justify-center ${isFullWidth ? 'p-0' : 'p-4'}`}>
+                                        <img
+                                            src={img.url}
+                                            alt="Review"
+                                            className={`${isFullWidth ? 'w-full h-full object-cover' : 'max-h-full max-w-full object-contain'} transform group-hover:scale-110 transition-transform duration-700`}
+                                        />
                                         {isAdmin && (
                                             <button
                                                 onClick={() => openConfirm(

@@ -5,6 +5,7 @@ import { Send, Lock, MapPin, Phone, LogIn, Mail } from 'lucide-react';
 import { auth } from '../firebaseConfig';
 import { getAuth, RecaptchaVerifier, signInWithPhoneNumber } from "firebase/auth";
 import { useAuth } from '../AuthContext';
+import { useStore } from '../StoreContext';
 
 const DetailsForm = ({ phone, setPhone, email, setEmail, handleRequestOTP, loading, navigate }) => (
     <form onSubmit={handleRequestOTP} className="space-y-6">
@@ -113,7 +114,7 @@ const OTPForm = ({ phone, otp, setOtp, handleVerifyOTP, loading, setStep, showNo
 const GuestCheckoutPage = ({ showNotification }) => {
     const navigate = useStoreNavigate();
     const { login } = useAuth();
-
+    const { store } = useStore();
     const [step, setStep] = useState('details');
     const [phone, setPhone] = useState('');
     const [email, setEmail] = useState('');
@@ -191,7 +192,7 @@ const GuestCheckoutPage = ({ showNotification }) => {
                         </div>
                         <h2 className="text-5xl font-black leading-tight">שמחים שאתה כאן!</h2>
                         <p className="text-xl opacity-90 leading-relaxed font-medium">
-                            אנחנו ב-Top Tech מחויבים לחוויית הקנייה הטובה ביותר. הזן את פרטיך ונוכל לעדכן אותך בכל שלב בדרך.
+                            אנחנו ב{store.name} מחויבים לחוויית הקנייה הטובה ביותר. הזן את פרטיך ונוכל לעדכן אותך בכל שלב בדרך.
                         </p>
                         <div className="pt-8 flex items-center space-x-4 space-x-reverse">
                             <div className="w-12 h-12 bg-white/20 rounded-full flex items-center justify-center backdrop-blur-md">

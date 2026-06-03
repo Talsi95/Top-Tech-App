@@ -278,6 +278,86 @@ const sendOrderConfirmationEmail = async (userEmail, orderDetails, store = null)
 };
 
 /**
+ * Sends an email to the customer when the order is marked as ready or shipped.
+ * @param {string} userEmail - Recipient's email.
+ * @param {Object} orderDetails - The full Order document from Mongoose.
+ * @param {Object|string} store - The store configuration object or name.
+ */
+const sendOrderReadyEmail = async (userEmail, orderDetails, store = null) => {
+    const orderId = orderDetails._id;
+    let storeName = 'החנות שלנו';
+    if (store) {
+        storeName = typeof store === 'string' ? store : (store.name || 'החנות שלנו');
+    }
+
+    const shippingAddress = orderDetails.shippingAddress || {};
+    const customerName = shippingAddress.fullName || orderDetails.user?.username || 'לקוח יקר';
+
+    const isPickup = orderDetails.shippingMethod === 'pickup-business' || 
+                     (orderDetails.shippingMethod && (
+                         orderDetails.shippingMethod.toLowerCase().includes('pickup') || 
+                         orderDetails.shippingMethod.includes('איסוף')
+                     ));
+    
+    let subject, statusTitle, statusMessage;
+    if (isPickup) {
+        subject = `ההזמנה שלך מוכנה לאיסוף! 🛍️ - ${storeName}`;
+        statusTitle = 'ההזמנה מוכנה לאיסוף! 🎉';
+        statusMessage = `שמחים לעדכן שההזמנה שלך מספר <strong>#${orderId}</strong> מוכנה וממתינה לך לאיסוף בחנות <strong>${storeName}</strong>.`;
+    } else {
+        subject = `ההזמנה שלך מוכנה ויוצאת למשלוח! 🚚 - ${storeName}`;
+        statusTitle = 'ההזמנה בדרך אליך! 🚀';
+        statusMessage = `שמחים לעדכן שההזמנה שלך מספר <strong>#${orderId}</strong> מוכנה ויוצאת כעת למשלוח מחנות <strong>${storeName}</strong>.`;
+    }
+
+    const htmlContent = `
+        <div dir="rtl" style="text-align: right; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; max-width: 600px; margin: auto; border: 1px solid #e2e8f0; padding: 25px; border-radius: 12px; background-color: #ffffff; color: #334155;">
+            <div style="text-align: center; margin-bottom: 20px;">
+                <h1 style="color: #0f172a; font-size: 24px; margin: 0; font-weight: 800;">${storeName}</h1>
+                <p style="color: #10b981; font-size: 18px; margin: 5px 0 0 0; font-weight: 600;">${statusTitle}</p>
+            </div>
+            
+            <hr style="border: 0; border-top: 1px solid #f1f5f9; margin: 20px 0;" />
+
+            <p style="font-size: 16px; line-height: 1.5; color: #334155;">שלום <strong>${customerName}</strong>,</p>
+            <p style="font-size: 15px; line-height: 1.5; color: #475569;">${statusMessage}</p>
+
+            <div style="background-color: #f8fafc; border-right: 4px solid #10b981; padding: 15px; border-radius: 6px; margin: 20px 0; font-size: 14px;">
+                <strong>פרטי ההזמנה:</strong>
+                <ul style="list-style-type: none; padding: 0; margin: 10px 0 0 0;">
+                    <li style="margin-bottom: 5px;"><strong>מספר הזמנה:</strong> #${orderId}</li>
+                    <li style="margin-bottom: 5px;"><strong>שיטת אספקה:</strong> ${shippingMethodsHeaders[orderDetails.shippingMethod] || orderDetails.shippingMethod || 'משלוח'}</li>
+                    ${!isPickup && shippingAddress.street ? `<li style="margin-bottom: 5px;"><strong>כתובת למשלוח:</strong> ${shippingAddress.street}, ${shippingAddress.city}</li>` : ''}
+                </ul>
+            </div>
+
+            <p style="font-size: 15px; line-height: 1.5; color: #475569;">נשמח לראותך שוב בקרוב!</p>
+
+            <hr style="border: 0; border-top: 1px solid #f1f5f9; margin: 30px 0 20px 0;" />
+            
+            <p style="font-size: 14px; color: #64748b; text-align: center; font-weight: bold; margin: 0;">
+                צוות ${storeName}
+            </p>
+        </div>
+    `;
+
+    const msg = {
+        to: userEmail,
+        from: process.env.SENDER_EMAIL,
+        subject: subject,
+        html: htmlContent
+    };
+
+    try {
+        await resend.emails.send(msg);
+        console.log(`Order ready/shipped email sent successfully to ${userEmail} (Store: ${storeName}, Order #${orderId})`);
+    } catch (error) {
+        console.error('Failed to send order ready/shipped email:', error);
+        throw error;
+    }
+};
+
+/**
  * Sends a one-time password (OTP) email for guest checkout verification.
  * @param {string} userEmail - Recipient's email.
  * @param {string} otp - The OTP code.
@@ -321,5 +401,6 @@ module.exports = {
     sendRegistrationEmail,
     sendResetPasswordEmail,
     sendOrderConfirmationEmail,
+    sendOrderReadyEmail,
     sendOTPEmail,
 };

@@ -13,7 +13,8 @@ const {
     updateProduct,
     updateProductVariant,
     deleteProduct,
-    uploadVideo
+    uploadVideo,
+    deleteVideoFromCloudinary
 } = require('../controllers/productController');
 
 
@@ -30,6 +31,8 @@ router.get('/:id', asyncHandler(getProductById));
 
 router.post('/', asyncHandler(createProduct));
 router.post('/upload-video', protect, admin, upload.single('video'), asyncHandler(uploadVideo));
+router.post('/delete-video', protect, admin, asyncHandler(deleteVideoFromCloudinary));
+
 
 
 router.put('/:id', protect, admin, asyncHandler(updateProduct));

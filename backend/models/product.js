@@ -55,11 +55,13 @@ const productSchema = new Schema({
     videos: [{
         title: { type: String },
         url: { type: String },
+        public_id: { type: String, default: '' },
         description: { type: String, required: false, default: '' }
     }],
     video: {
         type: { type: String, enum: ['link', 'cloudinary'], default: 'link' },
         url: { type: String, default: '' },
+        public_id: { type: String, default: '' },
         title: { type: String, default: '' },
         description: { type: String, default: '' }
     },

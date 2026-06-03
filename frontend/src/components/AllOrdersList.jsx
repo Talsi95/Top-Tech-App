@@ -272,7 +272,13 @@ const AllOrdersList = ({ showNotification }) => {
                                     className="w-full mt-3 py-2 px-4 bg-primary text-white text-xs font-black rounded-xl hover:bg-primary-hover shadow-md shadow-primary/10 hover:scale-[1.02] active:scale-95 transition-all flex items-center justify-center gap-1.5 cursor-pointer"
                                 >
                                     <Check size={14} className="stroke-[3]" />
-                                    <span>סמן כנשלח</span>
+                                    <span>
+                                        {order.shippingMethod === 'pickup-business' || 
+                                         (order.shippingMethod && (
+                                             order.shippingMethod.toLowerCase().includes('pickup') || 
+                                             order.shippingMethod.includes('איסוף')
+                                         )) ? 'סמן כמוכן לאיסוף' : 'סמן כנשלח'}
+                                    </span>
                                 </button>
                             )}
                         </div>
