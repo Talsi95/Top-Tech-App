@@ -41,6 +41,14 @@ services:
       - frontend
       - backend
 
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+
 volumes:
   node_modules_frontend:
   node_modules_backend:
+  redis_data:

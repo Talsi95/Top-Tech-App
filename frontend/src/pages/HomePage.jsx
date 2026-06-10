@@ -1,5 +1,6 @@
 import { useMemo, useState, useEffect, useRef } from 'react';
 import { useSearchParams } from 'react-router-dom';
+import { Helmet } from 'react-helmet-async';
 import ProductList from '../components/ProductList';
 import Banner from '../components/Banner';
 import CategorySlider from '../components/CategorySlider';
@@ -13,6 +14,7 @@ import Loader from '../components/Loader';
 import RevealOnScroll from '../components/RevealOnScroll';
 import useProducts from '../hooks/useProducts';
 import useStoreNavigate from '../hooks/useStoreNavigate';
+import { WebSiteSchema, OrganizationSchema } from '../components/StructuredData';
 
 /**
  * HomePage Component.
@@ -151,150 +153,174 @@ const HomePage = ({ handleAddToCart, showNotification }) => {
 
     const multipleCategories = sortedGroupedProducts.length > 1;
 
+    const storeName = store?.name || 'PowerDev';
+    const heroTitle = store?.homePageConfig?.heroTitle || storeName;
+    const pageDescription = store?.labels?.footerDescription || 'ברוכים הבאים לחנות האונליין שלנו. מגוון רחב של מוצרים איכותיים, מחירים תחרותיים ושירות מקצועי.';
+    const pageUrl = typeof window !== 'undefined' ? window.location.href : '';
+    const logoUrl = store?.design?.logoUrl || '';
+
     if (error) {
         return <div className="text-center text-red-500 text-xl font-semibold py-20">שגיאה: {error}</div>;
     }
 
     return (
-        <div className={`max-w-[1440px] mx-auto py-6 ${store?.features?.fullWidthCards ? "px-0" : "px-6"} md:px-12 md:py-12`}>
-            <div className="w-full min-h-[300px] sm:min-h-[400px] md:min-h-[500px] lg:min-h-[600px] relative animate-in fade-in duration-700 ease-out">
-                {renderHero()}
-            </div>
+        <>
+            <Helmet>
+                <title>{`${heroTitle} | ${storeName}`}</title>
+                <meta name="description" content={pageDescription} />
+                <link rel="canonical" href={pageUrl} />
+                <meta property="og:title" content={`${heroTitle} | ${storeName}`} />
+                <meta property="og:description" content={pageDescription} />
+                <meta property="og:url" content={pageUrl} />
+                <meta property="og:type" content="website" />
+                {logoUrl && <meta property="og:image" content={logoUrl} />}
+                <meta name="twitter:title" content={`${heroTitle} | ${storeName}`} />
+                <meta name="twitter:description" content={pageDescription} />
+                {logoUrl && <meta name="twitter:image" content={logoUrl} />}
+            </Helmet>
+            <OrganizationSchema />
+            <WebSiteSchema />
 
-            {/* Display titles below hero ONLY for Slider */}
-            {store?.homePageConfig?.heroType === 'slider' && (store?.homePageConfig?.heroTitle || store?.homePageConfig?.heroSubtitle) && (
-                <div
-                    key={store.homePageConfig.heroTitle}
-                    className="text-center my-12"
-                >
-                    {store.homePageConfig.heroTitle && (
-                        <h1 className="text-5xl md:text-6xl font-black text-gray-900 mb-4 tracking-tight animate-in fade-in zoom-in-95 blur-in-sm duration-1000 ease-out">
-                            {store.homePageConfig.heroTitle}
-                        </h1>
-                    )}
-                    {store.homePageConfig.heroSubtitle && (
-                        <p className="text-xl md:text-2xl text-gray-500 font-medium max-w-2xl mx-auto leading-relaxed animate-in fade-in zoom-in-95 blur-in-sm delay-300 duration-1000 ease-out fill-mode-both">
-                            {store.homePageConfig.heroSubtitle}
+            <div className={`max-w-[1440px] mx-auto py-6 px-0 md:px-12 md:py-12`}>
+                <div className="w-full min-h-[300px] sm:min-h-[400px] md:min-h-[500px] lg:min-h-[600px] relative animate-in fade-in duration-700 ease-out">
+                    {renderHero()}
+                </div>
+
+                {/* Display titles below hero ONLY for Slider */}
+                {store?.homePageConfig?.heroType === 'slider' && (store?.homePageConfig?.heroTitle || store?.homePageConfig?.heroSubtitle) && (
+                    <div
+                        key={store.homePageConfig.heroTitle}
+                        className="text-center my-12"
+                    >
+                        {store.homePageConfig.heroTitle && (
+                            <h1 className="text-5xl md:text-6xl font-black text-gray-900 mb-4 tracking-tight animate-in fade-in zoom-in-95 blur-in-sm duration-1000 ease-out">
+                                {store.homePageConfig.heroTitle}
+                            </h1>
+                        )}
+                        {store.homePageConfig.heroSubtitle && (
+                            <p className="text-xl md:text-2xl text-gray-500 font-medium max-w-2xl mx-auto leading-relaxed animate-in fade-in zoom-in-95 blur-in-sm delay-300 duration-1000 ease-out fill-mode-both">
+                                {store.homePageConfig.heroSubtitle}
+                            </p>
+                        )}
+                    </div>
+                )}
+
+
+                <RevealOnScroll>
+                    <div className="text-center mt-20 mb-12 flex flex-col items-center">
+                        <h2 className="text-4xl md:text-5xl font-black text-gray-900 tracking-tighter mb-4 relative inline-block">
+                            {store?.labels?.discoverSectionTitle || "גלו את המוצרים שלנו"}
+                            <div className="absolute -bottom-2 left-1/2 -translate-x-1/2 w-24 h-1 bg-primary rounded-full" />
+                        </h2>
+                        <p className="text-gray-500 font-medium text-lg mt-3 max-w-md mx-auto">
+                            {store?.labels?.discoverSectionSubtitle || "הצטרפו לחוויית הקנייה המתקדמת ביותר עם המוצרים המובילים בשוק"}
                         </p>
-                    )}
-                </div>
-            )}
 
-
-            <RevealOnScroll>
-                <div className="text-center mt-20 mb-12 flex flex-col items-center">
-                    <h2 className="text-4xl md:text-5xl font-black text-gray-900 tracking-tighter mb-4 relative inline-block">
-                        {store?.labels?.discoverSectionTitle || "גלו את המוצרים שלנו"}
-                        <div className="absolute -bottom-2 left-1/2 -translate-x-1/2 w-24 h-1 bg-primary rounded-full" />
-                    </h2>
-                    <p className="text-gray-500 font-medium text-lg mt-3 max-w-md mx-auto">
-                        {store?.labels?.discoverSectionSubtitle || "הצטרפו לחוויית הקנייה המתקדמת ביותר עם המוצרים המובילים בשוק"}
-                    </p>
-
-                    <div className="mt-6 text-primary animate-bounce cursor-pointer opacity-75 hover:opacity-100 transition-opacity"
-                        onClick={() => window.scrollBy({ top: window.innerHeight * 0.6, behavior: 'smooth' })}>
-                        <ChevronDown size={32} className="stroke-[3]" />
+                        <div className="mt-6 text-primary animate-bounce cursor-pointer opacity-75 hover:opacity-100 transition-opacity"
+                            onClick={() => window.scrollBy({ top: window.innerHeight * 0.6, behavior: 'smooth' })}>
+                            <ChevronDown size={32} className="stroke-[3]" />
+                        </div>
                     </div>
-                </div>
-            </RevealOnScroll>
+                </RevealOnScroll>
 
 
-            <div ref={triggerRef} className="space-y-16 mb-12">
-                {!shouldLoadProducts || loading ? (
-                    <div className="flex justify-center items-center py-20 min-h-[300px]">
-                        <Loader subtext='טוען מוצרים...' />
-                    </div>
-                ) : multipleCategories ? (
-                    sortedGroupedProducts.map(([category, catProducts], idx) => {
-                        const isFirstCategory = idx === 0;
-                        const isLastCategory = idx === sortedGroupedProducts.length - 1;
-                        return (
-                            <RevealOnScroll key={category} delay={idx * 50}>
-                                {/* Category heading with accent bar and reordering controls */}
-                                <div className="flex items-center justify-between mb-8 gap-4 flex-wrap">
-                                    <div className="flex items-center gap-4">
-                                        <div className="w-2 h-10 bg-primary rounded-full flex-shrink-0" />
-                                        <h2 className="text-3xl md:text-4xl font-black text-gray-900 tracking-tight">
-                                            {category}
-                                        </h2>
-                                        {/* <span className="text-sm font-bold text-gray-400 bg-gray-100 px-3 py-1 rounded-full">
+                <div ref={triggerRef} className="space-y-16 mb-12">
+                    {!shouldLoadProducts || loading ? (
+                        <div className="flex justify-center items-center py-20 min-h-[300px]">
+                            <Loader subtext='טוען מוצרים...' />
+                        </div>
+                    ) : multipleCategories ? (
+                        sortedGroupedProducts.map(([category, catProducts], idx) => {
+                            const isFirstCategory = idx === 0;
+                            const isLastCategory = idx === sortedGroupedProducts.length - 1;
+                            return (
+                                <RevealOnScroll key={category} delay={idx * 50}>
+                                    {/* Category heading with accent bar and reordering controls */}
+                                    <div className="flex items-center justify-between mb-8 gap-4 flex-wrap px-4 sm:px-0">
+                                        <div className="flex items-center gap-4">
+                                            <div className="w-2 h-10 bg-primary rounded-full flex-shrink-0" />
+                                            <h2 className="text-3xl md:text-4xl font-black text-gray-900 tracking-tight">
+                                                {category}
+                                            </h2>
+                                            {/* <span className="text-sm font-bold text-gray-400 bg-gray-100 px-3 py-1 rounded-full">
                                             {catProducts.length} מוצרים
                                         </span> */}
-                                    </div>
-
-                                    {(isAdmin || isSuperAdmin) && (
-                                        <div className="flex gap-2" dir="ltr">
-                                            <button
-                                                type="button"
-                                                onClick={() => handleMoveCategory(category, 'up')}
-                                                disabled={isFirstCategory}
-                                                title="הזז למעלה"
-                                                className="p-2.5 bg-white hover:bg-gray-50 disabled:opacity-30 disabled:hover:bg-white rounded-xl transition-all border border-gray-200 shadow-sm hover:shadow active:scale-95 disabled:active:scale-100"
-                                            >
-                                                <ArrowUp className="w-5 h-5 text-gray-600" />
-                                            </button>
-                                            <button
-                                                type="button"
-                                                onClick={() => handleMoveCategory(category, 'down')}
-                                                disabled={isLastCategory}
-                                                title="הזז למטה"
-                                                className="p-2.5 bg-white hover:bg-gray-50 disabled:opacity-30 disabled:hover:bg-white rounded-xl transition-all border border-gray-200 shadow-sm hover:shadow active:scale-95 disabled:active:scale-100"
-                                            >
-                                                <ArrowDown className="w-5 h-5 text-gray-600" />
-                                            </button>
                                         </div>
-                                    )}
-                                </div>
+
+                                        {(isAdmin || isSuperAdmin) && (
+                                            <div className="flex gap-2" dir="ltr">
+                                                <button
+                                                    type="button"
+                                                    onClick={() => handleMoveCategory(category, 'up')}
+                                                    disabled={isFirstCategory}
+                                                    title="הזז למעלה"
+                                                    className="p-2.5 bg-white hover:bg-gray-50 disabled:opacity-30 disabled:hover:bg-white rounded-xl transition-all border border-gray-200 shadow-sm hover:shadow active:scale-95 disabled:active:scale-100"
+                                                >
+                                                    <ArrowUp className="w-5 h-5 text-gray-600" />
+                                                </button>
+                                                <button
+                                                    type="button"
+                                                    onClick={() => handleMoveCategory(category, 'down')}
+                                                    disabled={isLastCategory}
+                                                    title="הזז למטה"
+                                                    className="p-2.5 bg-white hover:bg-gray-50 disabled:opacity-30 disabled:hover:bg-white rounded-xl transition-all border border-gray-200 shadow-sm hover:shadow active:scale-95 disabled:active:scale-100"
+                                                >
+                                                    <ArrowDown className="w-5 h-5 text-gray-600" />
+                                                </button>
+                                            </div>
+                                        )}
+                                    </div>
+                                    <ProductList
+                                        products={catProducts.slice(0, 4)}
+                                        onAddToCart={handleAddToCart}
+                                        showNotification={showNotification}
+                                        onDeleteProduct={(id) => handleDeleteProduct(id, getToken, showNotification)}
+                                    />
+                                    <div className="text-center mt-8 px-4 sm:px-0">
+                                        <button
+                                            onClick={() => navigate(
+                                                `/products?category=${encodeURIComponent(category)}`,
+                                                { state: { categoryName: category } }
+                                            )}
+                                            className="inline-flex items-center gap-2 px-8 py-3.5 bg-primary text-white rounded-2xl font-black shadow-lg shadow-primary/20 hover:scale-[1.02] active:scale-95 transition-all text-sm cursor-pointer"
+                                        >
+                                            צפה בכל המוצרים בקטגוריית {category}
+                                        </button>
+                                    </div>
+                                </RevealOnScroll>
+                            );
+                        })
+                    ) : (
+                        <RevealOnScroll>
+                            <div>
+                                <h2 className="text-4xl font-black text-gray-900 mb-8 tracking-tight border-r-8 border-primary pr-6 px-4 sm:px-0">
+                                    {store?.labels?.featuredSectionTitle || "הנבחרת שלנו"}
+                                </h2>
                                 <ProductList
-                                    products={catProducts.slice(0, 4)}
+                                    products={products.slice(0, 4)}
                                     onAddToCart={handleAddToCart}
                                     showNotification={showNotification}
                                     onDeleteProduct={(id) => handleDeleteProduct(id, getToken, showNotification)}
                                 />
-                                <div className="text-center mt-8">
-                                    <button
-                                        onClick={() => navigate(
-                                            `/products?category=${encodeURIComponent(category)}`,
-                                            { state: { categoryName: category } }
-                                        )}
-                                        className="inline-flex items-center gap-2 px-8 py-3.5 bg-primary text-white rounded-2xl font-black shadow-lg shadow-primary/20 hover:scale-[1.02] active:scale-95 transition-all text-sm cursor-pointer"
-                                    >
-                                        צפה בכל המוצרים בקטגוריית {category}
-                                    </button>
-                                </div>
-                            </RevealOnScroll>
-                        );
-                    })
-                ) : (
-                    <RevealOnScroll>
-                        <div>
-                            <h2 className="text-4xl font-black text-gray-900 mb-8 tracking-tight border-r-8 border-primary pr-6">
-                                {store?.labels?.featuredSectionTitle || "הנבחרת שלנו"}
-                            </h2>
-                            <ProductList
-                                products={products.slice(0, 4)}
-                                onAddToCart={handleAddToCart}
-                                showNotification={showNotification}
-                                onDeleteProduct={(id) => handleDeleteProduct(id, getToken, showNotification)}
-                            />
-                            {products.length > 4 && (
-                                <div className="text-center mt-8">
-                                    <button
-                                        onClick={() => navigate('/products')}
-                                        className="inline-flex items-center gap-2 px-8 py-3.5 bg-primary text-white rounded-2xl font-black shadow-lg shadow-primary/20 hover:scale-[1.02] active:scale-95 transition-all text-sm cursor-pointer"
-                                    >
-                                        צפה בכל המוצרים
-                                    </button>
-                                </div>
-                            )}
-                        </div>
-                    </RevealOnScroll>
-                )}
+                                {products.length > 4 && (
+                                    <div className="text-center mt-8">
+                                        <button
+                                            onClick={() => navigate('/products')}
+                                            className="inline-flex items-center gap-2 px-8 py-3.5 bg-primary text-white rounded-2xl font-black shadow-lg shadow-primary/20 hover:scale-[1.02] active:scale-95 transition-all text-sm cursor-pointer"
+                                        >
+                                            צפה בכל המוצרים
+                                        </button>
+                                    </div>
+                                )}
+                            </div>
+                        </RevealOnScroll>
+                    )}
+                </div>
+                <RevealOnScroll>
+                    <Gallery />
+                </RevealOnScroll>
             </div>
-            <RevealOnScroll>
-                <Gallery />
-            </RevealOnScroll>
-        </div>
+        </>
     )
 };
 

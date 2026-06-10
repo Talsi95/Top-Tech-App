@@ -85,7 +85,11 @@ const orderSchema = new Schema({
         id: { type: String },
         status: { type: String },
         update_time: { type: String },
-        email_address: { type: String }
+        email_address: { type: String },
+        saveCard: { type: Boolean, default: false },
+        hypTransactionId: { type: String },
+        hypToken: { type: String },
+        hypTokef: { type: String }
     },
     isPaid: {
         type: Boolean,
@@ -94,6 +98,11 @@ const orderSchema = new Schema({
     },
     paidAt: {
         type: Date
+    },
+    stockDeducted: {
+        type: Boolean,
+        required: true,
+        default: false
     },
     isDelivered: {
         type: Boolean,

@@ -1,0 +1,5 @@
+סוג שורה,מק"ט (SKU),מק"ט אב,שם המוצר,תיאור מורחב,קטגוריה,תת קטגוריה,מחיר,מלאי,צבע,נפח,קישורי תמונות,מפרט טכני
+Parent,PHONE-I15,,אייפון 15 פרו,"מכשיר הדגל החדש של אפל עם שלדת טיטניום ומעבד עוצמתי.",מכשירים ניידים,Apple - iPhone,,,,,https://res.cloudinary.com/demo/image/upload/v1312461204/sample.jpg,"מעבד: A17 Pro | מסך: 6.1 אינץ' | משקל: 187 גרם"
+Variant,PHONE-I15-BLK-128,PHONE-I15,,,,,4500,15,שחור,128GB,"https://res.cloudinary.com/demo/image/upload/v1312461204/sample.jpg, https://res.cloudinary.com/demo/image/upload/v1312461204/sample2.jpg",
+Variant,PHONE-I15-SLV-256,PHONE-I15,,,,,5200,8,כסף,256GB,https://res.cloudinary.com/demo/image/upload/v1312461204/sample.jpg,
+Parent,CABLE-USB-1M,,כבל טעינה מהיר USB-C,"כבל קלוע עמיד במיוחד ואיכותי לטעינה מהירה והעברת נתונים.",אביזרים,Baseus,79,50,,,https://res.cloudinary.com/demo/image/upload/v1312461204/sample.jpg,"אורך: 1 מטר | הספק: 60W | חומר: ניילון קלוע"

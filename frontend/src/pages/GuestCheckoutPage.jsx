@@ -13,10 +13,12 @@ const DetailsForm = ({ phone, setPhone, email, setEmail, handleRequestOTP, loadi
 
         <div className="space-y-4">
             <div className="relative group">
-                <Phone className="absolute top-3 right-4 text-gray-400 group-focus-within:text-primary transition-colors" size={20} />
+                <label htmlFor='phone' className='font-bold text-gray-700'>מספר טלפון</label>
+                <Phone className="absolute top-10 right-4 text-gray-400 group-focus-within:text-primary transition-colors" size={20} />
+
                 <input
+                    id='phone'
                     type="tel"
-                    placeholder="מספר טלפון"
                     value={phone}
                     onChange={(e) => setPhone(e.target.value)}
                     required
@@ -26,10 +28,11 @@ const DetailsForm = ({ phone, setPhone, email, setEmail, handleRequestOTP, loadi
             </div>
 
             <div className="relative group">
-                <Mail className="absolute top-3 right-4 text-gray-400 group-focus-within:text-primary transition-colors" size={20} />
+                <label htmlFor='email' className='font-bold text-gray-700'>מייל</label>
+                <Mail className="absolute top-10 right-4 text-gray-400 group-focus-within:text-primary transition-colors" size={20} />
                 <input
+                    id='email'
                     type="email"
-                    placeholder="מייל"
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
                     required
@@ -70,10 +73,11 @@ const OTPForm = ({ phone, otp, setOtp, handleVerifyOTP, loading, setStep, showNo
         </div>
 
         <div className="relative">
-            <Lock className="absolute top-4 right-4 text-gray-400" size={22} />
+            <Lock className="absolute top-10 right-4 text-gray-400" size={22} />
+            <label htmlFor='otp' className='font-bold text-gray-700'>קוד אימות</label>
             <input
+                id='otp'
                 type="text"
-                placeholder="000000"
                 value={otp}
                 onChange={(e) => setOtp(e.target.value)}
                 maxLength={6}

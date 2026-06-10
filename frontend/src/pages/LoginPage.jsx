@@ -35,7 +35,7 @@ const LoginPage = ({ showNotification }) => {
             const { token } = response.data;
             login(token);
             showNotification('התחברת בהצלחה', 'success');
-            
+
             // Decode token to check for super admin
             const decoded = JSON.parse(atob(token.split('.')[1]));
             if (decoded.isSuperAdmin) {
@@ -129,26 +129,27 @@ const LoginPage = ({ showNotification }) => {
                     {loginMethod === 'password' ? (
                         <form onSubmit={handlePasswordSubmit} className="space-y-6">
                             <div className="space-y-2">
-                                <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest mr-4">אימייל</label>
+
+                                <label htmlFor='email' className="text-[10px] font-black text-gray-400 uppercase tracking-widest mr-4">אימייל</label>
                                 <div className="relative group">
                                     <Mail className="absolute right-5 top-1/2 -translate-y-1/2 text-gray-400 group-focus-within:text-primary transition-colors" size={20} />
                                     <input
+                                        id='email'
                                         type="email" required value={email} onChange={(e) => setEmail(e.target.value)}
-                                        placeholder="your@email.com"
                                         className="w-full bg-gray-50 border border-gray-100 focus:border-primary focus:bg-white rounded-2xl py-4 pr-14 pl-6 outline-none font-bold text-gray-900 transition-all placeholder:text-gray-300"
                                     />
                                 </div>
                             </div>
                             <div className="space-y-2">
                                 <div className="flex justify-between items-center px-4">
-                                    <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest">סיסמה</label>
+                                    <label htmlFor='password' className="text-[10px] font-black text-gray-400 uppercase tracking-widest">סיסמה</label>
                                     <StoreLink to="/forgot-password" size="sm" className="text-xs font-bold text-primary hover:underline">שכחת סיסמה?</StoreLink>
                                 </div>
                                 <div className="relative group">
                                     <Lock className="absolute right-5 top-1/2 -translate-y-1/2 text-gray-400 group-focus-within:text-primary transition-colors" size={20} />
                                     <input
+                                        id='password'
                                         type="password" required value={password} onChange={(e) => setPassword(e.target.value)}
-                                        placeholder="••••••••"
                                         className="w-full bg-gray-50 border border-gray-100 focus:border-primary focus:bg-white rounded-2xl py-4 pr-14 pl-6 outline-none font-bold text-gray-900 transition-all placeholder:text-gray-300"
                                     />
                                 </div>
@@ -169,10 +170,11 @@ const LoginPage = ({ showNotification }) => {
                         <form onSubmit={isOtpSent ? handleVerifyOTP : handleRequestOTP} className="space-y-6">
                             <div id="recaptcha-container" />
                             <div className="space-y-2">
-                                <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest mr-4">מספר טלפון</label>
+                                <label htmlFor='phone' className="text-[10px] font-black text-gray-400 uppercase tracking-widest mr-4">מספר טלפון</label>
                                 <div className="relative group">
                                     <Phone className="absolute right-5 top-1/2 -translate-y-1/2 text-gray-400 group-focus-within:text-primary transition-colors" size={20} />
                                     <input
+                                        id='phone'
                                         type="tel" required value={phone} onChange={(e) => setPhone(e.target.value)} disabled={isOtpSent}
                                         placeholder="05X-XXXXXXX"
                                         className="w-full bg-gray-50 border border-gray-100 focus:border-primary focus:bg-white rounded-2xl py-4 pr-14 pl-6 outline-none font-bold text-gray-900 transition-all placeholder:text-gray-300 disabled:opacity-50"

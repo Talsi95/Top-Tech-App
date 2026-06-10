@@ -10,7 +10,7 @@ import { useStore } from '../StoreContext';
 /**
  * ProductList Component.
  */
-const ProductList = ({ onDeleteProduct, products }) => {
+const ProductList = ({ onDeleteProduct, products, onAddToCart }) => {
     const { store } = useStore();
     const { isAdmin } = useAuth();
     const navigate = useStoreNavigate();
@@ -27,14 +27,13 @@ const ProductList = ({ onDeleteProduct, products }) => {
     const isFullWidth = store?.features?.fullWidthCards;
 
     return (
-        <div className={`container mx-auto py-4 ${isFullWidth ? "px-0" : "px-4"}`}>
-            <div className={`grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-2 xl:grid-cols-3 ${isFullWidth ? "gap-0" : "gap-6"} sm:gap-6`}>
+        <div className={`sm:container sm:mx-auto py-0 sm:py-4 px-0 ${!isFullWidth ? 'sm:px-4' : ''}`}>
+            <div className={`grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-2 xl:grid-cols-3 gap-0 ${isFullWidth ? 'sm:gap-0' : 'sm:gap-6'}`}>
                 {products.map((product) => (
-                    <div key={product._id} className={`flex flex-col h-full bg-white ${
-                        isFullWidth ? "rounded-none sm:rounded-[2rem] border-b" : "rounded-[2rem] border"
-                    } sm:border border-gray-100 overflow-hidden hover:shadow-2xl hover:shadow-primary/5 transition-all duration-500`}>
+                    <div key={product._id} className={`flex flex-col h-full bg-white border-b border-gray-100 ${isFullWidth ? "sm:rounded-[2rem] sm:border" : "sm:rounded-[2rem] sm:border sm:shadow-sm"
+                        } overflow-hidden sm:hover:shadow-2xl sm:hover:shadow-primary/5 transition-all duration-500`}>
                         <div className="flex-grow">
-                            <ProductCard product={product} />
+                            <ProductCard product={product} onAddToCart={onAddToCart} />
                         </div>
                         {isAdmin && (
                             <div className="p-4 bg-gray-50/50 border-t border-gray-100 space-y-2">

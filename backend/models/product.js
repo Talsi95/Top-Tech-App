@@ -3,6 +3,7 @@ const Schema = mongoose.Schema;
 
 const variantSchema = new Schema({
     price: { type: Number, required: true },
+    sku: { type: String, required: false },
     stock: { type: Number, required: false, default: 0 },
     imageUrls: [{ type: String, required: true }],
     isOnSale: {
@@ -27,6 +28,11 @@ const productSchema = new Schema({
     name: {
         type: String,
         required: true
+    },
+    sku: {
+        type: String,
+        required: false,
+        trim: true
     },
     slug: {
         type: String,
@@ -91,6 +97,7 @@ productSchema.pre('validate', function (next) {
 });
 
 productSchema.index({ storeId: 1, slug: 1 });
+productSchema.index({ storeId: 1, sku: 1 });
 
 productSchema.index({ storeId: 1, category: 1 });
 

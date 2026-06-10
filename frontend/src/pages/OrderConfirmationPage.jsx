@@ -55,6 +55,11 @@ const OrderConfirmationPage = ({ showNotification, clearCart }) => {
         }
     };
     useEffect(() => {
+        if (window.top !== window.self) {
+            window.top.location.href = window.location.href;
+            return;
+        }
+
         if (orderId) {
             fetchOrder(authToken);
         }
@@ -63,7 +68,11 @@ const OrderConfirmationPage = ({ showNotification, clearCart }) => {
         const status = searchParams.get('status');
         const cCode = searchParams.get('CCode');
 
-        if (status === 'success' && cCode === '0') {
+        const isHypSuccess = (status === 'success' && cCode === '0');
+        const isVerifoneSuccess = (status === 'success' && !cCode);
+        const isDirectSuccess = (!status && !cCode);
+
+        if (isHypSuccess || isVerifoneSuccess || isDirectSuccess) {
             Object.keys(localStorage).forEach(key => {
                 if (key.startsWith('cartItems_')) {
                     localStorage.removeItem(key);
@@ -76,13 +85,6 @@ const OrderConfirmationPage = ({ showNotification, clearCart }) => {
             localStorage.removeItem('currentStoreSlug');
         }
     }, [orderId, authToken, location.search]);
-
-    // useEffect(() => {
-    //     if (orderId) {
-    //         fetchOrder(authToken);
-    //     }
-    //     return () => localStorage.removeItem('guestTokenForOrder');
-    // }, [orderId, authToken]);
 
 
     if (loading) return <Loader text="טוען פרטי הזמנה" />;

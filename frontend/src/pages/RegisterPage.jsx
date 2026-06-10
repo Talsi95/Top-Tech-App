@@ -66,10 +66,11 @@ const RegisterPage = ({ showNotification }) => {
                     <form onSubmit={handleRegister} className="space-y-6">
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                             <div className="space-y-2">
-                                <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest mr-4">שם מלא</label>
+                                <label htmlFor='username' className="text-[10px] font-black text-gray-400 uppercase tracking-widest mr-4">שם מלא</label>
                                 <div className="relative group">
                                     <User className="absolute right-5 top-1/2 -translate-y-1/2 text-gray-400 group-focus-within:text-primary transition-colors" size={18} />
                                     <input
+                                        id='username'
                                         type="text" required value={username} onChange={(e) => setUsername(e.target.value)}
                                         placeholder="ישראל ישראלי"
                                         className="w-full bg-gray-50 border border-gray-100 focus:border-primary focus:bg-white rounded-2xl py-4 pr-12 pl-4 outline-none font-bold text-gray-900 transition-all placeholder:text-gray-300"
@@ -77,10 +78,11 @@ const RegisterPage = ({ showNotification }) => {
                                 </div>
                             </div>
                             <div className="space-y-2">
-                                <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest mr-4">טלפון</label>
+                                <label htmlFor='phone' className="text-[10px] font-black text-gray-400 uppercase tracking-widest mr-4">טלפון</label>
                                 <div className="relative group">
                                     <Phone className="absolute right-5 top-1/2 -translate-y-1/2 text-gray-400 group-focus-within:text-primary transition-colors" size={18} />
                                     <input
+                                        id='phone'
                                         type="tel" required value={phone} onChange={(e) => setPhone(e.target.value)}
                                         placeholder="05X-XXXXXXX"
                                         className="w-full bg-gray-50 border border-gray-100 focus:border-primary focus:bg-white rounded-2xl py-4 pr-12 pl-4 outline-none font-bold text-gray-900 transition-all placeholder:text-gray-300"
@@ -90,10 +92,11 @@ const RegisterPage = ({ showNotification }) => {
                         </div>
 
                         <div className="space-y-2">
-                            <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest mr-4">כתובת אימייל</label>
+                            <label htmlFor='email' className="text-[10px] font-black text-gray-400 uppercase tracking-widest mr-4">כתובת אימייל</label>
                             <div className="relative group">
                                 <Mail className="absolute right-5 top-1/2 -translate-y-1/2 text-gray-400 group-focus-within:text-primary transition-colors" size={18} />
                                 <input
+                                    id='email'
                                     type="email" required value={email} onChange={(e) => setEmail(e.target.value)}
                                     placeholder="your@email.com"
                                     className="w-full bg-gray-50 border border-gray-100 focus:border-primary focus:bg-white rounded-2xl py-4 pr-12 pl-6 outline-none font-bold text-gray-900 transition-all placeholder:text-gray-300"
@@ -102,10 +105,11 @@ const RegisterPage = ({ showNotification }) => {
                         </div>
 
                         <div className="space-y-2">
-                            <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest mr-4">סיסמה</label>
+                            <label htmlFor='password' className="text-[10px] font-black text-gray-400 uppercase tracking-widest mr-4">סיסמה</label>
                             <div className="relative group">
                                 <Lock className="absolute right-5 top-1/2 -translate-y-1/2 text-gray-400 group-focus-within:text-primary transition-colors" size={18} />
                                 <input
+                                    id='password'
                                     type="password" required value={password} onChange={(e) => setPassword(e.target.value)}
                                     placeholder="לפחות 6 תווים"
                                     className="w-full bg-gray-50 border border-gray-100 focus:border-primary focus:bg-white rounded-2xl py-4 pr-12 pl-6 outline-none font-bold text-gray-900 transition-all placeholder:text-gray-300"

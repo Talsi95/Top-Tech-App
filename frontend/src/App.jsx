@@ -180,10 +180,10 @@ const App = () => {
                 <Route path="admin" element={<AdminDashboard showNotification={showNotification} />} />
                 <Route path="product-form/:id" element={<ProductFormPage showNotification={showNotification} />} />
                 <Route path="product-form" element={<ProductFormPage showNotification={showNotification} />} />
-                <Route path="/payment-success" element={<PaymentSuccess />} />
+                <Route path="payment-success" element={<PaymentSuccess />} />
                 <Route path="order-confirmation/:orderId" element={<OrderConfirmationPage showNotification={showNotification} clearCart={clearCart} />} />
                 <Route path="admin/update-variant/:id" element={<UpdateVariantForm />} />
-                <Route path="products" element={<ProductsPage getToken={getToken} showNotification={showNotification} />} />
+                <Route path="products" element={<ProductsPage getToken={getToken} showNotification={showNotification} handleAddToCart={handleAddToCart} />} />
                 <Route path="repair-lab" element={<RepairLab />} />
                 {store?.features?.hasArticles && (
                   <>

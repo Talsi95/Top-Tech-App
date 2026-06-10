@@ -1,6 +1,8 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import ProductForm from '../components/ProductForm';
+import ImportProducts from '../components/ImportProducts';
+import { ArrowLeft } from 'lucide-react';
 import { useAuth } from '../AuthContext';
 import Notification from '../components/Notification';
 import axios from 'axios';
@@ -25,6 +27,7 @@ const ProductFormPage = ({ showNotification }) => {
     const [adminCategories, setAdminCategories] = useState({});
     const [adminVariantFields, setAdminVariantFields] = useState({});
     const [isLoadingCategories, setIsLoadingCategories] = useState(true);
+    const [activeMode, setActiveMode] = useState('manual'); // 'manual' or 'import'
 
     /**
      * Fetches descriptive metadata for categories to populate form fields.
@@ -111,14 +114,69 @@ const ProductFormPage = ({ showNotification }) => {
 
     return (
         <div className="container mx-auto p-4">
-            <ProductForm
-                showNotification={showNotification}
-                existingProduct={existingProduct}
-                onUpdateSuccess={handleUpdateSuccess}
-                adminCategories={adminCategories}
-                adminVariantFields={adminVariantFields}
-                isLoadingCategories={isLoadingCategories}
-            />
+            {/* Show selector only if creating a new product (no id in params) */}
+            {!id && (
+                <div className="max-w-4xl mx-auto mb-8 flex justify-center">
+                    <div className="bg-gray-100/80 p-1.5 rounded-2xl flex gap-1.5 border border-gray-200/50 backdrop-blur-sm">
+                        <button
+                            type="button"
+                            onClick={() => setActiveMode('manual')}
+                            className={`px-6 py-2.5 rounded-xl font-black text-sm transition-all duration-300 ${
+                                activeMode === 'manual'
+                                ? 'bg-white text-primary shadow-md shadow-gray-200/50'
+                                : 'text-gray-500 hover:text-gray-800'
+                            }`}
+                        >
+                            הוספה ידנית
+                        </button>
+                        <button
+                            type="button"
+                            onClick={() => setActiveMode('import')}
+                            className={`px-6 py-2.5 rounded-xl font-black text-sm transition-all duration-300 ${
+                                activeMode === 'import'
+                                ? 'bg-white text-primary shadow-md shadow-gray-200/50'
+                                : 'text-gray-500 hover:text-gray-800'
+                            }`}
+                        >
+                            ייבוא מהיר מאקסל / CSV
+                        </button>
+                    </div>
+                </div>
+            )}
+
+            {!id && activeMode === 'import' ? (
+                <div className="max-w-4xl mx-auto mb-16 animate-in fade-in duration-500" dir="rtl">
+                    {/* Header */}
+                    <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-10 pb-6 border-b border-gray-100">
+                        <div>
+                            <h1 className="text-3xl lg:text-4xl font-black text-gray-900 tracking-tighter">
+                                ייבוא מוצרים
+                            </h1>
+                            <p className="text-gray-500 font-medium mt-1">
+                                העלאת קטלוג מוצרים שלם במהירות מתוך קובץ אקסל או CSV.
+                            </p>
+                        </div>
+                        <button
+                            type="button"
+                            onClick={() => navigate('/admin')}
+                            className="inline-flex items-center gap-2 px-5 py-2.5 bg-gray-50 text-gray-600 rounded-xl hover:bg-gray-100 hover:text-gray-900 font-bold transition-all text-sm self-start md:self-auto"
+                        >
+                            <ArrowLeft size={16} />
+                            <span>חזרה ללוח הבקרה</span>
+                        </button>
+                    </div>
+                    <ImportProducts showNotification={showNotification} />
+                </div>
+            ) : (
+                <ProductForm
+                    showNotification={showNotification}
+                    existingProduct={existingProduct}
+                    onUpdateSuccess={handleUpdateSuccess}
+                    adminCategories={adminCategories}
+                    adminVariantFields={adminVariantFields}
+                    isLoadingCategories={isLoadingCategories}
+                />
+            )}
             <Notification message={pageNotification.message} type={pageNotification.type} onClose={() => setPageNotification({ message: '', type: '' })} />
         </div>
     );

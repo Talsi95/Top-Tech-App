@@ -1,0 +1,8 @@
+This placeholder is required for Apple Pay domain verification.
+Replace this file with the actual content from:
+https://ppsuat.creditguard.co.il/.well-known/apple-developer-merchantid-domain-association
+
+Steps:
+1. Download the file from the link above (for sandbox/testing)
+2. For production, use: https://pps.creditguard.co.il/.well-known/apple-developer-merchantid-domain-association
+3. Replace this file with the downloaded content

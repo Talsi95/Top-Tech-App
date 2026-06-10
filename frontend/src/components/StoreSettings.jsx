@@ -34,7 +34,11 @@ const StoreSettings = ({ showNotification }) => {
                         username: store.paymentSettings?.verifone?.username || '',
                         password: store.paymentSettings?.verifone?.password || '',
                         entityId: store.paymentSettings?.verifone?.entityId || '',
-                        paymentContractId: store.paymentSettings?.verifone?.paymentContractId || ''
+                        paymentContractId: store.paymentSettings?.verifone?.paymentContractId || '',
+                        walletPaymentContractId: store.paymentSettings?.verifone?.walletPaymentContractId || '',
+                        threedsContractId: store.paymentSettings?.verifone?.threedsContractId || '',
+                        tokenScope: store.paymentSettings?.verifone?.tokenScope || '',
+                        isSandbox: store.paymentSettings?.verifone?.isSandbox ?? store.paymentSettings?.verifone?.isSandBox ?? true
                     }
                 },
                 invoiceSettings: {
@@ -78,18 +82,17 @@ const StoreSettings = ({ showNotification }) => {
         handleNestedChange('features', field, value);
     };
 
-    const handlePaymentSettingsChange = (field, value, isHypField = false) => {
+    const handlePaymentSettingsChange = (field, value, providerType = null) => {
         setFormData(prev => {
-            const currentSettings = prev.paymentSettings || { provider: 'none', hyp: {} };
-            const currentHyp = currentSettings.hyp || { dirName: '', username: '', password: '', apiKey: '', isSandbox: true };
+            const currentSettings = prev.paymentSettings || { provider: 'none' };
 
-            if (isHypField) {
+            if (providerType) {
                 return {
                     ...prev,
                     paymentSettings: {
                         ...currentSettings,
-                        hyp: {
-                            ...currentHyp,
+                        [providerType]: {
+                            ...currentSettings[providerType],
                             [field]: value
                         }
                     }
@@ -188,8 +191,9 @@ const StoreSettings = ({ showNotification }) => {
                 <h3 className="text-xl font-black mb-4">הגדרות כלליות</h3>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
-                        <label className="block text-sm font-bold text-gray-700 mb-2">שם החנות</label>
+                        <label htmlFor='name' className="block text-sm font-bold text-gray-700 mb-2">שם החנות</label>
                         <input
+                            id='name'
                             type="text"
                             value={formData.name || ''}
                             onChange={(e) => setFormData({ ...formData, name: e.target.value })}
@@ -198,8 +202,9 @@ const StoreSettings = ({ showNotification }) => {
                         />
                     </div>
                     <div>
-                        <label className="block text-sm font-bold text-gray-700 mb-2">דומיין אישי מותאם (אופציונלי)</label>
+                        <label htmlFor='customDomain' className="block text-sm font-bold text-gray-700 mb-2">דומיין אישי מותאם (אופציונלי)</label>
                         <input
+                            id='customDomain'
                             type="text"
                             value={formData.customDomain || ''}
                             onChange={(e) => setFormData({ ...formData, customDomain: e.target.value.toLowerCase().trim() })}
@@ -219,36 +224,36 @@ const StoreSettings = ({ showNotification }) => {
                 <h3 className="text-xl font-black mb-4">פרטי העסק וצור קשר</h3>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
-                        <label className="block text-sm font-bold text-gray-700 mb-2">כתובת</label>
-                        <input type="text" value={formData.businessInfo?.address || ''} onChange={(e) => handleNestedChange('businessInfo', 'address', e.target.value)} className="w-full p-4 bg-white rounded-xl border border-gray-200 focus:border-primary outline-none" />
+                        <label htmlFor='address' className="block text-sm font-bold text-gray-700 mb-2">כתובת</label>
+                        <input id='address' type="text" value={formData.businessInfo?.address || ''} onChange={(e) => handleNestedChange('businessInfo', 'address', e.target.value)} className="w-full p-4 bg-white rounded-xl border border-gray-200 focus:border-primary outline-none" />
                     </div>
                     <div>
-                        <label className="block text-sm font-bold text-gray-700 mb-2">טלפון</label>
-                        <input type="text" value={formData.businessInfo?.phone || ''} onChange={(e) => handleNestedChange('businessInfo', 'phone', e.target.value)} className="w-full p-4 bg-white rounded-xl border border-gray-200 focus:border-primary outline-none" />
+                        <label htmlFor='phone' className="block text-sm font-bold text-gray-700 mb-2">טלפון</label>
+                        <input id='phone' type="text" value={formData.businessInfo?.phone || ''} onChange={(e) => handleNestedChange('businessInfo', 'phone', e.target.value)} className="w-full p-4 bg-white rounded-xl border border-gray-200 focus:border-primary outline-none" />
                     </div>
                     <div>
-                        <label className="block text-sm font-bold text-gray-700 mb-2">וואטסאפ (לדוגמה 972501234567)</label>
-                        <input type="text" value={formData.businessInfo?.whatsapp || ''} onChange={(e) => handleNestedChange('businessInfo', 'whatsapp', e.target.value)} className="w-full p-4 bg-white rounded-xl border border-gray-200 focus:border-primary outline-none" />
+                        <label htmlFor='whatsapp' className="block text-sm font-bold text-gray-700 mb-2">וואטסאפ (לדוגמה 972501234567)</label>
+                        <input id='whatsapp' type="text" value={formData.businessInfo?.whatsapp || ''} onChange={(e) => handleNestedChange('businessInfo', 'whatsapp', e.target.value)} className="w-full p-4 bg-white rounded-xl border border-gray-200 focus:border-primary outline-none" />
                     </div>
                     <div>
-                        <label className="block text-sm font-bold text-gray-700 mb-2">פייסבוק</label>
-                        <input type="text" value={formData.businessInfo?.facebook || ''} onChange={(e) => handleNestedChange('businessInfo', 'facebook', e.target.value)} className="w-full p-4 bg-white rounded-xl border border-gray-200 focus:border-primary outline-none" />
+                        <label htmlFor='facebook' className="block text-sm font-bold text-gray-700 mb-2">פייסבוק</label>
+                        <input id='facebook' type="text" value={formData.businessInfo?.facebook || ''} onChange={(e) => handleNestedChange('businessInfo', 'facebook', e.target.value)} className="w-full p-4 bg-white rounded-xl border border-gray-200 focus:border-primary outline-none" />
                     </div>
                     <div>
-                        <label className="block text-sm font-bold text-gray-700 mb-2">אינסטגרם</label>
-                        <input type="text" value={formData.businessInfo?.instagram || ''} onChange={(e) => handleNestedChange('businessInfo', 'instagram', e.target.value)} className="w-full p-4 bg-white rounded-xl border border-gray-200 focus:border-primary outline-none" />
+                        <label htmlFor='instagram' className="block text-sm font-bold text-gray-700 mb-2">אינסטגרם</label>
+                        <input id='instagram' type="text" value={formData.businessInfo?.instagram || ''} onChange={(e) => handleNestedChange('businessInfo', 'instagram', e.target.value)} className="w-full p-4 bg-white rounded-xl border border-gray-200 focus:border-primary outline-none" />
                     </div>
                     <div>
-                        <label className="block text-sm font-bold text-gray-700 mb-2">טיקטוק</label>
-                        <input type="text" value={formData.businessInfo?.tiktok || ''} onChange={(e) => handleNestedChange('businessInfo', 'tiktok', e.target.value)} className="w-full p-4 bg-white rounded-xl border border-gray-200 focus:border-primary outline-none" />
+                        <label htmlFor='tiktok' className="block text-sm font-bold text-gray-700 mb-2">טיקטוק</label>
+                        <input id='tiktok' type="text" value={formData.businessInfo?.tiktok || ''} onChange={(e) => handleNestedChange('businessInfo', 'tiktok', e.target.value)} className="w-full p-4 bg-white rounded-xl border border-gray-200 focus:border-primary outline-none" />
                     </div>
                     <div>
-                        <label className="block text-sm font-bold text-gray-700 mb-2">דוא"ל</label>
-                        <input type="email" value={formData.businessInfo?.email || ''} onChange={(e) => handleNestedChange('businessInfo', 'email', e.target.value)} className="w-full p-4 bg-white rounded-xl border border-gray-200 focus:border-primary outline-none" />
+                        <label htmlFor='email' className="block text-sm font-bold text-gray-700 mb-2">דוא"ל</label>
+                        <input id='email' type="email" value={formData.businessInfo?.email || ''} onChange={(e) => handleNestedChange('businessInfo', 'email', e.target.value)} className="w-full p-4 bg-white rounded-xl border border-gray-200 focus:border-primary outline-none" />
                     </div>
                     <div>
-                        <label className="block text-sm font-bold text-gray-700 mb-2">מספר ח.פ</label>
-                        <input type="text" value={formData.businessInfo?.companyNumber || ''} onChange={(e) => handleNestedChange('businessInfo', 'companyNumber', e.target.value)} className="w-full p-4 bg-white rounded-xl border border-gray-200 focus:border-primary outline-none" />
+                        <label htmlFor='companyNumber' className="block text-sm font-bold text-gray-700 mb-2">מספר ח.פ</label>
+                        <input id='companyNumber' type="text" value={formData.businessInfo?.companyNumber || ''} onChange={(e) => handleNestedChange('businessInfo', 'companyNumber', e.target.value)} className="w-full p-4 bg-white rounded-xl border border-gray-200 focus:border-primary outline-none" />
                     </div>
                 </div>
             </div>
@@ -272,12 +277,12 @@ const StoreSettings = ({ showNotification }) => {
                         </div>
                     </div>
                     <div className="md:col-span-2">
-                        <label className="block text-sm font-bold text-gray-700 mb-2">קישור ללוגו החנות (Logo URL)</label>
-                        <input type="text" value={formData.design?.logoUrl || ''} onChange={(e) => handleNestedChange('design', 'logoUrl', e.target.value)} className="w-full p-4 bg-white rounded-xl border border-gray-200 focus:border-primary outline-none" dir="ltr" />
+                        <label htmlFor='logoUrl' className="block text-sm font-bold text-gray-700 mb-2">קישור ללוגו החנות (Logo URL)</label>
+                        <input id='logoUrl' type="text" value={formData.design?.logoUrl || ''} onChange={(e) => handleNestedChange('design', 'logoUrl', e.target.value)} className="w-full p-4 bg-white rounded-xl border border-gray-200 focus:border-primary outline-none" dir="ltr" />
                     </div>
                     <div className="md:col-span-2">
-                        <label className="block text-sm font-bold text-gray-700 mb-2">קישור לאייקון הלשונית (Favicon URL)</label>
-                        <input type="text" value={formData.design?.faviconUrl || ''} onChange={(e) => handleNestedChange('design', 'faviconUrl', e.target.value)} className="w-full p-4 bg-white rounded-xl border border-gray-200 focus:border-primary outline-none" dir="ltr" />
+                        <label htmlFor='faviconUrl' className="block text-sm font-bold text-gray-700 mb-2">קישור לאייקון הלשונית (Favicon URL)</label>
+                        <input id='faviconUrl' type="text" value={formData.design?.faviconUrl || ''} onChange={(e) => handleNestedChange('design', 'faviconUrl', e.target.value)} className="w-full p-4 bg-white rounded-xl border border-gray-200 focus:border-primary outline-none" dir="ltr" />
                     </div>
                 </div>
             </div>
@@ -287,32 +292,32 @@ const StoreSettings = ({ showNotification }) => {
                 <h3 className="text-xl font-black mb-4">תוויות וטקסטים</h3>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
-                        <label className="block text-sm font-bold text-gray-700 mb-2">תת-כותרת בבאנר (דף הבית)</label>
-                        <input type="text" value={formData.labels?.bannerDescription || ''} onChange={(e) => handleNestedChange('labels', 'bannerDescription', e.target.value)} className="w-full p-4 bg-white rounded-xl border border-gray-200 focus:border-primary outline-none" />
+                        <label htmlFor='bannerDescription' className="block text-sm font-bold text-gray-700 mb-2">תת-כותרת בבאנר (דף הבית)</label>
+                        <input id='bannerDescription' type="text" value={formData.labels?.bannerDescription || ''} onChange={(e) => handleNestedChange('labels', 'bannerDescription', e.target.value)} className="w-full p-4 bg-white rounded-xl border border-gray-200 focus:border-primary outline-none" />
                     </div>
                     <div>
-                        <label className="block text-sm font-bold text-gray-700 mb-2">תיאור קצר (Footer)</label>
-                        <input type="text" value={formData.labels?.footerDescription || ''} onChange={(e) => handleNestedChange('labels', 'footerDescription', e.target.value)} className="w-full p-4 bg-white rounded-xl border border-gray-200 focus:border-primary outline-none" />
+                        <label htmlFor='footerDescription' className="block text-sm font-bold text-gray-700 mb-2">תיאור קצר (Footer)</label>
+                        <input id='footerDescription' type="text" value={formData.labels?.footerDescription || ''} onChange={(e) => handleNestedChange('labels', 'footerDescription', e.target.value)} className="w-full p-4 bg-white rounded-xl border border-gray-200 focus:border-primary outline-none" />
                     </div>
                     <div>
-                        <label className="block text-sm font-bold text-gray-700 mb-2">כותרת מפרט טכני (דף מוצר)</label>
-                        <input type="text" value={formData.labels?.technicalSpecs || ''} onChange={(e) => handleNestedChange('labels', 'technicalSpecs', e.target.value)} className="w-full p-4 bg-white rounded-xl border border-gray-200 focus:border-primary outline-none" />
+                        <label htmlFor='technicalSpecs' className="block text-sm font-bold text-gray-700 mb-2">כותרת מפרט טכני (דף מוצר)</label>
+                        <input id='technicalSpecs' type="text" value={formData.labels?.technicalSpecs || ''} onChange={(e) => handleNestedChange('labels', 'technicalSpecs', e.target.value)} className="w-full p-4 bg-white rounded-xl border border-gray-200 focus:border-primary outline-none" />
                     </div>
                     <div>
-                        <label className="block text-sm font-bold text-gray-700 mb-2">כפתור צור קשר (במצב קטלוג)</label>
-                        <input type="text" value={formData.labels?.contactUsLabel || ''} onChange={(e) => handleNestedChange('labels', 'contactUsLabel', e.target.value)} className="w-full p-4 bg-white rounded-xl border border-gray-200 focus:border-primary outline-none" />
+                        <label htmlFor='contactUsLabel' className="block text-sm font-bold text-gray-700 mb-2">כפתור צור קשר (במצב קטלוג)</label>
+                        <input id='contactUsLabel' type="text" value={formData.labels?.contactUsLabel || ''} onChange={(e) => handleNestedChange('labels', 'contactUsLabel', e.target.value)} className="w-full p-4 bg-white rounded-xl border border-gray-200 focus:border-primary outline-none" />
                     </div>
                     <div>
-                        <label className="block text-sm font-bold text-gray-700 mb-2">כותרת רשימת מוצרים (דף הבית)</label>
-                        <input type="text" value={formData.labels?.featuredSectionTitle || ''} onChange={(e) => handleNestedChange('labels', 'featuredSectionTitle', e.target.value)} className="w-full p-4 bg-white rounded-xl border border-gray-200 focus:border-primary outline-none" />
+                        <label htmlFor='featuredSectionTitle' className="block text-sm font-bold text-gray-700 mb-2">כותרת רשימת מוצרים (דף הבית)</label>
+                        <input id='featuredSectionTitle' type="text" value={formData.labels?.featuredSectionTitle || ''} onChange={(e) => handleNestedChange('labels', 'featuredSectionTitle', e.target.value)} className="w-full p-4 bg-white rounded-xl border border-gray-200 focus:border-primary outline-none" />
                     </div>
                     <div>
-                        <label className="block text-sm font-bold text-gray-700 mb-2">כותרת מעל הקטגוריות (דף הבית)</label>
-                        <input type="text" value={formData.labels?.discoverSectionTitle || ''} onChange={(e) => handleNestedChange('labels', 'discoverSectionTitle', e.target.value)} className="w-full p-4 bg-white rounded-xl border border-gray-200 focus:border-primary outline-none" />
+                        <label htmlFor='discoverSectionTitle' className="block text-sm font-bold text-gray-700 mb-2">כותרת מעל הקטגוריות (דף הבית)</label>
+                        <input id='discoverSectionTitle' type="text" value={formData.labels?.discoverSectionTitle || ''} onChange={(e) => handleNestedChange('labels', 'discoverSectionTitle', e.target.value)} className="w-full p-4 bg-white rounded-xl border border-gray-200 focus:border-primary outline-none" />
                     </div>
                     <div>
-                        <label className="block text-sm font-bold text-gray-700 mb-2">תת כותרת מעל הקטגוריות (דף הבית)</label>
-                        <input type="text" value={formData.labels?.discoverSectionSubtitle || ''} onChange={(e) => handleNestedChange('labels', 'discoverSectionSubtitle', e.target.value)} className="w-full p-4 bg-white rounded-xl border border-gray-200 focus:border-primary outline-none" />
+                        <label htmlFor='discoverSectionSubtitle' className="block text-sm font-bold text-gray-700 mb-2">תת כותרת מעל הקטגוריות (דף הבית)</label>
+                        <input id='discoverSectionSubtitle' type="text" value={formData.labels?.discoverSectionSubtitle || ''} onChange={(e) => handleNestedChange('labels', 'discoverSectionSubtitle', e.target.value)} className="w-full p-4 bg-white rounded-xl border border-gray-200 focus:border-primary outline-none" />
                     </div>
                 </div>
             </div>
@@ -348,8 +353,9 @@ const StoreSettings = ({ showNotification }) => {
                     {formData.homePageConfig?.heroType !== 'banner' && (
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 animate-in slide-in-from-top-4 duration-500">
                             <div>
-                                <label className="block text-sm font-bold text-gray-700 mb-2">כותרת ראשית (Hero Title)</label>
+                                <label htmlFor='heroTitle' className="block text-sm font-bold text-gray-700 mb-2">כותרת ראשית (Hero Title)</label>
                                 <input
+                                    id='heroTitle'
                                     type="text"
                                     value={formData.homePageConfig?.heroTitle || ''}
                                     onChange={(e) => handleNestedChange('homePageConfig', 'heroTitle', e.target.value)}
@@ -358,8 +364,9 @@ const StoreSettings = ({ showNotification }) => {
                                 />
                             </div>
                             <div>
-                                <label className="block text-sm font-bold text-gray-700 mb-2">כותרת משנית (Hero Subtitle)</label>
+                                <label htmlFor='heroSubtitle' className="block text-sm font-bold text-gray-700 mb-2">כותרת משנית (Hero Subtitle)</label>
                                 <input
+                                    id='heroSubtitle'
                                     type="text"
                                     value={formData.homePageConfig?.heroSubtitle || ''}
                                     onChange={(e) => handleNestedChange('homePageConfig', 'heroSubtitle', e.target.value)}
@@ -545,6 +552,18 @@ const StoreSettings = ({ showNotification }) => {
                         <input type="checkbox" checked={formData.features?.hasArticles ?? false} onChange={(e) => handleFeatureChange('hasArticles', e.target.checked)} className="peer sr-only" />
                         <div className="w-14 h-7 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-0.5 after:right-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-6 after:w-6 after:transition-all peer-checked:bg-primary"></div>
                         <span className="mr-3 text-sm font-medium text-gray-900 pr-3">הפעלת בלוג ומאמרים (Articles/Blog)</span>
+                    </label>
+
+                    <label className="flex items-center cursor-pointer relative">
+                        <input type="checkbox" checked={formData.features?.hidePrice ?? false} onChange={(e) => handleFeatureChange('hidePrice', e.target.checked)} className="peer sr-only" />
+                        <div className="w-14 h-7 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-0.5 after:right-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-6 after:w-6 after:transition-all peer-checked:bg-primary"></div>
+                        <span className="mr-3 text-sm font-medium text-gray-900 pr-3">הסתרת מחירים (הצגת "צור קשר" במקום מחיר)</span>
+                    </label>
+
+                    <label className="flex items-center cursor-pointer relative">
+                        <input type="checkbox" checked={formData.features?.quickBuy ?? false} onChange={(e) => handleFeatureChange('quickBuy', e.target.checked)} className="peer sr-only" />
+                        <div className="w-14 h-7 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-0.5 after:right-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-6 after:w-6 after:transition-all peer-checked:bg-primary"></div>
+                        <span className="mr-3 text-sm font-medium text-gray-900 pr-3">קניה מהירה (הוספה לעגלה ישירות מכרטיס המוצר)</span>
                     </label>
                 </div>
             </div>
@@ -758,8 +777,9 @@ const StoreSettings = ({ showNotification }) => {
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div className="flex flex-col gap-2">
-                        <label className="text-sm font-bold text-gray-600">ספק סליקה פעיל</label>
+                        <label htmlFor='provider' className="text-sm font-bold text-gray-600">ספק סליקה פעיל</label>
                         <select
+                            id='provider'
                             value={formData.paymentSettings?.provider || 'none'}
                             onChange={(e) => handlePaymentSettingsChange('provider', e.target.value)}
                             className="p-4 bg-gray-50 rounded-2xl border-none focus:ring-2 focus:ring-primary font-medium"
@@ -776,43 +796,83 @@ const StoreSettings = ({ showNotification }) => {
                     <div className="p-5 bg-gray-50 rounded-2xl border border-gray-100 space-y-4 animate-fadeIn">
                         <h4 className="font-bold text-gray-700 mb-2">פרטי מסוף Hyp (סביבת בדיקות/פרודקשן)</h4>
 
+                        <div className="flex flex-col gap-2 mb-4 pb-4 border-b border-gray-100">
+                            <label className="text-sm font-bold text-gray-700">תשתית חברת הסליקה</label>
+                            <div className="flex gap-4">
+                                <label className="flex items-center gap-2 cursor-pointer bg-white p-3 rounded-xl border border-gray-200 flex-1 hover:border-primary transition-all">
+                                    <input 
+                                        type="radio" 
+                                        name="hypInfrastructure" 
+                                        checked={!(formData.paymentSettings?.hyp?.isEnterprise)} 
+                                        onChange={() => handlePaymentSettingsChange('isEnterprise', false, 'hyp')}
+                                        className="text-primary focus:ring-primary"
+                                    />
+                                    <div className="flex flex-col">
+                                        <span className="font-bold text-sm">Hyp Pay (יעד שריג)</span>
+                                        <span className="text-xs text-gray-500">לחנויות קטנות / הרשמה מהירה</span>
+                                    </div>
+                                </label>
+                                <label className="flex items-center gap-2 cursor-pointer bg-white p-3 rounded-xl border border-gray-200 flex-1 hover:border-primary transition-all">
+                                    <input 
+                                        type="radio" 
+                                        name="hypInfrastructure" 
+                                        checked={formData.paymentSettings?.hyp?.isEnterprise === true} 
+                                        onChange={() => handlePaymentSettingsChange('isEnterprise', true, 'hyp')}
+                                        className="text-primary focus:ring-primary"
+                                    />
+                                    <div className="flex flex-col">
+                                        <span className="font-bold text-sm">Hyp Enterprise (CreditGuard)</span>
+                                        <span className="text-xs text-gray-500">מסלול מתקדם לחנויות גדולות</span>
+                                    </div>
+                                </label>
+                            </div>
+                        </div>
+
                         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                             <div className="flex flex-col gap-2">
-                                <label className="text-xs font-bold text-gray-500">מתחם זיהוי (masof)</label>
+                                <label htmlFor='hyp_masof' className="text-xs font-bold text-gray-500">
+                                    {formData.paymentSettings?.hyp?.isEnterprise ? 'מספר מסוף (Terminal Number)' : 'מתחם זיהוי (masof / dirName)'}
+                                </label>
                                 <input
+                                    id='hyp_masof'
                                     type="text"
                                     value={formData.paymentSettings?.hyp?.dirName || ''}
-                                    onChange={(e) => handlePaymentSettingsChange('dirName', e.target.value, true)}
+                                    onChange={(e) => handlePaymentSettingsChange('dirName', e.target.value, 'hyp')}
                                     placeholder="הזן מספר מסוף / מתחם"
                                     className="p-3 bg-white rounded-xl border border-gray-200 focus:ring-2 focus:ring-primary font-medium"
                                 />
                             </div>
                             <div className="flex flex-col gap-2">
-                                <label className="text-xs font-bold text-gray-500">שם משתמש ל-API</label>
+                                <label htmlFor='hyp_username' className="text-xs font-bold text-gray-500">שם משתמש ל-API</label>
                                 <input
+                                    id='hyp_username'
                                     type="text"
                                     value={formData.paymentSettings?.hyp?.username || ''}
-                                    onChange={(e) => handlePaymentSettingsChange('username', e.target.value, true)}
+                                    onChange={(e) => handlePaymentSettingsChange('username', e.target.value, 'hyp')}
                                     placeholder="הזן שם משתמש"
                                     className="p-3 bg-white rounded-xl border border-gray-200 focus:ring-2 focus:ring-primary font-medium"
                                 />
                             </div>
                             <div className="flex flex-col gap-2">
-                                <label className="text-xs font-bold text-gray-500">סיסמה ל-API</label>
+                                <label htmlFor='hyp_password' className="text-xs font-bold text-gray-500">סיסמה ל-API</label>
                                 <input
+                                    id='hyp_password'
                                     type="password"
                                     value={formData.paymentSettings?.hyp?.password || ''}
-                                    onChange={(e) => handlePaymentSettingsChange('password', e.target.value, true)}
+                                    onChange={(e) => handlePaymentSettingsChange('password', e.target.value, 'hyp')}
                                     placeholder="הזן סיסמה"
                                     className="p-3 bg-white rounded-xl border border-gray-200 focus:ring-2 focus:ring-primary font-medium"
                                 />
                             </div>
                             <div className="flex flex-col gap-2">
-                                <label className="text-xs font-bold text-gray-500">API Key</label>
+                                <label htmlFor='hyp_apiKey' className="text-xs font-bold text-gray-500">
+                                    {formData.paymentSettings?.hyp?.isEnterprise ? 'מספר התקשרות (MID)' : 'מפתח API (API Key)'}
+                                </label>
                                 <input
+                                    id='hyp_apiKey'
                                     type="text"
                                     value={formData.paymentSettings?.hyp?.apiKey || ''}
-                                    onChange={(e) => handlePaymentSettingsChange('apiKey', e.target.value, true)}
+                                    onChange={(e) => handlePaymentSettingsChange('apiKey', e.target.value, 'hyp')}
                                     placeholder="הזן API Key"
                                     className="p-3 bg-white rounded-xl border border-gray-200 focus:ring-2 focus:ring-primary font-medium"
                                 />
@@ -822,12 +882,12 @@ const StoreSettings = ({ showNotification }) => {
                         <div className="flex items-center gap-3 pt-2">
                             <input
                                 type="checkbox"
-                                id="isSandbox"
+                                id="isSandboxHyp"
                                 checked={formData.paymentSettings?.hyp?.isSandbox ?? true}
-                                onChange={(e) => handlePaymentSettingsChange('isSandbox', e.target.checked, true)}
+                                onChange={(e) => handlePaymentSettingsChange('isSandbox', e.target.checked, 'hyp')}
                                 className="h-5 w-5 text-primary focus:ring-primary border-gray-300 rounded"
                             />
-                            <label htmlFor="isSandbox" className="text-sm font-bold text-gray-600 cursor-pointer">
+                            <label htmlFor="isSandboxHyp" className="text-sm font-bold text-gray-600 cursor-pointer">
                                 מצב בדיקות (Sandbox) - סמן ב-V כל עוד החנות בהרצה או בטסטים
                             </label>
                         </div>
@@ -836,7 +896,7 @@ const StoreSettings = ({ showNotification }) => {
                                 type="checkbox"
                                 id="autoInvoice"
                                 checked={formData.paymentSettings?.hyp?.autoInvoice ?? false}
-                                onChange={(e) => handlePaymentSettingsChange('autoInvoice', e.target.checked, true)}
+                                onChange={(e) => handlePaymentSettingsChange('autoInvoice', e.target.checked, 'hyp')}
                                 className="h-5 w-5 text-primary focus:ring-primary border-gray-300 rounded"
                             />
                             <label htmlFor="autoInvoice" className="text-sm font-bold text-gray-600 cursor-pointer">
@@ -853,41 +913,138 @@ const StoreSettings = ({ showNotification }) => {
                     <h4 className="font-bold text-gray-700">פרטי מסוף Verifone</h4>
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                         <div>
-                            <label className="text-xs font-bold text-gray-500">שם משתמש</label>
+                            <label htmlFor='verifone_username' className="text-xs font-bold text-gray-500">שם משתמש</label>
                             <input
+                                id='verifone_username'
                                 type="text"
                                 value={formData.paymentSettings.verifone?.username || ''}
-                                onChange={(e) => handlePaymentSettingsChange('username', e.target.value, true)}
+                                onChange={(e) => handlePaymentSettingsChange('username', e.target.value, 'verifone')}
                                 className="p-3 bg-white rounded-xl border border-gray-200 focus:ring-2 focus:ring-primary font-medium w-full"
                             />
                         </div>
                         <div>
-                            <label className="text-xs font-bold text-gray-500">סיסמה</label>
+                            <label htmlFor='verifone_password' className="text-xs font-bold text-gray-500">סיסמה</label>
                             <input
+                                id='verifone_password'
                                 type="password"
                                 value={formData.paymentSettings.verifone?.password || ''}
-                                onChange={(e) => handlePaymentSettingsChange('password', e.target.value, true)}
+                                onChange={(e) => handlePaymentSettingsChange('password', e.target.value, 'verifone')}
                                 className="p-3 bg-white rounded-xl border border-gray-200 focus:ring-2 focus:ring-primary font-medium w-full"
                             />
                         </div>
                         <div>
-                            <label className="text-xs font-bold text-gray-500">entityId</label>
+                            <label htmlFor='verifone_entityId' className="text-xs font-bold text-gray-500">entityId</label>
                             <input
+                                id='verifone_entityId'
                                 type="text"
                                 value={formData.paymentSettings.verifone?.entityId || ''}
-                                onChange={(e) => handlePaymentSettingsChange('entityId', e.target.value, true)}
+                                onChange={(e) => handlePaymentSettingsChange('entityId', e.target.value, 'verifone')}
                                 className="p-3 bg-white rounded-xl border border-gray-200 focus:ring-2 focus:ring-primary font-medium w-full"
                             />
                         </div>
                         <div>
-                            <label className="text-xs font-bold text-gray-500">paymentContractId</label>
+                            <label htmlFor='verifone_paymentContractId' className="text-xs font-bold text-gray-500">paymentContractId</label>
                             <input
+                                id='verifone_paymentContractId'
                                 type="text"
                                 value={formData.paymentSettings.verifone?.paymentContractId || ''}
-                                onChange={(e) => handlePaymentSettingsChange('paymentContractId', e.target.value, true)}
+                                onChange={(e) => handlePaymentSettingsChange('paymentContractId', e.target.value, 'verifone')}
                                 className="p-3 bg-white rounded-xl border border-gray-200 focus:ring-2 focus:ring-primary font-medium w-full"
                             />
                         </div>
+                        <div>
+                            <label htmlFor='verifone_walletPaymentContractId' className="text-xs font-bold text-gray-500">walletPaymentContractId (אופציונלי - Apple Pay / Google Pay)</label>
+                            <input
+                                id='verifone_walletPaymentContractId'
+                                type="text"
+                                placeholder="מזהה חוזה לארנקים דיגיטליים (Apple Pay / Google Pay)"
+                                value={formData.paymentSettings.verifone?.walletPaymentContractId || ''}
+                                onChange={(e) => handlePaymentSettingsChange('walletPaymentContractId', e.target.value, 'verifone')}
+                                className="p-3 bg-white rounded-xl border border-gray-200 focus:ring-2 focus:ring-primary font-medium w-full"
+                            />
+                        </div>
+                        <div>
+                            <label htmlFor='verifone_threedsContractId' className="text-xs font-bold text-gray-500">threedsContractId</label>
+                            <input
+                                id='verifone_threedsContractId'
+                                type="text"
+                                value={formData.paymentSettings.verifone?.threedsContractId || ''}
+                                onChange={(e) => handlePaymentSettingsChange('threedsContractId', e.target.value, 'verifone')}
+                                className="p-3 bg-white rounded-xl border border-gray-200 focus:ring-2 focus:ring-primary font-medium w-full"
+                            />
+                        </div>
+                        <div>
+                            <label htmlFor='verifone_tokenScope' className="text-xs font-bold text-gray-500">tokenScope (אופציונלי - לשמירת כרטיסים)</label>
+                            <input
+                                id='verifone_tokenScope'
+                                type="text"
+                                value={formData.paymentSettings.verifone?.tokenScope || ''}
+                                onChange={(e) => handlePaymentSettingsChange('tokenScope', e.target.value, 'verifone')}
+                                className="p-3 bg-white rounded-xl border border-gray-200 focus:ring-2 focus:ring-primary font-medium w-full"
+                            />
+                        </div>
+                        <div className="flex items-center gap-3 pt-2">
+                            <input
+                                type="checkbox"
+                                id="isSandboxVerifone"
+                                checked={formData.paymentSettings?.verifone?.isSandbox ?? true}
+                                onChange={(e) => handlePaymentSettingsChange('isSandbox', e.target.checked, 'verifone')}
+                                className="h-5 w-5 text-primary focus:ring-primary border-gray-300 rounded"
+                            />
+                            <label htmlFor="isSandboxVerifone" className="text-sm font-bold text-gray-600 cursor-pointer">
+                                מצב בדיקות (Sandbox) - סמן ב-V כל עוד החנות בהרצה או בטסטים
+                            </label>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Installments toggle (for both Hyp and Verifone) */}
+            {(formData.paymentSettings?.provider === 'hyp' || formData.paymentSettings?.provider === 'verifone') && (
+                <div className="p-5 bg-gray-50 rounded-2xl border border-gray-100 space-y-4 animate-fadeIn">
+                    <h4 className="font-bold text-gray-700 mb-2 flex items-center gap-2">
+                        <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-primary" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 14l6-6m-5.5.5h.01m4.99 5h.01M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16l3.5-2 3.5 2 3.5-2 3.5 2z" />
+                        </svg>
+                        הגדרות תשלומים (Payments)
+                    </h4>
+                    <div className="space-y-4">
+                        <label className="flex items-center cursor-pointer relative">
+                            <input
+                                type="checkbox"
+                                checked={formData.paymentSettings?.enableInstallments ?? false}
+                                onChange={(e) => handlePaymentSettingsChange('enableInstallments', e.target.checked)}
+                                className="peer sr-only"
+                            />
+                            <div className="w-14 h-7 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-0.5 after:right-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-6 after:w-6 after:transition-all peer-checked:bg-primary"></div>
+                            <span className="mr-3 text-sm font-bold text-gray-700 pr-3">
+                                אפשר תשלומים (עד 12 תשלומים ללא ריבית)
+                            </span>
+                        </label>
+                        <p className="text-xs text-gray-400 mr-2 pr-10 leading-relaxed">
+                            אפשרות זו תאפשר ללקוחות לשלם בתשלומים בעת תשלום בכרטיס אשראי.
+                        </p>
+
+                        {formData.paymentSettings?.enableInstallments && (
+                            <div className="animate-in slide-in-from-top-4 duration-300 pr-10">
+                                <label htmlFor='installmentsMinAmount' className="block text-xs font-bold text-gray-500 mb-1.5">
+                                    סכום מינימלי להזמנה לצורך תשלומים (₪)
+                                </label>
+                                <input
+                                    id='installmentsMinAmount'
+                                    type="number"
+                                    min="0"
+                                    step="1"
+                                    value={formData.paymentSettings?.installmentsMinAmount ?? 300}
+                                    onChange={(e) => handlePaymentSettingsChange('installmentsMinAmount', parseFloat(e.target.value) || 0)}
+                                    className="w-full p-3 bg-white rounded-xl border border-gray-200 focus:ring-2 focus:ring-primary font-medium"
+                                    placeholder="300"
+                                />
+                                <p className="text-xs text-gray-400 mt-1">
+                                    רק הזמנות שסכומן הכולל עולה על סכום זה יהיו זכאיות לתשלומים.
+                                </p>
+                            </div>
+                        )}
                     </div>
                 </div>
             )}
@@ -902,8 +1059,9 @@ const StoreSettings = ({ showNotification }) => {
                 </h3>
 
                 <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">בחר ספק חשבוניות</label>
+                    <label htmlFor='invoiceProvider' className="block text-sm font-medium text-gray-700 mb-2">בחר ספק חשבוניות</label>
                     <select
+                        id='invoiceProvider'
                         value={formData?.invoiceSettings?.provider || 'none'}
                         onChange={(e) => setFormData({
                             ...formData,

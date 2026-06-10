@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import axios from 'axios';
+import Loader from './components/Loader';
 
 const StoreContext = createContext();
 
@@ -49,7 +50,7 @@ export const StoreProvider = ({ children, initialData = {} }) => {
     useEffect(() => {
         if (typeof window === 'undefined') return;
         if (store) {
-            document.title = store.name || 'Top Tech';
+            document.title = store.name || 'PowerDev';
             if (store.design) {
                 const root = document.documentElement;
                 if (store.design.primaryColor) {
@@ -60,14 +61,19 @@ export const StoreProvider = ({ children, initialData = {} }) => {
                 }
                 const link = document.querySelector("link[rel~='icon']");
                 if (link) {
-                    link.href = store.design.faviconUrl || '/top-tech.svg';
+                    link.href = store.design.faviconUrl || store.design.logoUrl || '/pdfavicon.svg';
+                }
+            } else {
+                const link = document.querySelector("link[rel~='icon']");
+                if (link) {
+                    link.href = '/pdfavicon.svg';
                 }
             }
         } else {
-            document.title = 'Top Tech';
+            document.title = 'PowerDev';
             const link = document.querySelector("link[rel~='icon']");
             if (link) {
-                link.href = '/top-tech.svg';
+                link.href = '/pdfavicon.svg';
             }
         }
     }, [store]);
@@ -142,7 +148,9 @@ export const StoreProvider = ({ children, initialData = {} }) => {
 
     // If it's a store route but loading
     if (isMounted && isStoreRoute && loading) {
-        return <div className="min-h-screen flex items-center justify-center">טוען נתוני חנות...</div>;
+        return <div className="min-h-screen flex items-center justify-center">
+            <Loader />
+        </div>;
     }
 
     if (isMounted && isStoreRoute && error) {

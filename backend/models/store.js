@@ -43,19 +43,33 @@ const storeSchema = new Schema({
             enum: ['hyp', 'verifone', 'none'],
             default: 'none'
         },
+        enableInstallments: {
+            type: Boolean,
+            default: false
+        },
+        installmentsMinAmount: {
+            type: Number,
+            default: 300
+        },
         hyp: {
             dirName: { type: String, default: '' },
             username: { type: String, default: '' },
             password: { type: String, default: '' },
             apiKey: { type: String, default: '' },
             autoInvoice: { type: Boolean, default: false },
-            isSandbox: { type: Boolean, default: true }
+            isSandbox: { type: Boolean, default: true },
+            tokenizationId: { type: String, default: '' },
+            isEnterprise: { type: Boolean, default: false }
         },
         verifone: {
             username: { type: String },
             password: { type: String },
             entityId: { type: String },
-            paymentContractId: { type: String }
+            paymentContractId: { type: String },
+            walletPaymentContractId: { type: String },
+            threedsContractId: { type: String },
+            tokenScope: { type: String },
+            isSandBox: { type: Boolean, default: true }
         }
     },
     invoiceSettings: {
@@ -102,7 +116,9 @@ const storeSchema = new Schema({
         useSubCategories: { type: Boolean, default: true },
         showStock: { type: Boolean, default: true },
         hasArticles: { type: Boolean, default: false },
-        hasCashPayment: { type: Boolean, default: true }
+        hasCashPayment: { type: Boolean, default: true },
+        hidePrice: { type: Boolean, default: false },
+        quickBuy: { type: Boolean, default: false }
     },
     homePageConfig: {
         heroType: {
@@ -138,6 +154,9 @@ storeSchema.pre('save', async function (next) {
         if (store.paymentSettings?.hyp?.apiKey) {
             store.paymentSettings.hyp.apiKey = encrypt(store.paymentSettings.hyp.apiKey);
         }
+        if (store.paymentSettings?.verifone?.password) {
+            store.paymentSettings.verifone.password = encrypt(store.paymentSettings.verifone.password);
+        }
         if (store.invoiceSettings?.icount?.iCountToken) {
             store.invoiceSettings.icount.iCountToken = encrypt(store.invoiceSettings.icount.iCountToken);
         }
@@ -162,6 +181,11 @@ storeSchema.pre('save', async function (next) {
                 }
             }
 
+            // Verifone Password Encryption
+            if (store.paymentSettings?.verifone?.password !== originalStore.paymentSettings?.verifone?.password && store.paymentSettings?.verifone?.password) {
+                store.paymentSettings.verifone.password = encrypt(store.paymentSettings.verifone.password);
+            }
+
             // --- iCount Token ---
             if (store.invoiceSettings?.icount?.iCountToken !== originalStore.invoiceSettings?.icount?.iCountToken) {
                 if (store.invoiceSettings?.icount?.iCountToken) {
@@ -179,6 +203,11 @@ storeSchema.methods.getDecryptedHypCredentials = function () {
     return {
         password: decrypt(this.paymentSettings.hyp.password),
         apiKey: decrypt(this.paymentSettings.hyp.apiKey)
+    };
+};
+storeSchema.methods.getDecryptedVerifoneCredentials = function () {
+    return {
+        password: this.paymentSettings?.verifone?.password ? decrypt(this.paymentSettings.verifone.password) : ''
     };
 };
 storeSchema.methods.getDecryptedInvoiceCredentials = function () {

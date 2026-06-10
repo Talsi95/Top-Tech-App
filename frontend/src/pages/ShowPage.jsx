@@ -58,8 +58,8 @@ const VideoItem = ({ video, index, isAdmin, onDelete, isFullWidth }) => {
     const optimizedVideoUrl = isCloudinary ? transformCloudinaryUrl(video.url) : video.url;
 
     return (
-        <div className={`group relative flex flex-col bg-white overflow-hidden transition-all duration-500 hover:shadow-2xl ${isFullWidth ? 'rounded-none border-x-0 shadow-none md:rounded-[2.5rem] md:border md:border-gray-50 md:shadow-[0_20px_50px_-12px_rgba(0,0,0,0.05)]' : 'rounded-[2.5rem] border border-gray-50 shadow-[0_20px_50px_-12px_rgba(0,0,0,0.05)]'}`}>
-            <div ref={containerRef} className={`relative w-full bg-black flex items-center justify-center overflow-hidden ${isShorts ? 'aspect-[9/16]' : 'aspect-video'} ${hasText ? 'md:aspect-video' : 'md:aspect-auto md:flex-grow md:h-full'} ${isFullWidth ? 'p-0' : 'p-4'}`}>
+        <div className={`group relative flex flex-col bg-white overflow-hidden transition-all duration-500 hover:shadow-2xl rounded-none border-x-0 shadow-none ${isFullWidth ? 'md:rounded-[2.5rem] md:border md:border-gray-50 md:shadow-[0_20px_50px_-12px_rgba(0,0,0,0.05)]' : 'md:rounded-[2.5rem] md:border md:border-gray-50 md:shadow-[0_20px_50px_-12px_rgba(0,0,0,0.05)]'}`}>
+            <div ref={containerRef} className={`relative w-full bg-black flex items-center justify-center overflow-hidden ${isShorts ? 'aspect-[9/16]' : 'aspect-video'} ${hasText ? 'md:aspect-video' : 'md:aspect-auto md:flex-grow md:h-full'} p-0`}>
                 {isShorts && videoId && (
                     <div
                         className="absolute inset-0 bg-cover bg-center filter blur-3xl opacity-40 scale-125 transition-opacity duration-700 pointer-events-none"
@@ -75,7 +75,7 @@ const VideoItem = ({ video, index, isAdmin, onDelete, isFullWidth }) => {
                             muted
                             loop
                             playsInline
-                            className={`${isFullWidth || isShorts ? 'w-full h-full object-cover' : 'max-h-full max-w-full object-contain'} absolute top-0 left-0`} />) : videoId ?
+                            className={`w-full h-full object-cover absolute top-0 left-0`} />) : videoId ?
                         isVisible && (
                             <iframe src={embedUrl}
                                 title={video.title}
@@ -91,7 +91,7 @@ const VideoItem = ({ video, index, isAdmin, onDelete, isFullWidth }) => {
                                 }
                             />
                         ) : (
-                            <video src={video.url} autoPlay muted loop playsInline className={`${isFullWidth || isShorts ? 'w-full h-full object-cover' : 'max-h-full max-w-full object-contain'} absolute top-0 left-0 pointer-events-none`} />)
+                            <video src={video.url} autoPlay muted loop playsInline className={`w-full h-full object-cover absolute top-0 left-0 pointer-events-none`} />)
                 )}
                 {!isVisible && <div className="absolute inset-0 flex items-center justify-center bg-gray-900/10 backdrop-blur-xl text-gray-400">טוען סקירה...</div>}
                 {isAdmin && (
@@ -126,6 +126,7 @@ const ShowPage = ({ onAddToCart }) => {
     const { isAdmin, getToken } = useAuth();
     const { store } = useStore();
     const isFullWidth = store?.features?.fullWidthCards;
+    const hidePrice = store?.features?.hidePrice;
     const [product, setProduct] = useState(location.state?.product || null);
     const [selectedVariant, setSelectedVariant] = useState(null);
     const [selectedAttributes, setSelectedAttributes] = useState({});
@@ -349,35 +350,6 @@ const ShowPage = ({ onAddToCart }) => {
         }
     };
 
-    // const handleVideoUpload = async (file) => {
-    //     if (!file) return;
-    //     setIsUploadingVideo(true);
-    //     const formData = new FormData();
-    //     formData.append('video', file);
-    //     try {
-    //         const res = await axios.post(`${__API_URL__}/products/upload-video`, formData, {
-    //             headers: {
-    //                 'Content-Type': 'multipart/form-data',
-    //                 'Authorization': `Bearer ${getToken()}`
-    //             }
-    //         });
-
-    //         console.log("Response from server:", res.data);
-    //         if (res.data && res.data.secure_url) {
-    //             setPrimaryVideoUrl(res.data.secure_url);
-    //             setPrimaryVideoPublicId(res.data.public_id || '');
-    //             setPrimaryVideoType('cloudinary');
-    //         } else {
-    //             setError('Failed to upload video');
-    //         }
-    //     } catch (err) {
-    //         console.error('Upload failed:', err);
-    //         setError(err.response?.data?.message || 'שגיאה בהעלאת הסרטון.');
-    //     } finally {
-    //         setIsUploadingVideo(false);
-    //     }
-    // };
-
     const handleSaveNewContent = async () => {
         if (!isAdmin || isSaving) return;
         setIsSaving(true);
@@ -438,7 +410,7 @@ const ShowPage = ({ onAddToCart }) => {
         "@context": "https://schema.org/",
         "@type": "Product",
         "name": product.name,
-        "image": images.length > 0 ? images : [product.imageUrl || '/top-tech.svg'],
+        "image": images.length > 0 ? images : [product.imageUrl || '/PowerDevLogo.png'],
         "description": product.longDescription || product.description || "",
         "offers": {
             "@type": "Offer",
@@ -449,27 +421,40 @@ const ShowPage = ({ onAddToCart }) => {
     };
 
     return (
-        <div className="max-w-[1440px] mx-auto px-6 py-12" dir="rtl">
+        <div className="max-w-[1440px] mx-auto px-0 md:px-6 py-0 md:py-12" dir="rtl">
             <Helmet>
                 <title>{`${product.name} | ${store?.name || 'Top Tech'}`}</title>
+                <meta name="description" content={product.longDescription?.replace(/<[^>]*>/g, '').slice(0, 160) || product.description?.slice(0, 160) || `${product.name} - רכישה באינטרנט`} />
+                <link rel="canonical" href={typeof window !== 'undefined' ? window.location.href : ''} />
+                <meta property="og:title" content={`${product.name} | ${store?.name || 'Top Tech'}`} />
+                <meta property="og:description" content={product.longDescription?.replace(/<[^>]*>/g, '').slice(0, 200) || product.description?.slice(0, 200) || `${product.name} - רכישה באינטרנט`} />
+                <meta property="og:url" content={typeof window !== 'undefined' ? window.location.href : ''} />
+                <meta property="og:type" content="product" />
+                <meta property="og:image" content={(images && images.length > 0) ? images[0] : (product.imageUrl || '/PowerDevLogo.png')} />
+                {productPrice > 0 && <meta property="product:price:amount" content={productPrice.toString()} />}
+                {productPrice > 0 && <meta property="product:price:currency" content="ILS" />}
+                <meta name="twitter:card" content="summary_large_image" />
+                <meta name="twitter:title" content={`${product.name} | ${store?.name || 'Top Tech'}`} />
+                <meta name="twitter:description" content={product.description?.slice(0, 200) || `${product.name} - רכישה באינטרנט`} />
+                <meta name="twitter:image" content={(images && images.length > 0) ? images[0] : (product.imageUrl || '/PowerDevLogo.png')} />
                 <script type="application/ld+json">
                     {JSON.stringify(schemaData)}
                 </script>
             </Helmet>
             {/* Main Product Showcase */}
-            <div className="bg-white rounded-[3rem] shadow-[0_20px_50px_-12px_rgba(0,0,0,0.05)] border border-gray-50 overflow-hidden flex flex-col lg:flex-row gap-12 p-8 lg:p-16 mb-16 animate-in fade-in slide-in-from-bottom-8 duration-700">
+            <div className={`bg-white md:rounded-[3rem] md:shadow-[0_20px_50px_-12px_rgba(0,0,0,0.05)] md:border md:border-gray-50 overflow-hidden flex flex-col lg:flex-row gap-8 md:gap-12 mb-8 md:mb-16 animate-in fade-in slide-in-from-bottom-8 duration-700 ${isFullWidth ? 'p-0 pb-4 md:p-8 lg:p-16' : 'p-4 md:p-8 lg:p-16'}`}>
                 {/* Product Name for Mobile View */}
-                <h1 className="block lg:hidden text-3xl font-black text-gray-900 tracking-tighter mb-2 leading-tight text-right w-full">{product.name}</h1>
+                <h1 className={`block lg:hidden text-3xl font-black text-gray-900 tracking-tighter mb-2 leading-tight text-right w-full ${isFullWidth ? 'px-4 pt-4' : ''}`}>{product.name}</h1>
 
                 {/* Visual Section */}
-                <div className="lg:w-1/2 flex flex-col items-center">
-                    <div className={`relative group w-full aspect-[4/5] lg:aspect-square bg-gray-50/50 rounded-[2.5rem] flex items-center justify-center ${isFullWidth ? 'p-0' : 'p-4 lg:p-8'} overflow-hidden`}>
+                <div className="lg:w-1/2 flex flex-col items-center w-full">
+                    <div className={`relative group w-full aspect-[4/5] lg:aspect-square bg-gray-50/50 md:rounded-[2.5rem] flex items-center justify-center overflow-hidden ${isFullWidth ? 'p-0 md:p-0' : 'p-4 md:p-4 lg:p-8'}`}>
                         {images.length > 0 && (
                             <>
                                 <img
                                     src={images[currentImageIndex]}
                                     alt={product.name}
-                                    className={`${isFullWidth ? 'w-full h-full object-cover' : 'max-h-full max-w-full object-contain'} transform group-hover:scale-105 transition-transform duration-700`}
+                                    className={`transform group-hover:scale-105 transition-transform duration-700 ${isFullWidth ? 'w-full h-full object-cover' : 'max-h-full max-w-full object-contain'}`}
                                 />
                                 {images.length > 1 && (
                                     <div className="absolute inset-0 flex items-center justify-between px-6 opacity-0 group-hover:opacity-100 transition-opacity duration-500">
@@ -481,10 +466,10 @@ const ShowPage = ({ onAddToCart }) => {
                         )}
                     </div>
                     {images.length > 1 && (
-                        <div className="flex gap-3 mt-8 overflow-x-auto pb-2 max-w-full no-scrollbar">
+                        <div className={`flex gap-3 mt-8 overflow-x-auto pb-2 max-w-full no-scrollbar ${isFullWidth ? 'px-4 md:px-0' : ''}`}>
                             {images.map((img, idx) => (
                                 <button key={idx} onClick={() => setCurrentImageIndex(idx)} className={`flex-shrink-0 w-20 h-20 rounded-2xl border-2 overflow-hidden transition-all ${currentImageIndex === idx ? 'border-primary shadow-lg shadow-primary/10' : 'border-gray-100 opacity-60 hover:opacity-100'}`}>
-                                    <img src={img} alt="thumbnail" className={`w-full h-full ${isFullWidth ? 'object-cover' : 'object-contain p-1'}`} />
+                                    <img src={img} alt="thumbnail" className={`w-full h-full object-contain p-1 ${isFullWidth ? 'object-cover p-0' : ''}`} />
                                 </button>
                             ))}
                         </div>
@@ -493,7 +478,7 @@ const ShowPage = ({ onAddToCart }) => {
 
 
                 {/* Details Section */}
-                <div className="lg:w-1/2 flex flex-col text-right">
+                <div className={`lg:w-1/2 flex flex-col text-right ${isFullWidth ? 'px-4 md:px-0' : ''}`}>
                     <div className="flex-1">
                         <h1 className="hidden lg:block text-3xl lg:text-3xl font-black text-gray-900 tracking-tighter mb-4 leading-none">{product.name}</h1>
 
@@ -592,27 +577,33 @@ const ShowPage = ({ onAddToCart }) => {
 
                     {selectedVariant && (
                         <div className="mb-8">
-                            {(() => {
-                                const optionsTotal = Object.values(selectedOptions).reduce((sum, opt) => sum + (opt.priceAddition || 0), 0);
-                                const basePrice = selectedVariant.isOnSale ? selectedVariant.salePrice : selectedVariant.price;
-                                const totalPrice = basePrice + optionsTotal;
-                                return (
-                                    <>
-                                        {selectedVariant.isOnSale ? (
-                                            <div className="flex items-center gap-4">
-                                                <span className="text-2xl font-black text-primary">₪{totalPrice.toFixed(2)}</span>
-                                                <span className="text-xl font-bold text-gray-300 line-through">₪{selectedVariant.price.toFixed(2)}</span>
-                                                <div className="bg-red-50 text-red-500 px-3 py-1 rounded-full text-xs font-black uppercase">SALE</div>
-                                            </div>
-                                        ) : (
-                                            <span className="text-2xl font-black text-gray-900 tracking-tight">₪{totalPrice.toFixed(2)}</span>
-                                        )}
-                                        {optionsTotal > 0 && (
-                                            <p className="text-xs text-gray-400 mt-1">כולל תוספות: +₪{optionsTotal.toFixed(2)}</p>
-                                        )}
-                                    </>
-                                );
-                            })()}
+                            {hidePrice ? (
+                                <div className="flex items-center gap-2">
+                                    <span className="text-xl font-black text-primary">צור קשר לקבלת הצעת מחיר</span>
+                                </div>
+                            ) : (
+                                (() => {
+                                    const optionsTotal = Object.values(selectedOptions).reduce((sum, opt) => sum + (opt.priceAddition || 0), 0);
+                                    const basePrice = selectedVariant.isOnSale ? selectedVariant.salePrice : selectedVariant.price;
+                                    const totalPrice = basePrice + optionsTotal;
+                                    return (
+                                        <>
+                                            {selectedVariant.isOnSale ? (
+                                                <div className="flex items-center gap-4">
+                                                    <span className="text-2xl font-black text-primary">₪{totalPrice.toFixed(2)}</span>
+                                                    <span className="text-xl font-bold text-gray-300 line-through">₪{selectedVariant.price.toFixed(2)}</span>
+                                                    <div className="bg-red-50 text-red-500 px-3 py-1 rounded-full text-xs font-black uppercase">SALE</div>
+                                                </div>
+                                            ) : (
+                                                <span className="text-2xl font-black text-gray-900 tracking-tight">₪{totalPrice.toFixed(2)}</span>
+                                            )}
+                                            {optionsTotal > 0 && (
+                                                <p className="text-xs text-gray-400 mt-1">כולל תוספות: +₪{optionsTotal.toFixed(2)}</p>
+                                            )}
+                                        </>
+                                    );
+                                })()
+                            )}
                             {store?.features?.showStock !== false && (
                                 <div className={`flex items-center gap-2 mt-4 font-bold ${selectedVariant.stock > 0 ? 'text-green-500' : 'text-red-500'}`}>
                                     <div className={`w-2 h-2 rounded-full ${selectedVariant.stock > 0 ? 'bg-green-500 animate-pulse' : 'bg-red-500'}`} />
@@ -770,8 +761,8 @@ const ShowPage = ({ onAddToCart }) => {
 
                 {/* Review Section — only render if there's actual content, or admin who can add */}
                 {(product.video?.url || product.videos?.length > 0 || product.additionalImages?.length > 0 || isAdmin) && (
-                    <div className={`bg-white transition-all duration-500 ${isFullWidth ? '-mx-6 px-0 py-6 rounded-none border-x-0 shadow-none md:mx-0 md:px-8 md:py-8 md:rounded-[3.5rem] md:border md:border-gray-50 md:shadow-sm' : 'rounded-[3.5rem] border border-gray-50 shadow-sm p-8 lg:p-16'}`}>
-                        <div className={`flex flex-col md:flex-row md:items-center justify-between gap-6 mb-12 ${isFullWidth ? 'px-6 md:px-0' : ''}`}>
+                    <div className={`bg-white transition-all duration-500 px-0 py-4 rounded-none border-x-0 shadow-none ${isFullWidth ? 'md:px-8 md:py-8 md:rounded-[3.5rem] md:border md:border-gray-50 md:shadow-sm' : 'md:rounded-[3.5rem] md:border md:border-gray-50 md:shadow-sm md:p-8 lg:p-16'}`}>
+                        <div className={`flex flex-col md:flex-row md:items-center justify-between gap-6 mb-12 px-4 md:px-0`}>
                             <div className="flex items-center gap-4">
                                 <div className="w-12 h-12 bg-primary/10 rounded-2xl flex items-center justify-center text-primary"><Video size={24} /></div>
                                 <h2 className="text-4xl font-black text-gray-900 tracking-tighter">סקירה מלאה</h2>
@@ -792,7 +783,7 @@ const ShowPage = ({ onAddToCart }) => {
 
                         {/* Inline Admin Forms for Media */}
                         {isAdmin && (isAddingVideos || isAddingImages) && (
-                            <div className={`grid grid-cols-1 ${isFullWidth ? 'grid-cols-1 gap-12' : 'md:grid-cols-2 gap-12'}`}>
+                            <div className={`grid grid-cols-1 ${isFullWidth ? 'gap-12' : 'md:grid-cols-2 gap-12'}`}>
                                 <div className="flex justify-between items-center mb-6">
                                     <h3 className="text-xl font-black">{isAddingVideos ? 'הוספת סרטונים לסקירה' : 'הוספת תמונות לסקירה'}</h3>
                                     {isAddingImages && (
@@ -1041,12 +1032,12 @@ const ShowPage = ({ onAddToCart }) => {
                                 />
                             ))}
                             {product.additionalImages?.map((img, i) => (
-                                <div key={i} className={`group relative overflow-hidden transition-all duration-500 flex flex-col bg-white ${isFullWidth ? 'rounded-none border-x-0 shadow-none md:rounded-[2.5rem] md:border md:border-gray-50 md:shadow-sm' : 'rounded-[2.5rem] border border-gray-50 shadow-sm hover:shadow-2xl'}`}>
-                                    <div className={`relative overflow-hidden aspect-video bg-gray-50/50 flex items-center justify-center ${isFullWidth ? 'p-0' : 'p-4'}`}>
+                                <div key={i} className={`group relative overflow-hidden transition-all duration-500 flex flex-col bg-white rounded-none border-x-0 shadow-none ${isFullWidth ? 'md:rounded-[2.5rem] md:border md:border-gray-50 md:shadow-sm' : 'md:rounded-[2.5rem] md:border md:border-gray-50 md:shadow-sm md:hover:shadow-2xl'}`}>
+                                    <div className={`relative overflow-hidden aspect-video bg-gray-50/50 flex items-center justify-center p-0`}>
                                         <img
                                             src={img.url}
                                             alt="Review"
-                                            className={`${isFullWidth ? 'w-full h-full object-cover' : 'max-h-full max-w-full object-contain'} transform group-hover:scale-110 transition-transform duration-700`}
+                                            className={`w-full h-full object-cover transform group-hover:scale-110 transition-transform duration-700`}
                                         />
                                         {isAdmin && (
                                             <button

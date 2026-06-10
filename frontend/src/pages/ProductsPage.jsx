@@ -1,5 +1,6 @@
 import { useEffect, useState, useMemo } from 'react';
 import { useSearchParams, useLocation, Link, useNavigate } from 'react-router-dom';
+import { Helmet } from 'react-helmet-async';
 import axios from 'axios';
 import ProductCard from '../components/ProductCard';
 import FiltersSidebar from '../components/FiltersSidebar';
@@ -9,12 +10,13 @@ import { Edit, Package, Trash2 } from 'lucide-react';
 import { useAuth } from '../AuthContext';
 import { useStore } from '../StoreContext';
 import useStoreNavigate from '../hooks/useStoreNavigate';
+import { CollectionPageSchema, BreadcrumbSchema } from '../components/StructuredData';
 
 /**
  * ProductsPage Component.
  * Displays a list of products with advanced filtering and category selection capabilities.
  */
-const ProductsPage = ({ getToken, showNotification }) => {
+const ProductsPage = ({ getToken, showNotification, handleAddToCart }) => {
     const { store, categories, isLoadingCategories } = useStore();
     const location = useLocation();
     const isFullWidth = store?.features?.fullWidthCards;
@@ -207,106 +209,151 @@ const ProductsPage = ({ getToken, showNotification }) => {
     // if (loading) return <Loader text='טוען מוצרים' />;
     if (error) return <div className="text-center mt-10 text-red-600">שגיאה: {error}</div>;
 
-    return (
-        <div className={`container mx-auto py-4 ${isFullWidth ? "px-0" : "px-4"} md:px-8 md:py-8`}>
-            <h1 className="text-3xl font-bold mb-6 text-center">{selectedSubcategoryName || selectedCategoryName || initialCategoryName || "כל המוצרים"}</h1>
+    const storeName = store?.name || 'PowerDev';
+    const pageUrl = typeof window !== 'undefined' ? window.location.href : '';
+    const categoryName = selectedSubcategoryName || selectedCategoryName || initialCategoryName || 'כל המוצרים';
+    const pageTitle = `${categoryName} | ${storeName}`;
+    const pageDescription = selectedCategoryName
+        ? `דפדפו בקטגוריית ${categoryName} במגוון המוצרים הרחב שלנו. מחירים תחרותיים, איכות גבוהה ומשלוח מהיר.`
+        : `כל המוצרים בחנות ${storeName}. מגוון רחב של מוצרים איכותיים במחירים תחרותיים.`;
+    const logoUrl = store?.design?.logoUrl || '';
 
-            {(Object.keys(activeFilters).length > 0 || hasPriceFilters) && (
-                <div className="mb-4 text-center md:text-right">
-                    <button
-                        onClick={handleResetFilters}
-                        className="bg-red-500 text-white py-2 px-4 rounded-lg hover:bg-red-600 transition-colors shadow-md"
-                    >
-                        🗑️ איפוס כל הסינונים ({Object.keys(activeFilters).length + (hasPriceFilters ? 1 : 0)})
-                    </button>
-                </div>
+    const breadcrumbItems = [
+        { name: storeName, url: pageUrl ? new URL(pageUrl).origin + '/' : '/' },
+        ...(selectedCategoryName
+            ? [{ name: selectedCategoryName, url: pageUrl }]
+            : [{ name: 'כל המוצרים', url: pageUrl }]
+        ),
+        ...(selectedSubcategoryName
+            ? [{ name: selectedSubcategoryName, url: pageUrl }]
+            : [])
+    ];
+
+    return (
+        <>
+            <Helmet>
+                <title>{pageTitle}</title>
+                <meta name="description" content={pageDescription} />
+                <link rel="canonical" href={pageUrl} />
+                <meta property="og:title" content={pageTitle} />
+                <meta property="og:description" content={pageDescription} />
+                <meta property="og:url" content={pageUrl} />
+                <meta property="og:type" content="website" />
+                {logoUrl && <meta property="og:image" content={logoUrl} />}
+                <meta name="twitter:title" content={pageTitle} />
+                <meta name="twitter:description" content={pageDescription} />
+                {logoUrl && <meta name="twitter:image" content={logoUrl} />}
+            </Helmet>
+
+            <BreadcrumbSchema items={breadcrumbItems} />
+            {products?.length > 0 && (
+                <CollectionPageSchema
+                    name={categoryName}
+                    description={pageDescription}
+                    products={products}
+                />
             )}
 
-            <div className="flex flex-col md:flex-row gap-8">
+            <div className={`sm:container sm:mx-auto py-0 sm:py-4 px-0 ${!isFullWidth ? 'sm:px-4' : ''} md:px-8 md:py-8`}>
+                <h1 className="text-3xl font-bold mb-6 text-center">{selectedSubcategoryName || selectedCategoryName || initialCategoryName || "כל המוצרים"}</h1>
 
-                {relevantCategory && (
-                    <FiltersSidebar
-                        selectedCategoryName={selectedCategoryName}
-                        selectedSubcategoryName={selectedSubcategoryName}
-                        relevantCategory={relevantCategory}
-                        activeFilters={activeFilters}
-                        availableFilters={availableFilters}
-                        onFilterChange={handleFilterChange}
-                        onBulkFilterChange={handleBulkFilterChange}
-                        dynamicSubcategories={dynamicSubcategories}
-                    />
+                {(Object.keys(activeFilters).length > 0 || hasPriceFilters) && (
+                    <div className="mb-4 text-center md:text-right">
+                        <button
+                            onClick={handleResetFilters}
+                            className="bg-red-500 text-white py-2 px-4 rounded-lg hover:bg-red-600 transition-colors shadow-md"
+                        >
+                            🗑️ איפוס כל הסינונים ({Object.keys(activeFilters).length + (hasPriceFilters ? 1 : 0)})
+                        </button>
+                    </div>
                 )}
 
-                <div className={`flex-1 grid ${isFullWidth ? "gap-0" : "gap-6"} sm:gap-6 grid-cols-1 sm:grid-cols-2 lg:grid-cols-2 xl:grid-cols-3`}>
-                    {loading && products?.length === 0 ? (
-                        <div className="flex justify-center items-center p-20 w-full">
-                            <Loader text="טוען מוצרים מהקטגוריה..." />
-                        </div>
-                    ) : products?.length === 0 ? (
-                        <div className="col-span-full text-center text-gray-500">
-                            לא נמצאו מוצרים תחת הסינונים הנוכחיים.
-                        </div>
-                    ) : (
-                        products?.map(product => (
-                            <div key={product._id} className={`flex flex-col h-full bg-white ${isFullWidth ? "rounded-none sm:rounded-[2rem] border-b" : "rounded-[2rem] border shadow-md"
-                                } sm:border border-gray-100 overflow-hidden hover:shadow-xl transition-shadow duration-300`}>
-                                <div className="flex-grow">
-                                    <ProductCard product={product} filters={activeFilters} />
-                                </div>
-                                {isAdmin && (
-                                    <div className="p-4 border-t bg-gray-50/50 space-y-2">
-                                        <div className="flex gap-2">
+                <div className="flex flex-col md:flex-row gap-8">
+
+                    {relevantCategory && (
+                        <FiltersSidebar
+                            selectedCategoryName={selectedCategoryName}
+                            selectedSubcategoryName={selectedSubcategoryName}
+                            relevantCategory={relevantCategory}
+                            activeFilters={activeFilters}
+                            availableFilters={availableFilters}
+                            onFilterChange={handleFilterChange}
+                            onBulkFilterChange={handleBulkFilterChange}
+                            dynamicSubcategories={dynamicSubcategories}
+                        />
+                    )}
+
+                    <div className={`flex-1 grid gap-0 ${isFullWidth ? 'sm:gap-0' : 'sm:gap-6'} grid-cols-1 sm:grid-cols-2 lg:grid-cols-2 xl:grid-cols-3`}>
+                        {loading && products?.length === 0 ? (
+                            <div className="flex justify-center items-center p-20 w-full">
+                                <Loader text="טוען מוצרים מהקטגוריה..." />
+                            </div>
+                        ) : products?.length === 0 ? (
+                            <div className="col-span-full text-center text-gray-500">
+                                לא נמצאו מוצרים תחת הסינונים הנוכחיים.
+                            </div>
+                        ) : (
+                            products?.map(product => (
+                                <div key={product._id} className={`flex flex-col h-full bg-white border-b border-gray-100 ${isFullWidth ? "sm:rounded-[2rem] sm:border" : "sm:rounded-[2rem] sm:border sm:shadow-md"
+                                    } overflow-hidden sm:hover:shadow-xl transition-shadow duration-300`}>
+                                    <div className="flex-grow">
+                                        <ProductCard product={product} filters={activeFilters} onAddToCart={handleAddToCart} />
+                                    </div>
+                                    {isAdmin && (
+                                        <div className="p-4 border-t bg-gray-50/50 space-y-2">
+                                            <div className="flex gap-2">
+                                                <button
+                                                    onClick={() => navigate(`/product-form/${product._id}`)}
+                                                    className="flex-1 py-2.5 bg-white text-gray-600 rounded-xl font-bold text-xs hover:bg-primary hover:text-white transition-all shadow-sm flex items-center justify-center gap-1.5"
+                                                >
+                                                    <Edit size={14} />
+                                                    <span>עריכה</span>
+                                                </button>
+                                                <button
+                                                    onClick={() => navigate(`/admin/update-variant/${product._id}`)}
+                                                    className="flex-1 py-2.5 bg-white text-gray-600 rounded-xl font-bold text-xs hover:bg-primary hover:text-white transition-all shadow-sm flex items-center justify-center gap-1.5"
+                                                >
+                                                    <Package size={14} />
+                                                    <span>מלאי</span>
+                                                </button>
+                                            </div>
                                             <button
-                                                onClick={() => navigate(`/product-form/${product._id}`)}
-                                                className="flex-1 py-2.5 bg-white text-gray-600 rounded-xl font-bold text-xs hover:bg-primary hover:text-white transition-all shadow-sm flex items-center justify-center gap-1.5"
+                                                onClick={() => openConfirm(
+                                                    'מחיקת מוצר',
+                                                    `האם אתה בטוח שברצונך למחוק את המוצר "${product.name}"?`,
+                                                    () => handleDeleteProduct(product._id)
+                                                )}
+                                                className="w-full py-2.5 bg-red-50 text-red-500 rounded-xl font-bold text-xs hover:bg-red-500 hover:text-white transition-all flex items-center justify-center gap-1.5"
                                             >
-                                                <Edit size={14} />
-                                                <span>עריכה</span>
-                                            </button>
-                                            <button
-                                                onClick={() => navigate(`/admin/update-variant/${product._id}`)}
-                                                className="flex-1 py-2.5 bg-white text-gray-600 rounded-xl font-bold text-xs hover:bg-primary hover:text-white transition-all shadow-sm flex items-center justify-center gap-1.5"
-                                            >
-                                                <Package size={14} />
-                                                <span>מלאי</span>
+                                                <Trash2 size={14} />
+                                                <span>מחיקת מוצר</span>
                                             </button>
                                         </div>
-                                        <button
-                                            onClick={() => openConfirm(
-                                                'מחיקת מוצר',
-                                                `האם אתה בטוח שברצונך למחוק את המוצר "${product.name}"?`,
-                                                () => handleDeleteProduct(product._id)
-                                            )}
-                                            className="w-full py-2.5 bg-red-50 text-red-500 rounded-xl font-bold text-xs hover:bg-red-500 hover:text-white transition-all flex items-center justify-center gap-1.5"
-                                        >
-                                            <Trash2 size={14} />
-                                            <span>מחיקת מוצר</span>
-                                        </button>
-                                    </div>
-                                )}
+                                    )}
+                                </div>
+                            ))
+                        )}
+                        {loadingMore && (
+                            <div className="col-span-full text-center py-4">
+                                <div className="inline-block h-8 w-8 animate-spin rounded-full border-4 border-solid border-green-600 border-r-transparent align-[-0.125em] motion-reduce:animate-[spin_1.5s_linear_infinite]" role="status">
+                                    <span className="!absolute !-m-px !h-px !w-px !overflow-hidden !whitespace-nowrap !border-0 !p-0 ![clip:rect(0,0,0,0)]">טוען...</span>
+                                </div>
                             </div>
-                        ))
-                    )}
-                    {loadingMore && (
-                        <div className="col-span-full text-center py-4">
-                            <div className="inline-block h-8 w-8 animate-spin rounded-full border-4 border-solid border-green-600 border-r-transparent align-[-0.125em] motion-reduce:animate-[spin_1.5s_linear_infinite]" role="status">
-                                <span className="!absolute !-m-px !h-px !w-px !overflow-hidden !whitespace-nowrap !border-0 !p-0 ![clip:rect(0,0,0,0)]">טוען...</span>
-                            </div>
-                        </div>
-                    )}
-                    {!hasMore && products?.length > 0 && (
-                        <p className="col-span-full text-center text-gray-500 py-6 italic border-t mt-6">הגעת לסוף רשימת המוצרים</p>
-                    )}
+                        )}
+                        {!hasMore && products?.length > 0 && (
+                            <p className="col-span-full text-center text-gray-500 py-6 italic border-t mt-6">הגעת לסוף רשימת המוצרים</p>
+                        )}
+                    </div>
                 </div>
+                <ConfirmationModal
+                    isOpen={confirmConfig.isOpen}
+                    onClose={() => setConfirmConfig({ ...confirmConfig, isOpen: false })}
+                    onConfirm={confirmConfig.onConfirm}
+                    title={confirmConfig.title}
+                    message={confirmConfig.message}
+                />
             </div>
-            <ConfirmationModal
-                isOpen={confirmConfig.isOpen}
-                onClose={() => setConfirmConfig({ ...confirmConfig, isOpen: false })}
-                onConfirm={confirmConfig.onConfirm}
-                title={confirmConfig.title}
-                message={confirmConfig.message}
-            />
-        </div>
+        </>
     );
 };
 

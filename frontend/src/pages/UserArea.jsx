@@ -4,17 +4,22 @@ import useStoreNavigate from '../hooks/useStoreNavigate';
 import { Package, User, LogOut, Settings, Calendar, CreditCard, ChevronLeft, MapPin } from 'lucide-react';
 import axios from 'axios';
 import Loader from '../components/Loader.jsx';
+import { useStore } from '../StoreContext';
 
 /**
  * UserArea Component.
  */
 const UserArea = () => {
     const { isAuthenticated, getToken, logout } = useAuth();
+    const { store } = useStore();
     const navigate = useStoreNavigate();
     const [userData, setUserData] = useState(null);
     const [userOrders, setUserOrders] = useState([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
+    const [savedCards, setSavedCards] = useState([]);
+    const [loadingCards, setLoadingCards] = useState(false);
+    const [showSavedCards, setShowSavedCards] = useState(false);
 
     const fetchUserDataAndOrders = useCallback(async () => {
         try {
@@ -52,13 +57,43 @@ const UserArea = () => {
         }
     };
 
+    const fetchSavedCards = useCallback(async () => {
+        try {
+            const token = getToken();
+            if (!token) return;
+            setLoadingCards(true);
+            const response = await axios.get(`${__API_URL__}/account/saved-cards`, {
+                headers: { Authorization: `Bearer ${token}` }
+            });
+            setSavedCards(response.data);
+        } catch (err) {
+            console.error('Failed to fetch saved cards:', err);
+        } finally {
+            setLoadingCards(false);
+        }
+    }, [getToken]);
+
+    const handleDeleteCard = async (cardId) => {
+        if (!window.confirm('האם אתה בטוח שברצונך להסיר כרטיס זה?')) return;
+        try {
+            const token = getToken();
+            await axios.delete(`${__API_URL__}/account/saved-cards/${cardId}`, {
+                headers: { Authorization: `Bearer ${token}` }
+            });
+            setSavedCards(prev => prev.filter(c => c._id !== cardId));
+        } catch (err) {
+            alert(err.response?.data?.message || 'שגיאה בהסרת הכרטיס');
+        }
+    };
+
     useEffect(() => {
         if (isAuthenticated) {
             fetchUserDataAndOrders();
+            fetchSavedCards();
         } else {
             navigate('/');
         }
-    }, [isAuthenticated, navigate, fetchUserDataAndOrders]);
+    }, [isAuthenticated, navigate, fetchUserDataAndOrders, fetchSavedCards]);
 
     if (loading) return <Loader text="טוען נתונים" />;
 
@@ -145,7 +180,7 @@ const UserArea = () => {
                 <div className="lg:col-span-2">
                     <div className="bg-white p-8 rounded-[2.5rem] shadow-sm border border-gray-50 min-h-[400px]">
                         <h3 className="text-2xl font-black text-gray-900 tracking-tighter mb-8">היסטוריית הזמנות</h3>
-                        
+
                         {userOrders.length === 0 ? (
                             <div className="flex flex-col items-center justify-center py-20 text-center">
                                 <Package className="text-gray-100 mb-4" size={80} />
@@ -167,10 +202,9 @@ const UserArea = () => {
                                                 </div>
                                             </div>
                                             <div className="flex items-center gap-3 w-full md:w-auto">
-                                                <div className={`px-4 py-2 rounded-xl text-xs font-black uppercase tracking-wider ${
-                                                    order.isCancelled ? 'bg-red-50 text-red-500' : 
+                                                <div className={`px-4 py-2 rounded-xl text-xs font-black uppercase tracking-wider ${order.isCancelled ? 'bg-red-50 text-red-500' :
                                                     order.isDelivered ? 'bg-green-50 text-green-500' : 'bg-blue-50 text-blue-500'
-                                                }`}>
+                                                    }`}>
                                                     {order.isCancelled ? 'בוטל' : (order.isDelivered ? 'נשלח' : 'בטיפול')}
                                                 </div>
                                                 <div className="bg-white px-4 py-2 rounded-xl text-gray-900 font-black border border-gray-100 shadow-sm">
@@ -186,28 +220,88 @@ const UserArea = () => {
                                             </div>
                                             <div className="flex items-center gap-3 text-sm text-gray-600">
                                                 <MapPin size={16} className="text-gray-400" />
-                                                <span>משלוח: {
-                                                    order.shippingMethod === 'home-delivery' ? 'עד הבית' :
-                                                    order.shippingMethod === 'pickup-point' ? 'נקודת איסוף' : 'איסוף עצמי'
+                                                <span> סוג משלוח: {
+                                                    order.shippingMethod === 'home-delivery' ? 'משלוח עד הבית' :
+                                                        order.shippingMethod === 'pickup-point' ? 'משלוח לנקודת איסוף' :
+                                                            order.shippingMethod === 'pickup-business' ? 'איסוף עצמי מבית העסק' :
+                                                                (order.shippingMethod || 'לא מוגדר')
                                                 }</span>
                                             </div>
                                         </div>
 
                                         {/* Order Items Mini List */}
                                         <div className="space-y-4 mb-6">
-                                            {order.orderItems.map((item, index) => (
-                                                <div key={item._id || index} className="flex items-center gap-4 bg-white p-3 rounded-2xl border border-gray-50">
-                                                    <img 
-                                                        src={item.product?.variants?.[0]?.imageUrls?.[0] || 'https://via.placeholder.com/150'} 
-                                                        alt={item.product?.name} 
-                                                        className="w-12 h-12 object-contain bg-gray-50 rounded-xl" 
-                                                    />
-                                                    <div className="flex-1">
-                                                        <p className="text-sm font-black text-gray-900">{item.product?.name || 'מוצר הוסר'}</p>
-                                                        <p className="text-[10px] text-gray-500 font-bold">כמות: {item.quantity}</p>
+                                            {order.orderItems.map((item, index) => {
+                                                const product = item.product;
+
+                                                if (!product) {
+                                                    return (
+                                                        <div key={`deleted-${index}`} className="flex items-center gap-4 bg-white p-3 rounded-2xl border border-gray-50 text-gray-400 italic text-xs">
+                                                            <span>מוצר אינו קיים יותר במערכת (כמות: {item.quantity})</span>
+                                                        </div>
+                                                    );
+                                                }
+
+                                                const variantId = typeof item.variant === 'string' ? item.variant : item.variant?._id;
+                                                let displayedVariant = product.variants?.find(v => v._id?.toString() === variantId);
+
+                                                let variantText = '';
+                                                if (item.attributes && Object.entries(item.attributes).length > 0) {
+                                                    variantText = Object.entries(item.attributes)
+                                                        .map(([key, value]) => `${key === 'color' ? 'צבע' : key === 'storage' ? 'נפח' : key === 'size' ? 'גודל' : key}: ${value}`)
+                                                        .join(', ');
+                                                } else if (displayedVariant) {
+                                                    const color = displayedVariant.color;
+                                                    const storage = displayedVariant.storage;
+                                                    variantText = (color && storage) ? `צבע: ${color}, נפח: ${storage}` : color ? `צבע: ${color}` : storage ? `נפח: ${storage}` : '';
+                                                }
+
+                                                const imageUrl = (displayedVariant?.imageUrls && displayedVariant.imageUrls.length > 0)
+                                                    ? displayedVariant.imageUrls[0]
+                                                    : (displayedVariant?.imageUrl
+                                                        || (product?.variants?.[0]?.imageUrls && product.variants[0].imageUrls.length > 0
+                                                            ? product.variants[0].imageUrls[0]
+                                                            : product?.variants?.[0]?.imageUrl)
+                                                        || 'https://via.placeholder.com/150');
+
+                                                return (
+                                                    <div key={item._id || index} className="flex items-start gap-4 bg-white p-3 rounded-2xl border border-gray-50">
+                                                        <img
+                                                            src={imageUrl}
+                                                            alt={product.name}
+                                                            className="w-12 h-12 object-contain bg-gray-50 rounded-xl flex-shrink-0"
+                                                        />
+                                                        <div className="flex-1 space-y-1">
+                                                            <div className="flex justify-between items-start gap-2">
+                                                                <p className="text-sm font-black text-gray-900">{product.name}</p>
+                                                                <span className="font-black text-gray-900 text-sm">₪{(item.quantity * item.price).toFixed(2)}</span>
+                                                            </div>
+
+                                                            <div className="flex flex-wrap gap-2 text-xs">
+                                                                <span className="bg-gray-100 text-gray-600 px-2 py-0.5 rounded-full font-bold">כמות: {item.quantity}</span>
+                                                                {variantText && <span className="text-gray-400 font-medium">• {variantText}</span>}
+                                                            </div>
+
+                                                            {/* Item Upgrades & Options */}
+                                                            {item.selectedOptions && item.selectedOptions.length > 0 && (
+                                                                <div className="text-xs text-gray-500 mt-2 space-y-0.5 pr-2 border-r-2 border-primary/20 bg-gray-50/50 p-2 rounded-lg inline-block">
+                                                                    {item.selectedOptions.map((opt, oIdx) => (
+                                                                        <div key={oIdx} className="flex items-center gap-1.5 flex-wrap">
+                                                                            <span className="font-bold text-gray-700">{opt.name}:</span>
+                                                                            <span className="text-gray-600">{opt.choice}</span>
+                                                                            {opt.priceAddition > 0 && (
+                                                                                <span className="text-green-600 font-bold">
+                                                                                    (+₪{opt.priceAddition.toFixed(2)})
+                                                                                </span>
+                                                                            )}
+                                                                        </div>
+                                                                    ))}
+                                                                </div>
+                                                            )}
+                                                        </div>
                                                     </div>
-                                                </div>
-                                            ))}
+                                                );
+                                            })}
                                         </div>
 
                                         {!order.isCancelled && !order.isDelivered && (
@@ -224,6 +318,70 @@ const UserArea = () => {
                         )}
                     </div>
                 </div>
+
+                {/* Saved Cards Section */}
+                {store?.paymentSettings?.hyp?.isEnterprise && (
+                    <div className="bg-white p-8 rounded-[2.5rem] shadow-sm border border-gray-50 min-h-[200px]">
+                        <div className="flex items-center justify-between mb-8">
+                        <h3 className="text-2xl font-black text-gray-900 tracking-tighter">כרטיסי אשראי שמורים</h3>
+                        <button
+                            onClick={() => { setShowSavedCards(!showSavedCards); if (!showSavedCards && savedCards.length === 0) fetchSavedCards(); }}
+                            className="text-sm font-black text-primary hover:underline"
+                        >
+                            {showSavedCards ? 'הסתר' : 'הצג'}
+                        </button>
+                    </div>
+
+                    {loadingCards && (
+                        <div className="flex items-center justify-center py-12">
+                            <div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin"></div>
+                        </div>
+                    )}
+
+                    {!loadingCards && showSavedCards && savedCards.length === 0 && (
+                        <div className="flex flex-col items-center justify-center py-12 text-center">
+                            <CreditCard className="text-gray-100 mb-4" size={60} />
+                            <p className="text-gray-500 font-bold">אין כרטיסים שמורים</p>
+                            <p className="text-gray-400 text-sm mt-1">בתשלום הבא תוכל לשמור כרטיס לרכישות עתידיות</p>
+                        </div>
+                    )}
+
+                    {!loadingCards && showSavedCards && savedCards.length > 0 && (
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                            {savedCards.map((card) => (
+                                <div key={card._id} className="bg-gradient-to-br from-primary to-primary/80 text-white p-5 rounded-[1.5rem] shadow-lg relative overflow-hidden">
+                                    <div className="absolute top-3 left-3 opacity-20">
+                                        <svg width="40" height="30" viewBox="0 0 50 30" fill="white">
+                                            <rect x="2" y="2" width="46" height="26" rx="3" stroke="white" strokeWidth="1.5" fill="none" />
+                                            <line x1="5" y1="12" x2="45" y2="12" stroke="white" strokeWidth="1" />
+                                            <line x1="5" y1="18" x2="25" y2="18" stroke="white" strokeWidth="1" />
+                                            <line x1="30" y1="8" x2="40" y2="8" stroke="white" strokeWidth="1" />
+                                        </svg>
+                                    </div>
+                                    <div className="relative z-10">
+                                        <div className="flex justify-between items-start mb-6">
+                                            <div>
+                                                <p className="text-[10px] font-bold text-white/70 uppercase tracking-widest">כרטיס אשראי</p>
+                                                <p className="text-lg font-black tracking-wider mt-1">**** {card.lastFour}</p>
+                                            </div>
+                                            <div className="text-right">
+                                                <p className="text-[10px] font-bold text-white/70 uppercase">תוקף</p>
+                                                <p className="font-bold">{card.expiryMonth}/{card.expiryYear.slice(2)}</p>
+                                            </div>
+                                        </div>
+                                        <button
+                                            onClick={() => handleDeleteCard(card._id)}
+                                            className="mt-2 text-xs font-bold text-white/80 hover:text-white bg-white/20 px-3 py-1.5 rounded-xl hover:bg-red-500/60 transition-all"
+                                        >
+                                            הסר כרטיס
+                                        </button>
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                    )}
+                </div>
+                )}
             </div>
         </div>
     );

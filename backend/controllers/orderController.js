@@ -69,7 +69,8 @@ const createOrder = async (req, res) => {
         shippingMethod,
         shippingPrice,
         otpCode,
-        phone
+        phone,
+        saveCard
     } = req.body;
 
     if (!orderItems || orderItems.length === 0) {
@@ -182,6 +183,7 @@ const createOrder = async (req, res) => {
 
             orderItemsWithPrice.push({
                 product: item.product,
+                name: product.name,
                 variant: item.variant,
                 attributes: attributes,
                 selectedOptions: item.selectedOptions || [],
@@ -256,65 +258,207 @@ const createOrder = async (req, res) => {
                 throw new Error("לא הוגדרה חברת סליקה פעילה עבור חנות זו.");
             }
             if (activeProvider === 'hyp') {
-                const { dirName, username, autoInvoice } = paymentSettings?.hyp || {};
-
+                const { dirName, username, autoInvoice, isEnterprise, isSandbox } = paymentSettings?.hyp || {};
                 const { password, apiKey } = req.store.getDecryptedHypCredentials();
 
                 if (!dirName || !username || !password || !apiKey) {
                     throw new Error("פרטי מסוף ה-Hyp של החנות חסרים או לא הוגדרו כראוי במערכת.");
                 }
 
-                const hypApiUrl = 'https://pay.hyp.co.il/p/';
+                const storeSlug = req.store.slug || 'default';
+                const successUrl = `${req.headers.origin}/store/${storeSlug}/order-confirmation/${orderId}?status=success`;
+                const errorUrl = `${req.headers.origin}/store/${storeSlug}/checkout?status=failed&orderId=${orderId}`;
+                const cancelUrl = `${req.headers.origin}/store/${storeSlug}/checkout?status=cancelled&orderId=${orderId}`;
 
-                const payload = {
-                    action: 'APISign',
-                    What: 'SIGN',
-                    Sign: 'True',
-                    Masof: dirName,
-                    KEY: apiKey,
-                    PassP: password,
-                    Amount: totalPrice.toString(),
-                    Order: orderId.toString(),
-                    Coin: '1',
-                    PageLang: 'HEB',
-                    UTF8: 'True'
+                let paymentPageUrl = '';
+                
+                const HypToken = require('../models/hypToken');
+                
+                const uiCustomData = {
+                    redirectTargetParent: true,
+                    customStyle: ":root { --primary-color: #3a45d9; --secondary-color: #1f2937; --primary-contrast-color: #ffffff; --secondary-contrast-color: #ffffff; } #cg-submit-btn { background-color: #3a45d9; border-color: #3a45d9; color: #ffffff; border-radius: 8px; font-weight: 700; } #cg-submit-btn:hover { opacity: 0.9; } .cg-input:focus { border-color: #3a45d9; box-shadow: 0 0 0 3px #3a45d933; } a { color: #3a45d9; } #logo-icon { display: none; }",
+                    customText: {
+                        "cg-pd-title": `תשלום ל${req.store.name || "החנות שלי"}`,
+                        "cg-form-title": "פרטי תשלום",
+                        "cg-submit-btn": `שלם ₪${totalPrice.toFixed(2)}`,
+                        "label-card-number": "מספר כרטיס אשראי",
+                        "label-expYear": "שנה",
+                        "label-expMonth": "חודש",
+                        "label-cvv": "CVV",
+                        "label-card-id": "ת.ז. / תעודת עולה",
+                        "cg-cancel-btn": "ביטול",
+                        "label-card-holder-name": "שם בעל הכרטיס",
+                        "cg-wallet-pay": "שלם באמצעות ארנק דיגיטלי",
+                        "cg-google-pay-btn": "Google Pay",
+                        "cg-apple-pay-btn": "Apple Pay",
+                        "cg-bit-btn": "Pay with bit",
+                        "label-bit-name": "שם מלא (bit)",
+                        "label-bit-phone": "מספר טלפון (bit)"
+                    }
                 };
-                if (autoInvoice === true) {
-                    const itemsForInvoice = orderItems.map(item => {
-                        const itemCode = '0';
-                        const productName = item.name || 'מוצר בחנות';
-                        const quantity = item.quantity;
-                        const priceIncludingVat = item.price;
-                        return `[${itemCode}~${productName}~${quantity}~${priceIncludingVat}]`;
-                    });
 
-                    if (shippingPrice > 0) {
-                        itemsForInvoice.push(`[0~דמי משלוח~1~${shippingPrice}]`);
+                const ppsConfig = {
+                    frameAncestorURLs: process.env.FRONTEND_URL || 'http://localhost:5173',
+                    uiCustomData: uiCustomData
+                };
+
+                if (req.body.paymentTokenId) {
+                    const tokenDoc = await HypToken.findOne({
+                        _id: req.body.paymentTokenId,
+                        storeId: req.storeId,
+                        active: true
+                    });
+                    
+                    if (!tokenDoc) {
+                        throw new Error("כרטיס שמור לא נמצא או אינו פעיל.");
                     }
 
-                    payload.Pritim = 'True';
-                    payload.heshDesc = itemsForInvoice.join('');
-                    payload.SendHesh = 'True';
-                    payload.email = finalEmail;
-                    payload['EZ.lang'] = 'he';
+                    const tokefYYMM = tokenDoc.tokef || "";
+                    let cardExpMMYY = tokefYYMM;
+                    if (tokefYYMM.length === 4) {
+                        cardExpMMYY = tokefYYMM.substring(2, 4) + tokefYYMM.substring(0, 2);
+                    }
+
+                    ppsConfig.uiCustomData.paymentMethods = [
+                        {
+                            type: "token",
+                            token: tokenDoc.token,
+                            cardExpiration: cardExpMMYY,
+                            autoSubmit: true
+                        }
+                    ];
+                    ppsConfig.uiCustomData.skipPaymentMethodsScreen = true;
                 }
 
-                const params = new URLSearchParams(payload);
-                const hypResponse = await axios.get(`${hypApiUrl}?${params.toString()}`);
-                const responseData = hypResponse.data;
+                if (isEnterprise === true) {
+                    const cgRelayUrl = isSandbox !== false 
+                        ? 'https://cguat2.creditguard.co.il/xpo/Relay' 
+                        : 'https://cg.pay.co.il/xpo/Relay';
 
-                if (responseData && responseData.includes('signature=')) {
-                    const paymentPageUrl = `${hypApiUrl}?${responseData}`;
+                    const amountInCents = Math.round(totalPrice * 100);
 
-                    await order.save();
+                    let xmlPayload = `
+<ashrait>
+    <request>
+        <command>doDeal</command>
+        <requestId></requestId>
+        <version>2000</version>
+        <language>HEB</language>
+        <doDeal>
+            <terminalNumber>${dirName}</terminalNumber>
+            <cardNo>CGMPI</cardNo>
+            <total>${amountInCents}</total>
+            <transactionType>Debit</transactionType>
+            <creditType>RegularCredit</creditType>
+            <currency>ILS</currency>
+            <transactionCode>Internet</transactionCode>
+            <validation>TxnSetup</validation>
+            <mid>${apiKey}</mid>
+            <uniqueid>${orderId}</uniqueid>
+            <mpiValidation>AutoComm</mpiValidation>
+            <successUrl>${successUrl}</successUrl>
+            <errorUrl>${errorUrl}</errorUrl>
+            <cancelUrl>${cancelUrl}</cancelUrl>
+            <user>${username}</user>
+            <password>${password}</password>
+            <ppsJSONConfig><![CDATA[${JSON.stringify(ppsConfig)}]]></ppsJSONConfig>
+        </doDeal>
+    </request>
+</ashrait>`;
 
-                    return res.status(201).json({
-                        forwardToPayment: true,
-                        paymentUrl: paymentPageUrl
+                    const params = new URLSearchParams({ int_in: xmlPayload.trim() });
+
+                    const hypResponse = await axios.post(cgRelayUrl, params.toString(), {
+                        headers: {
+                            'Content-Type': 'application/x-www-form-urlencoded'
+                        }
                     });
+
+                    const { XMLParser } = require('fast-xml-parser');
+                    const parser = new XMLParser();
+                    const parsedResponse = parser.parse(hypResponse.data);
+
+                    if (parsedResponse?.ashrait?.response?.result === '000') {
+                        paymentPageUrl = parsedResponse.ashrait.response.doDeal.mpiHostedPageUrl;
+                        if (typeof paymentPageUrl === 'string') {
+                            paymentPageUrl = paymentPageUrl.trim();
+                        }
+                    } else {
+                        const errorMsg = parsedResponse?.ashrait?.response?.userMessage || parsedResponse?.ashrait?.response?.message || hypResponse.data;
+                        throw new Error(`שגיאה ביצירת דף התשלום (Enterprise). תגובת שרת: ${errorMsg}`);
+                    }
                 } else {
-                    throw new Error(`שרת הסליקה דחה את הפקת החתימה. תגובה: ${responseData}`);
+                    // Legacy Hyp Pay (Ya'ad Sarig) Flow
+                    const hypApiUrl = 'https://pay.hyp.co.il/p/';
+
+                    const payload = {
+                        action: 'APISign',
+                        What: 'SIGN',
+                        Sign: 'True',
+                        Masof: dirName,
+                        KEY: apiKey,
+                        PassP: password,
+                        Amount: totalPrice.toString(),
+                        Order: orderId.toString(),
+                        Coin: '1',
+                        PageLang: 'HEB',
+                        UTF8: 'True',
+                        ClientName: shippingAddress?.firstName || 'לקוח',
+                        ClientLName: shippingAddress?.lastName || '',
+                        successUrl,
+                        errorUrl,
+                        cancelUrl,
+                        ppsJSONConfig: JSON.stringify(ppsConfig)
+                    };
+
+                    if (saveCard === true) {
+                        payload.Tkn = '1';
+                    }
+                    
+                    if (autoInvoice === true) {
+                        const itemsForInvoice = orderItemsWithPrice.map(item => {
+                            const itemCode = '0';
+                            const productName = item.name || 'מוצר בחנות';
+                            const quantity = item.quantity;
+                            const priceIncludingVat = item.price;
+                            return `[${itemCode}~${productName}~${quantity}~${priceIncludingVat}]`;
+                        });
+
+                        if (shippingPrice > 0) {
+                            itemsForInvoice.push(`[0~דמי משלוח~1~${shippingPrice}]`);
+                        }
+
+                        payload.Pritim = 'True';
+                        payload.heshDesc = itemsForInvoice.join('');
+                        payload.SendHesh = 'True';
+                        payload.email = finalEmail;
+                        payload['EZ.lang'] = 'he';
+                    }
+
+                    const apisignParams = new URLSearchParams(payload);
+                    const hypResponse = await axios.get(`${hypApiUrl}?${apisignParams.toString()}`);
+                    const responseData = hypResponse.data;
+
+                    if (responseData && responseData.includes('signature=')) {
+                        paymentPageUrl = `${hypApiUrl}?${responseData}`;
+                    } else {
+                        throw new Error(`שרת הסליקה דחה את הפקת החתימה. תגובה: ${responseData}`);
+                    }
                 }
+
+                order.paymentResult = {
+                    id: orderId.toString(),
+                    provider: 'hyp',
+                    status: 'pending',
+                    saveCard: saveCard === true
+                };
+
+                await order.save();
+
+                return res.status(201).json({
+                    forwardToPayment: true,
+                    paymentUrl: paymentPageUrl
+                });
             }
             if (activeProvider === 'verifone') {
                 const { username, password, entityId, paymentContractId } = paymentSettings.verifone || {};
@@ -529,8 +673,18 @@ const getOrderDetails = async (req, res) => {
                     const populatedOrder = await Order.findById(order._id).populate('orderItems.product');
 
                     try {
-                        await sendInvoice(populatedOrder.toObject(), req.store);
-                        console.log(`[Invoice]: Document successfully generated for order ${order._id}`);
+                        const isEnterprise = req.store?.paymentSettings?.hyp?.isEnterprise;
+                        const autoInvoice = req.store?.paymentSettings?.hyp?.autoInvoice;
+
+                        if (activePaymentProvider === 'hyp' && isEnterprise === true && autoInvoice === true && cgUid) {
+                            await sendHypEnterpriseInvoice(populatedOrder.toObject(), req.store, cgUid);
+                            console.log(`[Enterprise Invoice]: Document successfully generated for order ${order._id}`);
+                        } else if (activePaymentProvider !== 'hyp' || isEnterprise !== true) {
+                            // Hyp Pay (Ya'ad Sarig) handles this automatically inside APISign.
+                            // Only trigger sendInvoice for non-Hyp or if custom logic requires.
+                            await sendInvoice(populatedOrder.toObject(), req.store);
+                            console.log(`[Invoice]: Document successfully generated for order ${order._id}`);
+                        }
                     } catch (invoiceErr) {
                         console.error(`[Invoice system error] for order ${order._id}:`, invoiceErr.message);
                     }
@@ -710,6 +864,82 @@ const updateOrderToDelivered = async (req, res) => {
         res.status(404).json({ message: 'הזמנה לא נמצאה' });
     }
 };
+
+async function sendHypEnterpriseInvoice(order, store, cgUid) {
+    const { dirName, username, isSandbox } = store.paymentSettings?.hyp || {};
+    const { password, apiKey } = store.getDecryptedHypCredentials();
+
+    if (!dirName || !username || !password) {
+        throw new Error("Missing Hyp Enterprise credentials for invoicing.");
+    }
+
+    const cgRelayUrl = isSandbox !== false 
+        ? 'https://cguat2.creditguard.co.il/xpo/Relay' 
+        : 'https://cg.pay.co.il/xpo/Relay';
+
+    const itemCodes = [];
+    const itemNames = [];
+    const itemQuantities = [];
+    const itemPrices = [];
+
+    for (const item of order.orderItems) {
+        itemCodes.push('0');
+        itemNames.push((item.product?.name || item.name || 'מוצר').replace(/[|<>]/g, ''));
+        itemQuantities.push(item.quantity);
+        itemPrices.push(Math.round(item.price * 100)); // convert to cents
+    }
+
+    if (order.shippingPrice > 0) {
+        itemCodes.push('0');
+        itemNames.push('דמי משלוח');
+        itemQuantities.push('1');
+        itemPrices.push(Math.round(order.shippingPrice * 100));
+    }
+
+    const xmlPayload = `
+<ashrait>
+    <request>
+        <version>2000</version>
+        <language>HEB</language>
+        <command>addCgInvoice</command>
+        <addCgInvoice>
+            <invoiceAtranId>${cgUid}</invoiceAtranId>
+            <terminalNumber>${dirName}</terminalNumber>
+            <user>${username}</user>
+            <password>${password}</password>
+            <mid>${apiKey}</mid>
+            <invoice>
+                <invoiceCreationMethod>wait</invoiceCreationMethod>
+                <invoiceSubject>חשבונית מס קבלה - ${store.name || 'הזמנה'}</invoiceSubject>
+                <invoiceItemCode>${itemCodes.join('|')}</invoiceItemCode>
+                <invoiceItemDescription>${itemNames.join('|')}</invoiceItemDescription>
+                <invoiceItemQuantity>${itemQuantities.join('|')}</invoiceItemQuantity>
+                <invoiceItemPrice>${itemPrices.join('|')}</invoiceItemPrice>
+                <companyInfo>${order.shippingAddress?.fullName || order.user?.username || 'לקוח'}</companyInfo>
+                <mailTo>${order.shippingAddress?.email || order.user?.email}</mailTo>
+                <isItemPriceWithTax>1</isItemPriceWithTax>
+                <sendMail>1</sendMail>
+            </invoice>
+        </addCgInvoice>
+    </request>
+</ashrait>`;
+
+    const params = new URLSearchParams({ int_in: xmlPayload.trim() });
+    
+    const hypResponse = await axios.post(cgRelayUrl, params.toString(), {
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' }
+    });
+
+    const { XMLParser } = require('fast-xml-parser');
+    const parser = new XMLParser();
+    const parsed = parser.parse(hypResponse.data);
+
+    if (parsed?.ashrait?.response?.result !== '000') {
+        throw new Error(parsed?.ashrait?.response?.userMessage || "Failed to issue Enterprise invoice");
+    }
+
+    return parsed?.ashrait?.response?.addCgInvoice?.invoice?.invoiceDocUrl;
+}
 
 module.exports = {
     createOrder,

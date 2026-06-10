@@ -6,6 +6,7 @@ import { useStore } from '../StoreContext';
 import StoreLink from '../components/StoreLink';
 import Loader from '../components/Loader';
 import { FaBookOpen, FaCalendarAlt, FaArrowRight, FaClock } from 'react-icons/fa';
+import { BreadcrumbSchema } from '../components/StructuredData';
 
 /**
  * ArticleShowPage Component.
@@ -65,7 +66,7 @@ const ArticleShowPage = () => {
         "@context": "https://schema.org",
         "@type": "Article",
         "headline": article.title,
-        "image": article.image ? [article.image] : [store?.design?.faviconUrl || '/top-tech.svg'],
+        "image": article.image ? [article.image] : [store?.design?.faviconUrl || '/PowerDevLogo.png'],
         "datePublished": article.createdAt,
         "dateModified": article.updatedAt || article.createdAt,
         "author": {
@@ -87,12 +88,32 @@ const ArticleShowPage = () => {
         <div className="min-h-screen bg-gray-50/50 py-12 px-6 lg:px-12" dir="rtl">
             <Helmet>
                 <title>{`${article.title} | ${store?.name || 'Top Tech'}`}</title>
+                <meta name="description" content={article.content?.replace(/<[^>]*>/g, '').slice(0, 160) || `קראו את המאמר "${article.title}" בבלוג של ${store?.name || 'Top Tech'}`} />
+                <link rel="canonical" href={typeof window !== 'undefined' ? window.location.href : ''} />
+                <meta property="og:title" content={`${article.title} | ${store?.name || 'Top Tech'}`} />
+                <meta property="og:description" content={article.content?.replace(/<[^>]*>/g, '').slice(0, 200) || `קראו את המאמר המלא בבלוג של ${store?.name || 'Top Tech'}`} />
+                <meta property="og:url" content={typeof window !== 'undefined' ? window.location.href : ''} />
+                <meta property="og:type" content="article" />
+                {article.image && <meta property="og:image" content={article.image} />}
+                <meta property="article:published_time" content={article.createdAt} />
+                <meta property="article:author" content={store?.name || 'Top Tech'} />
+                <meta name="twitter:card" content="summary_large_image" />
+                <meta name="twitter:title" content={`${article.title} | ${store?.name || 'Top Tech'}`} />
+                <meta name="twitter:description" content={article.content?.replace(/<[^>]*>/g, '').slice(0, 200) || article.title} />
+                {article.image && <meta name="twitter:image" content={article.image} />}
                 <script type="application/ld+json">
                     {JSON.stringify(schemaData)}
                 </script>
             </Helmet>
+
+            <BreadcrumbSchema items={[
+                { name: store?.name || 'PowerDev', url: '/' },
+                { name: 'מאמרים', url: '/articles' },
+                { name: article.title, url: typeof window !== 'undefined' ? window.location.href : '' }
+            ]} />
+
             <div className="max-w-[900px] mx-auto">
-                
+
                 {/* Back Button */}
                 <div className="mb-8 animate-in fade-in slide-in-from-right-4 duration-500">
                     <StoreLink
@@ -106,7 +127,7 @@ const ArticleShowPage = () => {
 
                 {/* Article Container */}
                 <article className="bg-white rounded-[3rem] border border-gray-100 shadow-[0_20px_50px_-12px_rgba(0,0,0,0.03)] overflow-hidden animate-in fade-in slide-in-from-bottom-8 duration-700">
-                    
+
                     {/* Header Cover Image */}
                     {article.image && (
                         <div className="relative aspect-[21/9] w-full overflow-hidden bg-gray-100">
@@ -121,7 +142,7 @@ const ArticleShowPage = () => {
 
                     {/* Content Section */}
                     <div className="p-8 lg:p-16 space-y-8">
-                        
+
                         {/* Meta */}
                         <div className="flex flex-wrap gap-6 items-center text-sm font-bold text-gray-400">
                             <div className="flex items-center gap-2">

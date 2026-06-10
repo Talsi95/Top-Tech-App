@@ -16,6 +16,7 @@ const {
     uploadVideo,
     deleteVideoFromCloudinary
 } = require('../controllers/productController');
+const { upload: importUpload, importProducts, getImportStatus } = require('../controllers/productImportController');
 
 
 router.get('/', asyncHandler(getProducts));
@@ -32,6 +33,8 @@ router.get('/:id', asyncHandler(getProductById));
 router.post('/', asyncHandler(createProduct));
 router.post('/upload-video', protect, admin, upload.single('video'), asyncHandler(uploadVideo));
 router.post('/delete-video', protect, admin, asyncHandler(deleteVideoFromCloudinary));
+router.post('/import', protect, admin, importUpload.single('file'), asyncHandler(importProducts));
+router.get('/import/status/:jobId', protect, admin, asyncHandler(getImportStatus));
 
 
 
